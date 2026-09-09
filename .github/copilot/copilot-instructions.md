@@ -1,5 +1,6 @@
 Guidelines:
 - keep a .log file for debugging and monitoring purposes with the last 2 actions that you performed(.github/logs)
+- follow this workflow: implement feature then test it immediately make sure it works then finish the implementation
 - Backend
 	- SOLID + OOP
 	- Best Practices
