@@ -1,0 +1,2 @@
+1. Switched MediaPipe face recognition to VIDEO mode with monotonic timestamps.
+2. Added EMA smoothing for blendshape scores and verified transient-spike behavior.
