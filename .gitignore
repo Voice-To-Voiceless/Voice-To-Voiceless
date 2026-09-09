@@ -1,4 +1,7 @@
- # Environment files
+# Git ignore file for the V2VL project
+.vscode/
+
+# Environment files
 .env
 .env.*
 !.env.example
