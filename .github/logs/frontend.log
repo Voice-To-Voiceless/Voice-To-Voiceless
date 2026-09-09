@@ -1,0 +1,2 @@
+2026-09-09: Added the webcam eye-tracking implementation plan to .vscode/eye-tracking-implementation-plan.md.
+2026-09-09: Defined the browser-first MVP scope, MediaPipe pipeline, calibration, dwell selection, testing, backend contract, and React Native migration phases.
