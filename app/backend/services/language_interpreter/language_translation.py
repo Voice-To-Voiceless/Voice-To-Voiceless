@@ -1,1 +1,0 @@
-"""Language translation implementation entry point."""

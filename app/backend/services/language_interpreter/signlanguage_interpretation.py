@@ -1,1 +1,0 @@
-"""Sign-language interpretation implementation entry point."""
