@@ -1,0 +1,6 @@
+2026-09-09 - Added injectable sign-language model, English translator, HTTP frame endpoint, and live WebSocket translation endpoint.
+2026-09-09 - Validated Python compilation, health endpoint, and HTTP translation with an injected model; WebSocket client probe is blocked by the installed TestClient/httpx incompatibility.
+2026-09-09 - Added 16-frame ASL word buffering for live WebSocket inference and documented the official WLASL pretrained checkpoint.
+2026-09-09 - Installed the CPU ML/API runtime, corrected WLASL I3D temporal-logit aggregation, and passed compile/import validation.
+2026-09-09 - WLASL checkpoint download was blocked by a Google Drive TLS handshake failure; the adapter remains ready for a local checkpoint.
+2026-09-09 - Downloaded and validated the public ASL2000 GitHub mirror, enabled automatic local model discovery, and verified real 16-frame inference plus the running health endpoint.

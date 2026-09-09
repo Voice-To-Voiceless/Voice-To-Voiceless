@@ -16,3 +16,9 @@ htmlcov/
 dist/
 build/
 *.egg-info/
+
+# Local ML environments and checkpoints
+.venv/
+.uv-cache/
+.tmp-wlasl/
+models/
