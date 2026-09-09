@@ -2,26 +2,26 @@ Guidelines:
 - keep a .log file for debugging and monitoring purposes with the last 2 actions that you performed(.github/logs)
 - follow this workflow: implement feature then test it immediately make sure it works then finish the implementation
 - Backend
-	- SOLID + OOP
-	- Best Practices
-	- PEP 8 Naming Conventions + Style
-	- Abstract as much as possible and eliminate tight coupling using interfaces and dependency injection
+  - SOLID + OOP
+  - Best Practices
+  - PEP 8 Naming Conventions + Style
+  - Abstract as much as possible and eliminate tight coupling using interfaces and dependency injection
 - Frontend
-	- UI/UX design principles and best practices
-	- SOLID best practices where applicable
-	- Abstract as much as possible
-	- NO repeated code
-
+  - UI/UX design principles and best practices
+  - SOLID best practices where applicable
+  - Abstract as much as possible
+  - NO repeated code
+ 
 Technology Stack:
 - Frontend:
-	- React Native
+  - React Native
 - Backend:
-	- Python(uv package manager)
-	- FastAPI
+  - Python(uv package manager)
+  - FastAPI
 - DataBase:
-	- PostgreSQL(Patient table, nurse table, rooms)
-	- Redis(caching patient needs)
-
+  - PostgreSQL(Patient table, nurse table, rooms)
+  - Redis(caching patient needs)
+ 
 Functionality
 1) Eye Tracking (basic needs + Yes / No / Help / Emergency actions)
 2) ML/AI for communication barrier (different languages/sign language)
