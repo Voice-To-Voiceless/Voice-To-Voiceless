@@ -1,4 +1,5 @@
 Guidelines:
+- keep a .log file for debugging and monitoring purposes with the last 2 actions that you performed(.github/logs)
 - Backend
 	- SOLID + OOP
 	- Best Practices
