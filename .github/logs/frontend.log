@@ -1,0 +1,2 @@
+2026-09-09: Replaced the React Native starter screen with the first V2VL communication board and added the reusable DwellSelector interaction core.
+2026-09-09: Installed locked frontend dependencies and verified TypeScript plus Jest validation; all 3 tests pass.
