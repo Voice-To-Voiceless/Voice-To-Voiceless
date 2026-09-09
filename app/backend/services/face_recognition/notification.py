@@ -1,0 +1,1 @@
+"""Face-recognition notification entry point."""

@@ -1,0 +1,1 @@
+"""Face interpretation implementation entry point."""

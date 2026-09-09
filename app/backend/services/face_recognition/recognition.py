@@ -1,0 +1,1 @@
+"""Face-recognition implementation entry point."""
