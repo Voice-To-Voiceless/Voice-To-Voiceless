@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { DwellSelector } from '../interaction/dwellSelector';
-import { appStyles } from '../styles/appStyles';
+import { boardStyles } from '../styles/boardStyles';
 import { ActionDefinition, ActionId } from '../types/communication';
 
 type CommunicationBoardProps = {
@@ -19,12 +19,12 @@ export function CommunicationBoard({
 }: CommunicationBoardProps) {
   return (
     <>
-      <View style={appStyles.sectionHeading}>
-        <Text style={appStyles.sectionTitle}>Common needs</Text>
-        <Text style={appStyles.sectionHint}>Touch a choice to continue</Text>
+      <View style={boardStyles.sectionHeading}>
+        <Text style={boardStyles.sectionTitle}>Common needs</Text>
+        <Text style={boardStyles.sectionHint}>Touch a choice to continue</Text>
       </View>
 
-      <View style={appStyles.actionGrid}>
+      <View style={boardStyles.actionGrid}>
         {actions.map(action => (
           <Pressable
             key={action.id}
@@ -34,13 +34,13 @@ export function CommunicationBoard({
             onPressIn={() => dwellSelector.begin(action.id, Date.now())}
             onPressOut={() => dwellSelector.cancel()}
             style={({ pressed }) => [
-              appStyles.actionCard,
-              appStyles[`${action.tone}Card`],
-              selectedAction === action.id && appStyles.selectedCard,
-              pressed && appStyles.pressed,
+              boardStyles.actionCard,
+              boardStyles[`${action.tone}Card`],
+              selectedAction === action.id && boardStyles.selectedCard,
+              pressed && boardStyles.pressed,
             ]}>
-            <Text style={appStyles.actionLabel}>{action.label}</Text>
-            <Text style={appStyles.actionDescription}>{action.description}</Text>
+            <Text style={boardStyles.actionLabel}>{action.label}</Text>
+            <Text style={boardStyles.actionDescription}>{action.description}</Text>
           </Pressable>
         ))}
       </View>
