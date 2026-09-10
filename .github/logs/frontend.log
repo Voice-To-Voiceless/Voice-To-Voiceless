@@ -1,2 +1,2 @@
-2026-09-10: Persisted Windows JAVA_HOME, Android SDK, ADB, and emulator configuration; verified Java, adb, Pixel_Tablet, and emulator-5554.
-2026-09-10: Added docs/android-development-setup.md with permanent Android setup, verification, Metro, and troubleshooting instructions.
+2026-09-10: Reduced the default joystick deadzone from 0.12 to 0.08; focused joystick tests pass.
+2026-09-10: Tuned joystick response to 0.04 deadzone, 1.4 speed, quadratic curve, and faster acceleration; all 14 tests pass.
