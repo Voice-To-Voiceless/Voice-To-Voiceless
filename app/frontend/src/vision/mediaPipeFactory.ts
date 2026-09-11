@@ -13,6 +13,7 @@ export async function createMediaPipeLandmarker(
     minFacePresenceConfidence: minimumConfidence,
     minTrackingConfidence: minimumConfidence,
     numFaces: 1,
+    outputFaceBlendshapes: true,
     runningMode: 'VIDEO',
   });
 }

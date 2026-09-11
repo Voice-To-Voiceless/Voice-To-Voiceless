@@ -47,6 +47,8 @@ h2 { font-size: 1.4rem; margin: 0; }
 .action-description { color: #68766c; font: 13px/1.35 Arial, sans-serif; }
 .dwell-progress { background: #1f6b3a; bottom: 0; height: 8px; left: 0; position: absolute; transition: width .08s linear; }
 .tracking-button { background: #18352a; border: 0; border-radius: 10px; color: white; cursor: pointer; font: 700 14px Arial, sans-serif; margin-top: 14px; padding: 13px 17px; }
+.face-recognition-button { background: #fff8ed; border: 1px solid #d99d5b; border-radius: 10px; color: #844618; cursor: pointer; font: 700 14px Arial, sans-serif; margin: 14px 0 0 8px; padding: 12px 16px; }
+.tracking-button:disabled, .face-recognition-button:disabled { cursor: not-allowed; opacity: .5; }
 .calibration-button { background: #fff8ed; border: 1px solid #d99d5b; border-radius: 10px; color: #844618; cursor: pointer; font: 700 14px Arial, sans-serif; margin: 14px 0 0 8px; padding: 12px 16px; }
 .calibration-button:disabled { cursor: wait; opacity: .65; }
 .footer-note { margin: 18px 0 0; text-align: center; }
