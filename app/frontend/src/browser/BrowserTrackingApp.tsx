@@ -57,11 +57,11 @@ export function BrowserTrackingApp() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const [tracking, setTracking] = useState(false);
   const [faceRecognition, setFaceRecognition] = useState(false);
-  const [_faceState, setFaceState] = useState('normal');
-  const [_faceRisk, setFaceRisk] = useState(0);
-  const [_faceIndicators, setFaceIndicators] = useState<string[]>([]);
-  const [_faceExpression, setFaceExpression] = useState('neutral');
-  const [_faceConfidence, setFaceConfidence] = useState(0);
+  const [faceState, setFaceState] = useState('normal');
+  const [faceRisk, setFaceRisk] = useState(0);
+  const [faceIndicators, setFaceIndicators] = useState<string[]>([]);
+  const [faceExpression, setFaceExpression] = useState('neutral');
+  const [faceConfidence, setFaceConfidence] = useState(0);
   const [status, setStatus] = useState('Camera is off. Start tracking to begin.');
   const [error, setError] = useState<string | null>(null);
   const [gazePoint, setGazePoint] = useState<{ x: number; y: number } | null>(null);
