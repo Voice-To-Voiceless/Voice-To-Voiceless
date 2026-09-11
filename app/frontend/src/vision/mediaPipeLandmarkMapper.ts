@@ -7,7 +7,7 @@ export function mapMediaPipeLandmarks(
   timestamp: number,
   confidence: number,
 ): FaceLandmarkObservation | null {
-  const requiredLandmarkIndices = [33, 133, 145, 159, 263, 362, 374, 386, 468, 473];
+  const requiredLandmarkIndices = [1, 6, 10, 33, 133, 145, 152, 159, 234, 263, 362, 374, 386, 454, 468, 473];
   if (requiredLandmarkIndices.some(index => landmarks[index] === undefined)) {
     return null;
   }
@@ -33,6 +33,14 @@ export function mapMediaPipeLandmarks(
       lowerLid: landmarks[374],
       irisCenter: landmarks[473],
       confidence,
+    },
+    faceAnchors: {
+      noseBridge: landmarks[6],
+      noseTip: landmarks[1],
+      forehead: landmarks[10],
+      chin: landmarks[152],
+      leftCheek: landmarks[234],
+      rightCheek: landmarks[454],
     },
     timestamp,
   };

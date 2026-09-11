@@ -4,7 +4,7 @@ export class GazeSmoother {
   private readonly alpha: number;
   private smoothedPoint: NormalizedGazePoint | null = null;
 
-  public constructor(alpha = 0.35) {
+  public constructor(alpha = 0.30) {
     if (alpha <= 0 || alpha > 1) {
       throw new Error('Smoothing alpha must be greater than zero and at most one.');
     }
