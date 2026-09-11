@@ -13,8 +13,18 @@ type FaceLandmarkerLike = {
   detectForVideo: (
     frame: unknown,
     timestamp: number,
-  ) => { faceLandmarks: Array<Array<{ x: number; y: number }>> };
+  ) => {
+    faceLandmarks: Array<Array<{ x: number; y: number }>>;
+    faceBlendshapes?: Array<{
+      categories: Array<{ categoryName?: string; score?: number }>;
+    }>;
+  };
   close: () => void;
+};
+
+export type FaceExpressionObservation = {
+  blendshapes: Record<string, number>;
+  timestamp: number;
 };
 
 type MediaPipeFaceLandmarkerOptions = {
@@ -61,6 +71,27 @@ export class MediaPipeFaceLandmarkerAdapter implements FaceLandmarkerAdapter {
       frame.timestamp,
       this.options.minimumConfidence ?? 0.5,
     );
+  }
+
+  public async processExpressionFrame(frame: VisionFrame): Promise<FaceExpressionObservation | null> {
+    if (this.landmarker === null) {
+      throw new Error('MediaPipe face landmarker must be initialized before processing frames.');
+    }
+
+    const result = this.landmarker.detectForVideo(frame.data, frame.timestamp);
+    const categories = result.faceBlendshapes?.[0]?.categories;
+    if (categories === undefined) {
+      return null;
+    }
+
+    return {
+      blendshapes: Object.fromEntries(
+        categories
+          .filter(category => category.categoryName !== undefined && category.score !== undefined)
+          .map(category => [category.categoryName!, category.score!]),
+      ),
+      timestamp: frame.timestamp,
+    };
   }
 
   public dispose(): void {
