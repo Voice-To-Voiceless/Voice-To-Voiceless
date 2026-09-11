@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { MediaPipeFaceLandmarkerAdapter } from '../vision/mediaPipeFaceLandmarker';
 import { estimateGaze } from '../vision/gazeEstimator';
 import { GazeSmoother } from '../vision/gazeSmoother';
@@ -69,11 +69,6 @@ export function BrowserTrackingApp() {
   const [statusVisible, setStatusVisible] = useState(true);
   const [selectedNoticeVisible, setSelectedNoticeVisible] = useState(false);
 
-  useEffect(() => () => {
-    stopTracking();
-    stopFaceRecognition();
-  }, []);
-
   useEffect(() => {
     setStatusVisible(true);
     const timer = window.setTimeout(() => setStatusVisible(false), ALERT_DURATION_MS);
@@ -133,7 +128,7 @@ export function BrowserTrackingApp() {
     }
   }
 
-  function stopTracking() {
+  const stopTracking = useCallback(() => {
     if (animationFrameRef.current !== null) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
@@ -155,7 +150,7 @@ export function BrowserTrackingApp() {
     setDwellProgress(0);
     setTracking(false);
     setCalibrating(false);
-  }
+  }, []);
 
   async function startFaceRecognition() {
     if (trackingRef.current) {
@@ -196,10 +191,9 @@ export function BrowserTrackingApp() {
     }
   }
 
-  function stopFaceRecognition() {
+  const stopFaceRecognition = useCallback(() => {
     if (
       !faceRecognitionRef.current &&
-      !faceRecognition &&
       streamRef.current === null &&
       adapterRef.current === null
     ) {
@@ -223,7 +217,12 @@ export function BrowserTrackingApp() {
     setFaceExpression('neutral');
     setFaceConfidence(0);
     setStatus('Camera is off. Start a mode to begin.');
-  }
+  }, []);
+
+  useEffect(() => () => {
+    stopTracking();
+    stopFaceRecognition();
+  }, [stopTracking, stopFaceRecognition]);
 
   async function processFaceRecognitionFrame(timestamp: number) {
     const video = videoRef.current;
