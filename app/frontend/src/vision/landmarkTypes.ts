@@ -1,6 +1,9 @@
 export type LandmarkPoint = {
   x: number;
   y: number;
+  z?: number;
+  visibility?: number;
+  presence?: number;
 };
 
 export type EyeObservation = {
@@ -12,9 +15,19 @@ export type EyeObservation = {
   confidence: number;
 };
 
+export type FaceAnchors = {
+  noseBridge: LandmarkPoint;
+  noseTip: LandmarkPoint;
+  forehead: LandmarkPoint;
+  chin: LandmarkPoint;
+  leftCheek: LandmarkPoint;
+  rightCheek: LandmarkPoint;
+};
+
 export type FaceLandmarkObservation = {
   leftEye: EyeObservation;
   rightEye: EyeObservation;
+  faceAnchors?: FaceAnchors;
   timestamp: number;
 };
 
