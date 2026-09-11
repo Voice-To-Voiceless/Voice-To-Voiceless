@@ -1,6 +1,7 @@
 # Git ignore file for the V2VL project
 .vscode/
 logs/
+*.log
 node_modules/
 
 # Environment files
