@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { MediaPipeFaceLandmarkerAdapter } from '../vision/mediaPipeFaceLandmarker';
 import { estimateGaze } from '../vision/gazeEstimator';
 import { GazeSmoother } from '../vision/gazeSmoother';
@@ -46,8 +46,16 @@ export function BrowserTrackingApp() {
   const animationFrameRef = useRef<number | null>(null);
   const trackingRef = useRef(false);
   const processingFrameRef = useRef(false);
+  const faceRecognitionRef = useRef(false);
+  const faceRecognitionProcessingRef = useRef(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const [tracking, setTracking] = useState(false);
+  const [faceRecognition, setFaceRecognition] = useState(false);
+  const [faceState, setFaceState] = useState('normal');
+  const [faceRisk, setFaceRisk] = useState(0);
+  const [faceIndicators, setFaceIndicators] = useState<string[]>([]);
+  const [faceExpression, setFaceExpression] = useState('neutral');
+  const [faceConfidence, setFaceConfidence] = useState(0);
   const [status, setStatus] = useState('Camera is off. Start tracking to begin.');
   const [error, setError] = useState<string | null>(null);
   const [gazePoint, setGazePoint] = useState<{ x: number; y: number } | null>(null);
@@ -60,8 +68,6 @@ export function BrowserTrackingApp() {
   const [calibrationReady, setCalibrationReady] = useState(false);
   const [statusVisible, setStatusVisible] = useState(true);
   const [selectedNoticeVisible, setSelectedNoticeVisible] = useState(false);
-
-  useEffect(() => stopTracking, []);
 
   useEffect(() => {
     setStatusVisible(true);
@@ -81,6 +87,10 @@ export function BrowserTrackingApp() {
   }, [selectedAction]);
 
   async function startTracking() {
+    if (faceRecognitionRef.current) {
+      return;
+    }
+
     setError(null);
     setStatus('Requesting camera permission...');
     prepareAudio().catch(() => undefined);
@@ -118,7 +128,7 @@ export function BrowserTrackingApp() {
     }
   }
 
-  function stopTracking() {
+  const stopTracking = useCallback(() => {
     if (animationFrameRef.current !== null) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
@@ -140,6 +150,163 @@ export function BrowserTrackingApp() {
     setDwellProgress(0);
     setTracking(false);
     setCalibrating(false);
+  }, []);
+
+  async function startFaceRecognition() {
+    if (trackingRef.current) {
+      return;
+    }
+
+    setError(null);
+    setStatus('Starting face recognition...');
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user' },
+        audio: false,
+      });
+      streamRef.current = stream;
+
+      if (videoRef.current === null) {
+        throw new Error('Video preview is unavailable.');
+      }
+
+      videoRef.current.srcObject = stream;
+      await videoRef.current.play();
+      const adapter = new MediaPipeFaceLandmarkerAdapter({
+        wasmPath: WASM_PATH,
+        modelPath: MODEL_PATH,
+      });
+      await adapter.initialize();
+      adapterRef.current = adapter;
+      faceRecognitionRef.current = true;
+      setFaceRecognition(true);
+      setStatus('Face recognition is live.');
+      animationFrameRef.current = requestAnimationFrame(processFaceRecognitionFrame);
+    } catch (recognitionError) {
+      stopFaceRecognition();
+      const message = recognitionError instanceof Error ? recognitionError.message : 'Face recognition could not start.';
+      setError(message);
+      setStatus('Face recognition unavailable.');
+    }
+  }
+
+  const stopFaceRecognition = useCallback(() => {
+    if (
+      !faceRecognitionRef.current &&
+      streamRef.current === null &&
+      adapterRef.current === null
+    ) {
+      return;
+    }
+
+    if (animationFrameRef.current !== null) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    adapterRef.current?.dispose();
+    adapterRef.current = null;
+    streamRef.current?.getTracks().forEach(track => track.stop());
+    streamRef.current = null;
+    faceRecognitionRef.current = false;
+    faceRecognitionProcessingRef.current = false;
+    setFaceRecognition(false);
+    setFaceState('normal');
+    setFaceRisk(0);
+    setFaceIndicators([]);
+    setFaceExpression('neutral');
+    setFaceConfidence(0);
+    setStatus('Camera is off. Start a mode to begin.');
+  }, []);
+
+  useEffect(() => () => {
+    stopTracking();
+    stopFaceRecognition();
+  }, [stopTracking, stopFaceRecognition]);
+
+  async function processFaceRecognitionFrame(timestamp: number) {
+    const video = videoRef.current;
+    const adapter = adapterRef.current;
+    if (!faceRecognitionRef.current || faceRecognitionProcessingRef.current || video === null || adapter === null) {
+      return;
+    }
+
+    faceRecognitionProcessingRef.current = true;
+    try {
+      const observation = await adapter.processExpressionFrame({ data: video, timestamp });
+      if (observation === null) {
+        setFaceState('no_face');
+        setFaceRisk(0);
+        setFaceIndicators([]);
+        setFaceExpression('no_face');
+        setFaceConfidence(0);
+      } else {
+        const scores = observation.blendshapes;
+        const smile = ((scores.mouthSmileLeft ?? 0) + (scores.mouthSmileRight ?? 0)) / 2;
+        const frown = ((scores.mouthFrownLeft ?? 0) + (scores.mouthFrownRight ?? 0)) / 2;
+        const sadness = Math.min(0.75 * frown + 0.25 * (scores.browInnerUp ?? 0), 1);
+        const indicators: string[] = [];
+        let risk = 0;
+        if (smile >= 0.4 && smile >= sadness) {
+          setFaceState('normal');
+          setFaceRisk(0);
+          setFaceIndicators([]);
+          setFaceExpression('possible_smile');
+          setFaceConfidence(smile);
+        } else if (sadness >= 0.25) {
+          setFaceExpression('possible_sadness');
+          setFaceConfidence(sadness);
+        } else {
+          setFaceExpression('neutral');
+          setFaceConfidence(Math.max(smile, sadness));
+        }
+
+        if (!(smile >= 0.4 && smile >= sadness)) {
+          const browTension = Math.max(scores.browDownLeft ?? 0, scores.browDownRight ?? 0);
+          if (browTension > 0.25) {
+            indicators.push('brow_tension');
+            risk += Math.min(browTension * 0.4, 0.4);
+          }
+
+          const eyeTension = Math.max(scores.eyeSquintLeft ?? 0, scores.eyeSquintRight ?? 0);
+          if (eyeTension > 0.25) {
+            indicators.push('eye_tension');
+            risk += Math.min(eyeTension * 0.4, 0.4);
+          }
+
+          const jawOpen = scores.jawOpen ?? 0;
+          if (jawOpen > 0.25) {
+            indicators.push('mouth_open');
+            risk += Math.min(jawOpen * 0.25, 0.25);
+          }
+
+          const mouthDiscomfort = Math.max(
+            scores.mouthFrownLeft ?? 0,
+            scores.mouthFrownRight ?? 0,
+            scores.mouthPressLeft ?? 0,
+            scores.mouthPressRight ?? 0,
+            scores.mouthStretchLeft ?? 0,
+            scores.mouthStretchRight ?? 0,
+            scores.noseSneerLeft ?? 0,
+            scores.noseSneerRight ?? 0,
+          );
+          if (mouthDiscomfort > 0.25) {
+            indicators.push('mouth_discomfort');
+            risk += Math.min(mouthDiscomfort * 0.4, 0.4);
+          }
+
+          risk = Math.min(risk, 1);
+          setFaceState(risk >= 0.45 ? 'attention_required' : risk >= 0.22 ? 'possible_discomfort' : 'normal');
+          setFaceRisk(risk);
+          setFaceIndicators(indicators);
+        }
+      }
+    } finally {
+      faceRecognitionProcessingRef.current = false;
+      if (faceRecognitionRef.current) {
+        animationFrameRef.current = requestAnimationFrame(processFaceRecognitionFrame);
+      }
+    }
   }
 
   async function processFrame(timestamp: number) {
@@ -379,7 +546,11 @@ export function BrowserTrackingApp() {
         <video ref={videoRef} className="camera-preview" autoPlay muted playsInline />
         <div className="camera-overlay">
           <span className="camera-status-dot" />
-          {tracking ? 'Camera and face model ready' : 'Camera preview'}
+          {tracking
+            ? 'Eye tracking active'
+            : faceRecognition
+              ? `Face: ${faceState} | risk: ${faceRisk.toFixed(2)} | ${faceExpression} (${faceConfidence.toFixed(2)})${faceIndicators.length > 0 ? ` | ${faceIndicators.join(', ')}` : ''}`
+              : 'Camera preview'}
         </div>
       </section>
 
@@ -428,8 +599,15 @@ export function BrowserTrackingApp() {
         </div>
       </section>
 
-      <button type="button" className="tracking-button" onClick={tracking ? stopTracking : startTracking}>
+      <button type="button" className="tracking-button" onClick={tracking ? stopTracking : startTracking} disabled={faceRecognition}>
         {tracking ? 'Stop eye tracking' : 'Start eye tracking'}
+      </button>
+      <button
+        type="button"
+        className="face-recognition-button"
+        onClick={faceRecognition ? stopFaceRecognition : startFaceRecognition}
+        disabled={tracking}>
+        {faceRecognition ? 'Stop face recognition' : 'Test face recognition'}
       </button>
       {tracking && (
         <button type="button" className="calibration-button" onClick={startCalibration} disabled={calibrating}>

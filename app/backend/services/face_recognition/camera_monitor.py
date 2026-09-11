@@ -33,6 +33,9 @@ class CameraMonitor:
                         interpretation.state,
                         interpretation.risk_score,
                         interpretation.indicators,
+                        observation.blendshapes,
+                        interpretation.expression,
+                        interpretation.expression_confidence,
                     )
                     cv2.imshow("Patient face monitoring", frame)
 
@@ -48,6 +51,9 @@ class CameraMonitor:
         state: str,
         risk_score: float,
         indicators: tuple[str, ...],
+        blendshapes: dict[str, float],
+        expression: str,
+        expression_confidence: float,
     ) -> None:
         color = {
             "attention_required": (0, 0, 255),
@@ -55,11 +61,39 @@ class CameraMonitor:
         }.get(state, (0, 255, 0))
         label = f"{state} | risk: {risk_score:.2f}"
         cv2.putText(frame, label, (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
+        expression_label = (
+            f"expression: {expression} | confidence: "
+            f"{expression_confidence:.2f}"
+        )
+        cv2.putText(
+            frame,
+            expression_label,
+            (20, 75),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.65,
+            color,
+            2,
+        )
+        debug_label = (
+            "debug frown: "
+            f"{blendshapes.get('mouthFrownLeft', 0.0):.2f}/"
+            f"{blendshapes.get('mouthFrownRight', 0.0):.2f}  "
+            f"inner_brow: {blendshapes.get('browInnerUp', 0.0):.2f}"
+        )
+        cv2.putText(
+            frame,
+            debug_label,
+            (20, 110),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.5,
+            color,
+            1,
+        )
         if indicators:
             cv2.putText(
                 frame,
                 "signals: " + ", ".join(indicators),
-                (20, 75),
+                (20, 140),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.55,
                 color,
