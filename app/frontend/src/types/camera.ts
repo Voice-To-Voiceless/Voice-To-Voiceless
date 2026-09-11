@@ -1,0 +1,1 @@
+export type CameraStatus = 'initializing' | 'ready' | 'error';
