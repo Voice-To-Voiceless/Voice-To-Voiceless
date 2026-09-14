@@ -1,5 +1,4 @@
 import "./CameraPanel.css";
-
 import type { CameraPanelProps } from "./CameraPanel.types";
 
 export default function CameraPanel({
@@ -10,35 +9,49 @@ export default function CameraPanel({
     return (
         <section className="camera-panel">
 
-            <header className="camera-panel__header">
+    <header className="camera-panel__header">
 
-                <span className="camera-panel__live">
-                    {isLive ? "● LIVE" : "OFFLINE"}
-                </span>
+        <div className="camera-panel__live">
 
-                <span className="camera-panel__fps">
-                    {fps} FPS
-                </span>
+            <span className="camera-panel__live-dot" />
 
-            </header>
+            LIVE
 
-            <div className="camera-panel__preview">
+        </div>
 
-                {children}
+        <div className="camera-panel__fps">
 
-            </div>
+            60 FPS
 
-            <footer className="camera-panel__footer">
+        </div>
 
-                <h3>
-                    Eye Tracking Active
-                </h3>
+    </header>
 
-                <p>
-                    Keep looking at your selection
-                </p>
+    <div className="camera-panel__content">
 
-            </footer>
+        {children}
+
+    </div>
+
+    <footer className="camera-panel__footer">
+
+        <div>
+
+            <h3>Eye Tracking Active</h3>
+
+            <p>
+                Look at an option to select it.
+            </p>
+
+        </div>
+
+        <button className="camera-panel__fullscreen">
+
+            ⛶
+
+        </button>
+
+    </footer>
 
         </section>
     );

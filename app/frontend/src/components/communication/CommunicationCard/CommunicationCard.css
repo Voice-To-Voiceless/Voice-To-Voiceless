@@ -1,111 +1,175 @@
-.communication-card {
-    position: relative;
+.communication-card{
 
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+    position:relative;
 
-    gap: 16px;
+    display:flex;
 
-    width: 100%;
-    min-height: 190px;
+    flex-direction:column;
 
-    padding: 24px;
+    justify-content:center;
 
-    background: #FFFFFF;
+    align-items:center;
 
-    border: 2px solid #E2E8F0;
-    border-radius: 24px;
+    gap:22px;
 
-    cursor: pointer;
+    width:100%;
+
+    aspect-ratio:1;
+
+    border:none;
+
+    border-radius:28px;
+
+    background:#FFFFFF;
+
+    cursor:pointer;
+
+    overflow:hidden;
 
     transition:
         transform .25s ease,
         box-shadow .25s ease,
-        border-color .25s ease,
         background .25s ease;
 
-    overflow: hidden;
+    box-shadow:
+        0 12px 30px rgba(15,23,42,.05);
 }
 
-.communication-card:hover {
-    transform: translateY(-4px);
+.communication-card:hover{
 
-    box-shadow: 0 16px 40px rgba(15, 23, 42, .08);
+    transform:translateY(-6px);
+
+    box-shadow:
+        0 18px 40px rgba(15,23,42,.12);
 }
 
-.communication-card__icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.communication-card__icon{
 
-    font-size: 52px;
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    font-size:70px;
 }
 
-.communication-card__content {
-    text-align: center;
+.communication-card__title{
+
+    margin:0;
+
+    font-size:28px;
+
+    font-weight:700;
+
+    letter-spacing:.03em;
+
+    color:#0F172A;
 }
 
-.communication-card__title {
-    margin: 0;
+.communication-card--hover{
 
-    font-size: 22px;
-    font-weight: 700;
+    transform:scale(1.03);
 
-    color: #1E293B;
+    box-shadow:
+        0 20px 45px rgba(47,128,237,.18);
+
+    border:2px solid #2F80ED;
 }
 
-.communication-card__subtitle {
-    margin-top: 8px;
+.communication-card--selected{
 
-    font-size: 15px;
+    background:#F0FDF4;
 
-    color: #64748B;
+    border:2px solid #27AE60;
+
+    transform:scale(1.03);
 }
 
-.communication-card__progress {
-    position: absolute;
+.communication-card__selected{
 
-    bottom: 0;
-    left: 0;
+    position:absolute;
 
-    width: 100%;
-    height: 8px;
+    top:18px;
 
-    background: #E2E8F0;
+    right:18px;
+
+    width:34px;
+
+    height:34px;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    border-radius:50%;
+
+    background:#27AE60;
+
+    color:white;
 }
 
-.communication-card__progress-fill {
-    height: 100%;
+.communication-card__progress{
 
-    background: #2F80ED;
+    position:absolute;
 
-    transition: width .15s linear;
+    inset:0;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    flex-direction:column;
+
+    backdrop-filter:blur(2px);
+
+    background:rgba(255,255,255,.72);
 }
 
-.communication-card--hover {
-    border-color: #2F80ED;
+.communication-card__progress svg{
 
-    transform: scale(1.02);
+    width:90px;
 
-    box-shadow: 0 16px 40px rgba(47, 128, 237, .15);
+    height:90px;
+
+    transform:rotate(-90deg);
 }
 
-.communication-card--selected {
-    border-color: #27AE60;
+.communication-card__progress-background{
 
-    background: #F1FCF6;
+    fill:none;
 
-    box-shadow: 0 18px 40px rgba(39, 174, 96, .18);
+    stroke:#E2E8F0;
+
+    stroke-width:8;
 }
 
-.communication-card--progress {
-    border-color: #2F80ED;
+.communication-card__progress-value{
+
+    fill:none;
+
+    stroke:#2F80ED;
+
+    stroke-width:8;
+
+    stroke-linecap:round;
+
+    stroke-dasharray:264;
+
+    transition:.15s linear;
 }
 
-.communication-card--disabled {
-    opacity: .45;
+.communication-card__progress span{
 
-    pointer-events: none;
+    position:absolute;
+
+    font-size:22px;
+
+    font-weight:700;
+
+    color:#0F172A;
 }

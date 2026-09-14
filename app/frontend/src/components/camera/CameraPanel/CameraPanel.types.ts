@@ -1,5 +1,7 @@
+import { ReactNode } from "react";
+
 export interface CameraPanelProps {
     isLive: boolean;
     fps: number;
-    children?: React.ReactNode;
+    children?: ReactNode;
 }

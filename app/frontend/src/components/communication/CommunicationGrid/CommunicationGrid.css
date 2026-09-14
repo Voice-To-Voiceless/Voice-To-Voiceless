@@ -1,21 +1,28 @@
-.communication-grid {
-    display: grid;
+.communication-grid{
 
-    grid-template-columns: repeat(4, minmax(180px, 1fr));
+    display:grid;
 
-    gap: 24px;
+    grid-template-columns:repeat(4,1fr);
 
-    width: 100%;
+    gap:28px;
+
+    width:100%;
 }
 
-@media (max-width: 1200px) {
-    .communication-grid {
-        grid-template-columns: repeat(2, 1fr);
+@media (max-width:1200px){
+
+    .communication-grid{
+
+        grid-template-columns:repeat(2,1fr);
     }
+
 }
 
-@media (max-width: 768px) {
-    .communication-grid {
-        grid-template-columns: 1fr;
+@media (max-width:700px){
+
+    .communication-grid{
+
+        grid-template-columns:1fr;
     }
+
 }

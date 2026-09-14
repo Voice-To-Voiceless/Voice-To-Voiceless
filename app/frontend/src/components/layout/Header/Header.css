@@ -1,0 +1,82 @@
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 24px 36px;
+
+    margin-bottom: 32px;
+
+    background: #FFFFFF;
+
+    border-radius: 28px;
+
+    box-shadow: 0 10px 35px rgba(15,23,42,.06);
+}
+
+.app-header__brand {
+    display: flex;
+    align-items: center;
+
+    gap: 20px;
+}
+
+.app-header__logo {
+    width: 72px;
+    height: 72px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    border-radius: 22px;
+
+    background: linear-gradient(
+        135deg,
+        #27AE60,
+        #134E4A
+    );
+
+    color: white;
+}
+
+.app-header__title {
+    margin: 0;
+
+    font-size: 34px;
+    font-weight: 700;
+
+    color: #0F172A;
+}
+
+.app-header__subtitle {
+    margin-top: 6px;
+
+    color: #64748B;
+
+    font-size: 16px;
+}
+
+.app-header__actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+@media (max-width:1100px){
+
+    .app-header{
+
+        flex-direction:column;
+
+        align-items:flex-start;
+
+        gap:24px;
+    }
+
+    .app-header__actions{
+
+        flex-wrap:wrap;
+    }
+
+}
