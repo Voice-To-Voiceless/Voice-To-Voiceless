@@ -1,2 +1,14 @@
-2026-09-11: Converted status and selection panels into timed floating alerts; all 17 frontend tests pass.
-2026-09-11: Added high-contrast chosen-state feedback and Web Audio confirmation tones; all 17 tests pass.
+2026-09-14: Added MediaPipe landmark contract tests and persisted the focused eye-tracking diagnostics implementation plan under .vscode.
+2026-09-14: Added structured binocular gaze diagnostics to the calibration JSON capture; full Jest suite, typecheck, lint, and web build pass.
+2026-09-14: Corrected MediaPipe eye-corner mapping to preserve anatomical inner/outer landmarks and removed the invalid screen-x orientation rejection.
+2026-09-14: Focused and full frontend tests, TypeScript, lint, and web production build pass after the eye-orientation fix.
+2026-09-14: Added iris-ring landmarks 468-472 and 473-477 plus eye midpoint, explicit width, and direct horizontal-position diagnostics to the JSON capture.
+2026-09-14: Iris diagnostic tests and full frontend Jest suite pass; typecheck, lint, and web build passed for the experiment source.
+2026-09-14: Added explicit screen-side metadata and normalized both mapped eyes into a shared left-to-right horizontal gaze coordinate.
+2026-09-14: Binocular coordinate regression, full 39-test suite, typecheck, lint, and web build pass after screen-side normalization.
+2026-09-14: Added bounded calibration fit comparison export for raw, pose-compensated, and smoothed gaze paths without changing the active mapper path.
+2026-09-14: Calibration comparison diagnostics, full 39-test suite, typecheck, lint, and web build pass.
+2026-09-14: Temporarily switched active calibration sampling from smoothed pose-compensated gaze to raw gaze; comparison paths remain available in diagnostics.
+2026-09-14: Raw calibration sampling passes the full 39-test suite, typecheck, lint, and web build.
+2026-09-14: Added diagnostic-only pose-conditioned calibration fit using raw gaze plus captured yaw and pitch; raw calibration remains the active path.
+2026-09-14: Pose-conditioned diagnostics pass typecheck, full 39-test suite, lint, and web build.

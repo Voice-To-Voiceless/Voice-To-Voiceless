@@ -39,3 +39,53 @@ test('clamps mapped coordinates to the screen', () => {
   expect(mapped.x).toBe(0);
   expect(mapped.y).toBe(1);
 });
+
+test('uses the median of repeated target samples', () => {
+  const repeatedSamples = samples.flatMap(sample => [
+    sample,
+    { ...sample, gaze: { x: sample.gaze.x + 0.01, y: sample.gaze.y - 0.01 } },
+    { ...sample, gaze: { x: sample.gaze.x - 0.01, y: sample.gaze.y + 0.01 } },
+  ]);
+  repeatedSamples.push({ gaze: { x: 1, y: 0 }, target: samples[0].target });
+
+  const mapper = GazeCalibrationMapper.fit(repeatedSamples);
+
+  expect(mapper).not.toBeNull();
+  expect(mapper!.map({ x: 0.3, y: 0.7, confidence: 0.9, timestamp: 100 }).x).toBeCloseTo(0.275);
+});
+
+test('rejects unstable target samples and high residual error', () => {
+  const unstableSamples = samples.flatMap(sample => [
+    sample,
+    { ...sample, gaze: { x: sample.gaze.x + 0.2, y: sample.gaze.y } },
+  ]);
+  expect(GazeCalibrationMapper.fit(unstableSamples)).toBeNull();
+
+  const noisySamples = samples.map((sample, index) => ({
+    ...sample,
+    target: index === 4 ? { x: 1, y: 0 } : sample.target,
+  }));
+  expect(GazeCalibrationMapper.fit(noisySamples)).toBeNull();
+});
+
+test('accepts a usable mapping with normal webcam noise', () => {
+  const noisySamples = samples.map((sample, index) => ({
+    ...sample,
+    target: {
+      x: sample.target.x + (index % 2 === 0 ? 0.04 : -0.04),
+      y: sample.target.y + (index % 3 === 0 ? 0.03 : -0.03),
+    },
+  }));
+
+  expect(GazeCalibrationMapper.fit(noisySamples)).not.toBeNull();
+});
+
+test('keeps calibration usable when one target is unstable', () => {
+  const samplesWithOneUnstableTarget = samples.flatMap((sample, index) =>
+    index === 4
+      ? [sample, { ...sample, gaze: { x: sample.gaze.x + 0.2, y: sample.gaze.y } }]
+      : [sample],
+  );
+
+  expect(GazeCalibrationMapper.fit(samplesWithOneUnstableTarget)).not.toBeNull();
+});
