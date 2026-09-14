@@ -43,19 +43,31 @@ export default function CameraOverlay({
 
                 <StatusItem
                     icon={<Camera size={18} />}
-                    label="Face Detected"
+                    label={
+                        faceDetected
+                            ? "Face Detected"
+                            : "No Face"
+                    }
                     active={faceDetected}
                 />
 
                 <StatusItem
                     icon={<Eye size={18} />}
-                    label="Eye Tracking"
+                    label={
+                        trackingActive
+                            ? "Eye Tracking"
+                            : "Tracking Off"
+                    }
                     active={trackingActive}
                 />
 
                 <StatusItem
                     icon={<CircleCheck size={18} />}
-                    label="Calibration"
+                    label={
+                        calibrationComplete
+                            ? "Calibration Ready"
+                            : "Calibration Required"
+                    }
                     active={calibrationComplete}
                 />
 

@@ -40,7 +40,7 @@ export default function CameraPanel({
             <h3>Eye Tracking Active</h3>
 
             <p>
-                Look at an option to select it.
+                Look at an option to communicate.
             </p>
 
         </div>

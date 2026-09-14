@@ -12,6 +12,9 @@ import { ActionDefinition, ActionId, COMMUNICATION_ACTIONS } from '../types/comm
 import { NormalizedGazePoint } from '../vision/gazeTypes';
 import AppLayout from "../components/layout/AppLayout";
 import CommunicationBoard from "../components/communication/CommunicationBoard";
+import { CameraPanel } from "../components/camera/CameraPanel";
+import CameraPreview from "../components/camera/CameraPreview";
+import CameraOverlay from "../components/camera/CameraOverlay";
 
 import type { CommunicationAction } from "../components/communication";
 
@@ -32,43 +35,6 @@ const CALIBRATION_TARGETS = [
   { x: 0.5, y: 0.9 },
   { x: 0.9, y: 0.9 },
 ];
-
-type CameraOverlayProps = {
-  isLive: boolean;
-  fps: number;
-  faceDetected: boolean;
-  trackingActive: boolean;
-  calibrationComplete: boolean;
-};
-
-function CameraPanel({ children }: { children: React.ReactNode }) {
-  return <section className="camera-panel">{children}</section>;
-}
-
-function CameraPreview({ children }: { children: React.ReactNode }) {
-  return <div className="camera-preview-container">{children}</div>;
-}
-
-function CameraOverlay({
-  isLive,
-  fps,
-  faceDetected,
-  trackingActive,
-  calibrationComplete,
-}: CameraOverlayProps) {
-  return (
-    <div className="camera-overlay">
-      <span className="camera-status-dot" />
-      {trackingActive
-        ? `Eye tracking active | ${fps} FPS${calibrationComplete ? ' | calibrated' : ''}`
-        : isLive
-          ? faceDetected
-            ? 'Face detected'
-            : 'Looking for a face'
-          : 'Camera preview'}
-    </div>
-  );
-}
 
 export function BrowserTrackingApp() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -578,7 +544,7 @@ export function BrowserTrackingApp() {
       )}
       <Header
       />
-      <CameraPanel>
+      <CameraPanel isLive={tracking} fps={60}>
         <CameraPreview>
           <video
             ref={videoRef}

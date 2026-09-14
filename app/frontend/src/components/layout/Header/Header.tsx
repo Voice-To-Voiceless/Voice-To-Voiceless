@@ -36,32 +36,6 @@ export default function Header() {
 
             </div>
 
-            <div className="app-header__actions">
-
-                <Badge
-                    icon={<Eye size={18} />}
-                    label="Tracking Active"
-                    variant="success"
-                />
-
-                <Badge
-                    icon={<Target size={18} />}
-                    label="Calibration"
-                    variant="info"
-                />
-
-                <Badge
-                    icon={<Settings size={18} />}
-                    label="Settings"
-                />
-
-                <Badge
-                    icon={<UserRound size={18} />}
-                    label="Patient 204"
-                />
-
-            </div>
-
         </header>
     );
 }
