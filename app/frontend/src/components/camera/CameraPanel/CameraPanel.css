@@ -1,109 +1,17 @@
 .camera-panel{
 
-    background:#FFFFFF;
+    position:relative;
 
-    border-radius:28px;
+    width:100%;
+
+    min-height:560px;
+
+    border-radius:32px;
 
     overflow:hidden;
 
+    background:#173B31;
+
     box-shadow:
-        0 12px 40px rgba(15,23,42,.06);
-
-    border:1px solid #E2E8F0;
-}
-
-.camera-panel__header{
-
-    display:flex;
-
-    justify-content:space-between;
-
-    align-items:center;
-
-    padding:20px 24px;
-
-    background:#FFFFFF;
-}
-
-.camera-panel__live{
-
-    display:flex;
-
-    align-items:center;
-
-    gap:10px;
-
-    padding:10px 18px;
-
-    border-radius:999px;
-
-    background:#FEE2E2;
-
-    color:#DC2626;
-
-    font-weight:700;
-}
-
-.camera-panel__live-dot{
-
-    width:10px;
-
-    height:10px;
-
-    border-radius:50%;
-
-    background:#DC2626;
-}
-
-.camera-panel__fps{
-
-    padding:10px 18px;
-
-    border-radius:999px;
-
-    background:#F8FAFC;
-
-    font-weight:600;
-}
-
-.camera-panel__content{
-
-    aspect-ratio:16/9;
-
-    position:relative;
-
-    background:#163B30;
-}
-
-.camera-panel__footer{
-
-    display:flex;
-
-    justify-content:space-between;
-
-    align-items:center;
-
-    padding:24px;
-}
-
-.camera-panel__fullscreen{
-
-    width:52px;
-
-    height:52px;
-
-    border:none;
-
-    border-radius:16px;
-
-    background:#F8FAFC;
-
-    cursor:pointer;
-
-    transition:.25s;
-}
-
-.camera-panel__fullscreen:hover{
-
-    background:#EEF2F7;
+        0 20px 50px rgba(15,23,42,.10);
 }

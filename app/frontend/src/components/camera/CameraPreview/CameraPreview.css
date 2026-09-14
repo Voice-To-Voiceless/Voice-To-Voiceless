@@ -1,22 +1,50 @@
-.camera-preview {
-    position: relative;
+.camera-preview{
 
-    width: 100%;
-    height: 100%;
+    position:relative;
 
-    overflow: hidden;
+    width:100%;
 
-    background: #0F172A;
+    height:100%;
 
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    background:
+        linear-gradient(
+            180deg,
+            #173B31,
+            #102A22
+        );
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    overflow:hidden;
 }
 
-.camera-preview video {
+.camera-preview__placeholder{
 
-    width: 100%;
-    height: 100%;
+    display:flex;
 
-    object-fit: cover;
+    flex-direction:column;
+
+    align-items:center;
+
+    gap:18px;
+
+    color:white;
+
+    opacity:.9;
+}
+
+.camera-preview__placeholder h2{
+
+    font-size:28px;
+
+    margin:0;
+}
+
+.camera-preview__placeholder p{
+
+    color:rgba(255,255,255,.75);
 }
