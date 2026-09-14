@@ -4,7 +4,6 @@ import {
     Camera,
     CircleCheck,
     Eye,
-    Gauge,
     Radio,
 } from "lucide-react";
 
@@ -32,11 +31,6 @@ export default function CameraOverlay({
                     {isLive ? "LIVE" : "OFFLINE"}
                 </div>
 
-                <div className="camera-overlay__fps">
-                    <Gauge size={16} />
-
-                    {fps} FPS
-                </div>
             </div>
 
             <div className="camera-overlay__status">

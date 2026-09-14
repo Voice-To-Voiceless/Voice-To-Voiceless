@@ -9,7 +9,7 @@
     width:100%;
 }
 
-.communication-board h2{
+.communication-board > h2{
 
     margin:0;
 

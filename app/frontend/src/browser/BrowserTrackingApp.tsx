@@ -552,7 +552,7 @@ export function BrowserTrackingApp() {
             autoPlay
             muted
             playsInline
-          />
+          ></video>
         </CameraPreview>
         <CameraOverlay
           isLive={tracking}

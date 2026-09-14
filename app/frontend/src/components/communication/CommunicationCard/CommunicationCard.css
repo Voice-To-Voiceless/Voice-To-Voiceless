@@ -1,195 +1,115 @@
 .communication-card{
-
     position:relative;
-
     display:flex;
-
     flex-direction:column;
-
     justify-content:center;
-
     align-items:center;
-
-    gap:22px;
-
+    gap:10px;
     width:100%;
-
-    min-height:210px;
-
-    padding:28px;
-
+    min-height:124px;
+    padding:16px 10px;
     border:none;
-
-    border-radius:28px;
-
-    background:#FFFFFF;
-
+    border:1px solid #dce8e1;
+    border-radius:16px;
+    background:#ffffff;
     cursor:pointer;
-
     overflow:hidden;
-
-    transition:
-        transform .25s ease,
-        box-shadow .25s ease,
-        background .25s ease;
-
-    box-shadow:
-        0 12px 30px rgba(15,23,42,.05);
+    transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    box-shadow:0 4px 12px rgba(23,59,49,.06);
 }
 
-.communication-card:hover{
-
-    transform:
-        translateY(-6px)
-        scale(1.02);
-
-    box-shadow:
-        0 18px 40px rgba(15,23,42,.12);
+.communication-card:hover,
+.communication-card:focus-visible{
+    border-color:#198754;
+    box-shadow:0 8px 20px rgba(25,135,84,.16);
+    outline:none;
+    transform:translateY(-2px);
 }
 
-.communication-card__icon{
-
-    display:flex;
-
-    justify-content:center;
-
-    align-items:center;
-
-    width:84px;
-
-    height:84px;
-
-    border-radius:50%;
-
-    background:#F8FAFC;
-
-    margin-bottom:8px;
-}
-
-.communication-card__icon svg{
-
-    width:42px;
-
-    height:42px;
-}
-
-.communication-card__title{
-
-    margin:0;
-
-    font-size:24px;
-
-    font-weight:800;
-
-    letter-spacing:.05em;
-
-    text-transform:uppercase;
-
-    color:#102A22;
-}
-.communication-card--hover{
-
-    transform:scale(1.03);
-
-    box-shadow:
-        0 20px 45px rgba(47,128,237,.18);
-
-    border:2px solid #2F80ED;
+.communication-card--progress{
+    border-color:#2f80ed;
+    box-shadow:0 0 0 4px rgba(47,128,237,.14), 0 8px 20px rgba(47,128,237,.12);
 }
 
 .communication-card--selected{
-
-    background:#F0FDF4;
-
-    border:2px solid #27AE60;
-
-    transform:scale(1.03);
+    border-color:#198754;
+    background:#effaf3;
+    box-shadow:0 0 0 4px rgba(25,135,84,.16), 0 8px 20px rgba(25,135,84,.14);
 }
 
 .communication-card__selected{
-
     position:absolute;
-
-    top:18px;
-
-    right:18px;
-
-    width:34px;
-
-    height:34px;
-
-    display:flex;
-
-    justify-content:center;
-
-    align-items:center;
-
+    top:10px;
+    right:10px;
+    width:24px;
+    height:24px;
+    display:grid;
+    place-items:center;
     border-radius:50%;
-
-    background:#27AE60;
-
-    color:white;
+    background:#198754;
+    color:#fff;
 }
 
 .communication-card__progress{
-
     position:absolute;
-
     inset:0;
-
-    display:flex;
-
-    justify-content:center;
-
-    align-items:center;
-
-    flex-direction:column;
-
-    backdrop-filter:blur(2px);
-
-    background:rgba(255,255,255,.72);
+    display:grid;
+    place-items:center;
+    pointer-events:none;
 }
 
 .communication-card__progress svg{
-
-    width:90px;
-
-    height:90px;
-
+    width:78px;
+    height:78px;
     transform:rotate(-90deg);
 }
 
-.communication-card__progress-background{
-
+.communication-card__progress-background,
+.communication-card__progress-value{
     fill:none;
+    stroke-width:5;
+}
 
-    stroke:#E2E8F0;
-
-    stroke-width:8;
+.communication-card__progress-background{
+    stroke:#dbeafe;
 }
 
 .communication-card__progress-value{
-
-    fill:none;
-
-    stroke:#2F80ED;
-
-    stroke-width:8;
-
+    stroke:#2f80ed;
     stroke-linecap:round;
-
     stroke-dasharray:264;
-
-    transition:.15s linear;
 }
 
 .communication-card__progress span{
-
     position:absolute;
+    color:#1d4ed8;
+    font-size:12px;
+    font-weight:800;
+}
 
-    font-size:22px;
+.communication-card__icon{
+    width:44px;
+    height:44px;
+    border-radius:50%;
+    background:#e4f5eb;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
 
+.communication-card__icon svg{
+    width:24px;
+    height:24px;
+}
+
+.communication-card__title{
+    max-width:100%;
+    font-size:clamp(12px, 1.2vw, 14px);
+    line-height:1.1;
     font-weight:700;
-
-    color:#0F172A;
+    color:#102A22;
+    letter-spacing:.02em;
+    text-align:center;
+    text-wrap:balance;
+    margin:0;
 }

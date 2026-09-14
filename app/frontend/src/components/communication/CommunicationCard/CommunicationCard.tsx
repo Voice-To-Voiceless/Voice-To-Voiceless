@@ -24,6 +24,7 @@ export default function CommunicationCard({
         <button
             type="button"
             className={`communication-card communication-card--${state}`}
+            data-action-id={action.id}
             onClick={onPress}
         >
             {state === "selected" && (
