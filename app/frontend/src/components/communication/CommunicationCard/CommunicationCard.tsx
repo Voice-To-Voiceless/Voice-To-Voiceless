@@ -41,10 +41,9 @@ export default function CommunicationCard({
                 {action.icon}
             </div>
 
-            <h3 className="communication-card__title">
-                {action.title}
-            </h3>
-
+           <h2 className="communication-card__title">
+    {action.title.toUpperCase()}
+</h2>
             {state === "progress" && (
                 <div className="communication-card__progress">
 

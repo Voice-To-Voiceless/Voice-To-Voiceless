@@ -11,6 +11,9 @@ import { DwellSelector } from '../interaction/dwellSelector';
 import { ActionDefinition, ActionId, COMMUNICATION_ACTIONS } from '../types/communication';
 import { NormalizedGazePoint } from '../vision/gazeTypes';
 import AppLayout from "../components/layout/AppLayout";
+import CommunicationBoard from "../components/communication/CommunicationBoard";
+
+import type { CommunicationAction } from "../components/communication";
 
 const DWELL_DURATION_MS = 1200;
 const MODEL_PATH = '/models/face_landmarker.task';
@@ -616,28 +619,14 @@ export function BrowserTrackingApp() {
         )}
       </div>
 
-      <section ref={boardRef} className="board-section">
-        <div className="section-heading">
-          <h2>Common needs</h2>
-          <span>Look or touch a choice</span>
-        </div>
-        <div className={`action-grid ${activeTarget ? 'has-gaze-target' : ''}`}>
-          {COMMUNICATION_ACTIONS.map(action => (
-            <button
-              key={action.id}
-              type="button"
-              data-action-id={action.id}
-              aria-pressed={selectedAction === action.id}
-              className={`action-card ${action.tone} ${activeTarget === action.id ? 'gaze-active' : ''} ${selectedAction === action.id ? 'selected' : ''}`}
-              onClick={() => handleTouchSelection(action)}>
-              <span className="action-label">{action.label}</span>
-              <span className="action-description">{action.description}</span>
-              {selectedAction === action.id && <span className="selected-marker">Chosen</span>}
-              {activeTarget === action.id && <span className="dwell-progress" style={{ width: `${dwellProgress * 100}%` }} />}
-            </button>
-          ))}
-        </div>
-      </section>
+      <CommunicationBoard
+        actions={COMMUNICATION_ACTIONS}
+        boardRef={boardRef}
+        activeTarget={activeTarget}
+        selectedAction={selectedAction}
+        dwellProgress={dwellProgress * 100}
+        onActionSelect={handleTouchSelection}
+      />
 
       <button type="button" className="tracking-button" onClick={tracking ? stopTracking : startTracking} disabled={faceRecognition}>
         {tracking ? 'Stop eye tracking' : 'Start eye tracking'}

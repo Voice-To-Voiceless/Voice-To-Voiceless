@@ -1,26 +1,12 @@
-.badge{
+.badge {
 
-    display:flex;
+    padding: 10px 16px;
 
-    align-items:center;
+    border-radius: 999px;
 
-    gap:10px;
+    font-size: 13px;
 
-    padding:12px 18px;
-
-    border-radius:999px;
-
-    border:1px solid #E2E8F0;
-
-    background:white;
-
-    font-size:14px;
-
-    font-weight:600;
-
-    transition:.25s;
-
-    box-shadow:0 4px 12px rgba(15,23,42,.04);
+    font-weight: 600;
 }
 
 .badge:hover{

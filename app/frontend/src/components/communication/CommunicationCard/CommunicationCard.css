@@ -14,7 +14,9 @@
 
     width:100%;
 
-    aspect-ratio:1;
+    min-height:210px;
+
+    padding:28px;
 
     border:none;
 
@@ -37,7 +39,9 @@
 
 .communication-card:hover{
 
-    transform:translateY(-6px);
+    transform:
+        translateY(-6px)
+        scale(1.02);
 
     box-shadow:
         0 18px 40px rgba(15,23,42,.12);
@@ -51,22 +55,38 @@
 
     align-items:center;
 
-    font-size:70px;
+    width:84px;
+
+    height:84px;
+
+    border-radius:50%;
+
+    background:#F8FAFC;
+
+    margin-bottom:8px;
+}
+
+.communication-card__icon svg{
+
+    width:42px;
+
+    height:42px;
 }
 
 .communication-card__title{
 
     margin:0;
 
-    font-size:28px;
+    font-size:24px;
 
-    font-weight:700;
+    font-weight:800;
 
-    letter-spacing:.03em;
+    letter-spacing:.05em;
 
-    color:#0F172A;
+    text-transform:uppercase;
+
+    color:#102A22;
 }
-
 .communication-card--hover{
 
     transform:scale(1.03);
