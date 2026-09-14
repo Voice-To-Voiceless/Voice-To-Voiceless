@@ -1,3 +1,4 @@
+import Header from "../components/layout/Header";
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { MediaPipeFaceLandmarkerAdapter } from '../vision/mediaPipeFaceLandmarker';
 import { estimateGaze } from '../vision/gazeEstimator';
@@ -9,6 +10,7 @@ import { findGazeTarget } from '../vision/gazeTarget';
 import { DwellSelector } from '../interaction/dwellSelector';
 import { ActionDefinition, ActionId, COMMUNICATION_ACTIONS } from '../types/communication';
 import { NormalizedGazePoint } from '../vision/gazeTypes';
+import AppLayout from "../components/layout/AppLayout";
 
 const DWELL_DURATION_MS = 1200;
 const MODEL_PATH = '/models/face_landmarker.task';
@@ -27,6 +29,43 @@ const CALIBRATION_TARGETS = [
   { x: 0.5, y: 0.9 },
   { x: 0.9, y: 0.9 },
 ];
+
+type CameraOverlayProps = {
+  isLive: boolean;
+  fps: number;
+  faceDetected: boolean;
+  trackingActive: boolean;
+  calibrationComplete: boolean;
+};
+
+function CameraPanel({ children }: { children: React.ReactNode }) {
+  return <section className="camera-panel">{children}</section>;
+}
+
+function CameraPreview({ children }: { children: React.ReactNode }) {
+  return <div className="camera-preview-container">{children}</div>;
+}
+
+function CameraOverlay({
+  isLive,
+  fps,
+  faceDetected,
+  trackingActive,
+  calibrationComplete,
+}: CameraOverlayProps) {
+  return (
+    <div className="camera-overlay">
+      <span className="camera-status-dot" />
+      {trackingActive
+        ? `Eye tracking active | ${fps} FPS${calibrationComplete ? ' | calibrated' : ''}`
+        : isLive
+          ? faceDetected
+            ? 'Face detected'
+            : 'Looking for a face'
+          : 'Camera preview'}
+    </div>
+  );
+}
 
 export function BrowserTrackingApp() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -513,7 +552,10 @@ export function BrowserTrackingApp() {
   }
 
   return (
-    <main className="tracking-app">
+    <AppLayout
+        videoRef={videoRef}
+        boardRef={boardRef}
+    >
       {gazePoint && (
         <span
           aria-hidden="true"
@@ -531,28 +573,26 @@ export function BrowserTrackingApp() {
           style={{ left: `${CALIBRATION_TARGETS[calibrationIndex].x * 100}%`, top: `${CALIBRATION_TARGETS[calibrationIndex].y * 100}%` }}
         />
       )}
-      <header className="app-header">
-        <div>
-          <p className="eyebrow">V2VL EYE TRACKING PROTOTYPE</p>
-          <h1>How can we help?</h1>
-        </div>
-        <span className={tracking ? 'connection-badge ready' : 'connection-badge'}>
-          <span className="connection-dot" />
-          {tracking ? 'Tracking live' : 'Touch fallback'}
-        </span>
-      </header>
-
-      <section className="camera-panel">
-        <video ref={videoRef} className="camera-preview" autoPlay muted playsInline />
-        <div className="camera-overlay">
-          <span className="camera-status-dot" />
-          {tracking
-            ? 'Eye tracking active'
-            : faceRecognition
-              ? `Face: ${faceState} | risk: ${faceRisk.toFixed(2)} | ${faceExpression} (${faceConfidence.toFixed(2)})${faceIndicators.length > 0 ? ` | ${faceIndicators.join(', ')}` : ''}`
-              : 'Camera preview'}
-        </div>
-      </section>
+      <Header
+      />
+      <CameraPanel>
+        <CameraPreview>
+          <video
+            ref={videoRef}
+            className="camera-preview"
+            autoPlay
+            muted
+            playsInline
+          />
+        </CameraPreview>
+        <CameraOverlay
+          isLive={tracking}
+          fps={60}
+          faceDetected={gazePoint !== null}
+          trackingActive={tracking}
+          calibrationComplete={calibrationReady}
+        />
+      </CameraPanel>
 
       <div className="toast-stack" aria-live="polite">
         {statusVisible && (
@@ -615,7 +655,7 @@ export function BrowserTrackingApp() {
         </button>
       )}
       <p className="footer-note">Assistive communication prototype. Touch remains available at all times.</p>
-    </main>
+    </AppLayout>
   );
 }
 
