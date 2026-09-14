@@ -2,7 +2,7 @@ import { MediaPipeFaceLandmarkerAdapter } from '../src/vision/mediaPipeFaceLandm
 import { LandmarkPoint } from '../src/vision/landmarkTypes';
 
 function createLandmarks() {
-  const landmarks: LandmarkPoint[] = Array.from({ length: 474 }, () => ({ x: 0, y: 0 }));
+  const landmarks: LandmarkPoint[] = Array.from({ length: 478 }, () => ({ x: 0, y: 0 }));
   landmarks[33] = { x: 0.2, y: 0.4 };
   landmarks[133] = { x: 0.4, y: 0.4 };
   landmarks[263] = { x: 0.8, y: 0.4 };
@@ -12,7 +12,15 @@ function createLandmarks() {
   landmarks[374] = { x: 0.7, y: 0.5 };
   landmarks[386] = { x: 0.7, y: 0.3 };
   landmarks[468] = { x: 0.3, y: 0.4, z: -0.12, visibility: 0.98 };
+  landmarks[469] = { x: 0.29, y: 0.39 };
+  landmarks[470] = { x: 0.31, y: 0.39 };
+  landmarks[471] = { x: 0.31, y: 0.41 };
+  landmarks[472] = { x: 0.29, y: 0.41 };
   landmarks[473] = { x: 0.7, y: 0.4, z: -0.11, presence: 0.97 };
+  landmarks[474] = { x: 0.69, y: 0.39 };
+  landmarks[475] = { x: 0.71, y: 0.39 };
+  landmarks[476] = { x: 0.71, y: 0.41 };
+  landmarks[477] = { x: 0.69, y: 0.41 };
   landmarks[1] = { x: 0.5, y: 0.62 };
   landmarks[6] = { x: 0.5, y: 0.5 };
   landmarks[10] = { x: 0.5, y: 0.2 };
