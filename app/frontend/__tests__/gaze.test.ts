@@ -1,7 +1,7 @@
 import { findGazeTarget } from '../src/vision/gazeTarget';
-import { estimateGaze } from '../src/vision/gazeEstimator';
+import { estimateGaze, getGazeDiagnostics } from '../src/vision/gazeEstimator';
 import { GazeSmoother } from '../src/vision/gazeSmoother';
-import { getEyeAperture } from '../src/vision/eyePosition';
+import { getEyeAperture, getEyePositionDiagnostics } from '../src/vision/eyePosition';
 import { compensateGazeForPose, estimateRelativeFacePose } from '../src/vision/facePoseEstimator';
 
 test('smooths gaze movement while preserving the latest confidence and timestamp', () => {
@@ -21,6 +21,21 @@ test('smooths gaze movement while preserving the latest confidence and timestamp
     x: 0.4,
     y: 0.5,
     confidence: 0.8,
+    timestamp: 200,
+  });
+});
+
+test('resets smoothing history after tracking is interrupted', () => {
+  const smoother = new GazeSmoother(0.5);
+
+  smoother.update({ x: 0.2, y: 0.2, confidence: 1, timestamp: 0 });
+  smoother.update({ x: 0.8, y: 0.8, confidence: 1, timestamp: 100 });
+  smoother.reset();
+
+  expect(smoother.update({ x: 0.8, y: 0.8, confidence: 1, timestamp: 200 })).toEqual({
+    x: 0.8,
+    y: 0.8,
+    confidence: 1,
     timestamp: 200,
   });
 });
@@ -74,7 +89,7 @@ test('rejects gaze when an eye has invalid geometry or low confidence', () => {
   const observation = {
     leftEye: {
       innerCorner: { x: 0.4, y: 0.4 },
-      outerCorner: { x: 0.2, y: 0.4 },
+      outerCorner: { x: 0.4, y: 0.4 },
       upperLid: { x: 0.3, y: 0.3 },
       lowerLid: { x: 0.3, y: 0.5 },
       irisCenter: { x: 0.3, y: 0.4 },
@@ -141,6 +156,35 @@ test('weights gaze toward the eye with higher confidence', () => {
   }, 0.2);
 
   expect(gaze?.x).toBeCloseTo(0.375);
+});
+
+test('reports binocular disagreement without changing gaze acceptance', () => {
+  const observation = {
+    leftEye: {
+      innerCorner: { x: 0.2, y: 0.4 },
+      outerCorner: { x: 0.4, y: 0.4 },
+      upperLid: { x: 0.3, y: 0.3 },
+      lowerLid: { x: 0.3, y: 0.5 },
+      irisCenter: { x: 0.24, y: 0.4 },
+      confidence: 0.9,
+    },
+    rightEye: {
+      innerCorner: { x: 0.6, y: 0.4 },
+      outerCorner: { x: 0.8, y: 0.4 },
+      upperLid: { x: 0.7, y: 0.3 },
+      lowerLid: { x: 0.7, y: 0.5 },
+      irisCenter: { x: 0.78, y: 0.4 },
+      confidence: 0.9,
+    },
+    timestamp: 560,
+  };
+
+  const diagnostics = getGazeDiagnostics(observation);
+
+  expect(diagnostics.leftPosition).not.toBeNull();
+  expect(diagnostics.rightPosition).not.toBeNull();
+  expect(diagnostics.eyeDisagreement).toBeCloseTo(0.7);
+  expect(estimateGaze(observation)).not.toBeNull();
 });
 
 test('rejects an eye when its aperture indicates a closed eye', () => {
@@ -257,4 +301,44 @@ test('compensates only pose changes relative to the session reference', () => {
 
   expect(compensated.x).toBeCloseTo(0.45);
   expect(compensated.y).toBeCloseTo(0.45);
+});
+
+test('compares projected and direct midpoint iris horizontal positions', () => {
+  const diagnostics = getEyePositionDiagnostics({
+    innerCorner: { x: 0.2, y: 0.4 },
+    outerCorner: { x: 0.4, y: 0.4 },
+    upperLid: { x: 0.3, y: 0.3 },
+    lowerLid: { x: 0.3, y: 0.5 },
+    irisCenter: { x: 0.34, y: 0.4 },
+    confidence: 0.9,
+  });
+
+  expect(diagnostics.eyeMidpoint).toEqual({ x: 0.30000000000000004, y: 0.4 });
+  expect(diagnostics.eyeWidth).toBeCloseTo(0.2);
+  expect(diagnostics.position?.x).toBeCloseTo(0.7);
+  expect(diagnostics.directHorizontalPosition).toBeCloseTo(0.7);
+});
+
+test('normalizes mapped eyes into the same screen-horizontal direction', () => {
+  const baseEye = {
+    innerCorner: { x: 0.4, y: 0.4 },
+    outerCorner: { x: 0.2, y: 0.4 },
+    upperLid: { x: 0.3, y: 0.3 },
+    lowerLid: { x: 0.3, y: 0.5 },
+    irisCenter: { x: 0.35, y: 0.4 },
+    confidence: 0.9,
+  };
+  const screenLeft = getEyePositionDiagnostics({ ...baseEye, screenSide: 'left' });
+  const screenRight = getEyePositionDiagnostics({
+    ...baseEye,
+    innerCorner: { x: 0.6, y: 0.4 },
+    outerCorner: { x: 0.8, y: 0.4 },
+    irisCenter: { x: 0.75, y: 0.4 },
+    screenSide: 'right',
+  });
+
+  expect(screenLeft.position?.x).toBeCloseTo(0.75);
+  expect(screenRight.position?.x).toBeCloseTo(0.75);
+  expect(screenLeft.directHorizontalPosition).toBeCloseTo(0.75);
+  expect(screenRight.directHorizontalPosition).toBeCloseTo(0.75);
 });
