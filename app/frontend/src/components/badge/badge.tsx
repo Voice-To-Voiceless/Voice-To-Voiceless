@@ -1,6 +1,6 @@
 import "./Badge.css";
 
-import type { BadgeProps } from "./Badge.types";
+import type { BadgeProps } from "./badge.types";
 
 export default function Badge({
     icon,
