@@ -1,14 +1,27 @@
 import "./CameraOverlay.css";
 
 import {
+    Camera,
+    CircleCheck,
+    Eye,
+    Gauge,
     Radio,
 } from "lucide-react";
+import type { ReactNode } from "react";
 
 import type { CameraOverlayProps } from "./CameraOverlay.types";
 
 export default function CameraOverlay({
     isLive,
-    fps: _fps,
+    fps,
+    faceDetected,
+    trackingActive,
+    calibrationComplete,
+    faceRecognitionActive,
+    faceState,
+    faceRisk,
+    faceExpression,
+    faceIndicators,
 }: CameraOverlayProps) {
     return (
         <>
@@ -25,8 +38,70 @@ export default function CameraOverlay({
                     {isLive ? "LIVE" : "OFFLINE"}
                 </div>
 
+                <div className="camera-overlay__fps">
+                    <Gauge size={16} />
+
+                    {fps} FPS
+                </div>
             </div>
 
+            {faceRecognitionActive && (
+                <div className="camera-overlay__face-data">
+                    <strong>Face recognition</strong>
+                    <span>State: {faceState}</span>
+                    <span>Risk: {faceRisk.toFixed(2)}</span>
+                    <span>Expression: {faceExpression}</span>
+                    <span>Indicators: {faceIndicators.length > 0 ? faceIndicators.join(", ") : "None"}</span>
+                </div>
+            )}
+
+            <div className="camera-overlay__status">
+
+                <StatusItem
+                    icon={<Camera size={18} />}
+                    label="Face Detected"
+                    active={faceDetected}
+                />
+
+                <StatusItem
+                    icon={<Eye size={18} />}
+                    label="Eye Tracking"
+                    active={trackingActive}
+                />
+
+                <StatusItem
+                    icon={<CircleCheck size={18} />}
+                    label="Calibration"
+                    active={calibrationComplete}
+                />
+
+            </div>
         </>
+    );
+}
+
+type StatusItemProps = {
+    icon: ReactNode;
+    label: string;
+    active: boolean;
+};
+
+function StatusItem({
+    icon,
+    label,
+    active,
+}: StatusItemProps) {
+    return (
+        <div
+            className={`camera-overlay__status-item ${
+                active
+                    ? "camera-overlay__status-item--active"
+                    : ""
+            }`}
+        >
+            {icon}
+
+            <span>{label}</span>
+        </div>
     );
 }
