@@ -1,0 +1,111 @@
+.communication-card {
+    position: relative;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    gap: 16px;
+
+    width: 100%;
+    min-height: 190px;
+
+    padding: 24px;
+
+    background: #FFFFFF;
+
+    border: 2px solid #E2E8F0;
+    border-radius: 24px;
+
+    cursor: pointer;
+
+    transition:
+        transform .25s ease,
+        box-shadow .25s ease,
+        border-color .25s ease,
+        background .25s ease;
+
+    overflow: hidden;
+}
+
+.communication-card:hover {
+    transform: translateY(-4px);
+
+    box-shadow: 0 16px 40px rgba(15, 23, 42, .08);
+}
+
+.communication-card__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 52px;
+}
+
+.communication-card__content {
+    text-align: center;
+}
+
+.communication-card__title {
+    margin: 0;
+
+    font-size: 22px;
+    font-weight: 700;
+
+    color: #1E293B;
+}
+
+.communication-card__subtitle {
+    margin-top: 8px;
+
+    font-size: 15px;
+
+    color: #64748B;
+}
+
+.communication-card__progress {
+    position: absolute;
+
+    bottom: 0;
+    left: 0;
+
+    width: 100%;
+    height: 8px;
+
+    background: #E2E8F0;
+}
+
+.communication-card__progress-fill {
+    height: 100%;
+
+    background: #2F80ED;
+
+    transition: width .15s linear;
+}
+
+.communication-card--hover {
+    border-color: #2F80ED;
+
+    transform: scale(1.02);
+
+    box-shadow: 0 16px 40px rgba(47, 128, 237, .15);
+}
+
+.communication-card--selected {
+    border-color: #27AE60;
+
+    background: #F1FCF6;
+
+    box-shadow: 0 18px 40px rgba(39, 174, 96, .18);
+}
+
+.communication-card--progress {
+    border-color: #2F80ED;
+}
+
+.communication-card--disabled {
+    opacity: .45;
+
+    pointer-events: none;
+}

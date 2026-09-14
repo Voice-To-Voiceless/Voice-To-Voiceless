@@ -1,0 +1,32 @@
+.selection-animation {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    padding: 18px;
+
+    border-radius: 18px;
+
+    background: #ECFDF5;
+
+    color: #15803D;
+
+    font-size: 18px;
+
+    font-weight: 700;
+
+    animation: fadeIn .25s ease;
+}
+
+@keyframes fadeIn {
+
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

@@ -1,0 +1,21 @@
+.communication-grid {
+    display: grid;
+
+    grid-template-columns: repeat(4, minmax(180px, 1fr));
+
+    gap: 24px;
+
+    width: 100%;
+}
+
+@media (max-width: 1200px) {
+    .communication-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .communication-grid {
+        grid-template-columns: 1fr;
+    }
+}
