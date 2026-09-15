@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
-import { GazeCalibrationMapper, CalibrationSample, getCalibrationFitDiagnostics } from '../../vision/gazeCalibration';
+import { GazeCalibrationMapper, CalibrationSample } from '../../vision/gazeCalibration';
 import { NormalizedGazePoint } from '../../vision/gazeTypes';
-import { getPoseConditionedCalibrationFitDiagnostics } from '../../vision/poseCalibrationDiagnostics';
+import { CalibrationDiagnosticPoints, ModelTestingSession } from '../../modelTesting/modelTestingSession';
 
 export const CALIBRATION_TARGETS = [
   { x: 0.1, y: 0.1 }, { x: 0.5, y: 0.1 }, { x: 0.9, y: 0.1 },
@@ -21,13 +21,7 @@ type CalibrationResult = {
   resetSmoother: boolean;
 };
 
-type CalibrationDiagnosticPoints = {
-  raw: NormalizedGazePoint;
-  compensated: NormalizedGazePoint;
-  pose: { yaw: number; pitch: number } | null;
-};
-
-export function useCalibration() {
+export function useCalibration(modelTestingSession?: ModelTestingSession) {
   const [state, setState] = useState<CalibrationState>({ active: false, index: 0, ready: false });
   const activeRef = useRef(false);
   const indexRef = useRef(0);
@@ -37,9 +31,6 @@ export function useCalibration() {
     started: 0,
     all: [] as CalibrationSample[],
     point: [] as CalibrationSample[],
-    raw: [] as CalibrationSample[],
-    compensated: [] as CalibrationSample[],
-    poseConditioned: [] as Array<CalibrationSample & { pose: { yaw: number; pitch: number } }>,
   });
 
   const start = useCallback(() => {
@@ -47,12 +38,14 @@ export function useCalibration() {
     activeRef.current = true;
     indexRef.current = 0;
     readyRef.current = false;
-    dataRef.current = { started: performance.now(), all: [], point: [], raw: [], compensated: [], poseConditioned: [] };
+    modelTestingSession?.reset();
+    dataRef.current = { started: performance.now(), all: [], point: [] };
     setState({ active: true, index: 0, ready: false });
   }, []);
 
   const reset = useCallback(() => {
-    dataRef.current = { started: 0, all: [], point: [], raw: [], compensated: [], poseConditioned: [] };
+    modelTestingSession?.reset();
+    dataRef.current = { started: 0, all: [], point: [] };
     activeRef.current = false;
     indexRef.current = 0;
     setState(value => ({ ...value, active: false }));
@@ -67,11 +60,8 @@ export function useCalibration() {
       const sample = { gaze, target };
       dataRef.current.point.push(sample);
       dataRef.current.all.push(sample);
-      if (diagnosticPoints) {
-        dataRef.current.raw.push({ gaze: diagnosticPoints.raw, target });
-        dataRef.current.compensated.push({ gaze: diagnosticPoints.compensated, target });
-        if (diagnosticPoints.pose !== null) dataRef.current.poseConditioned.push({ gaze: diagnosticPoints.raw, target, pose: diagnosticPoints.pose });
-      }
+      modelTestingSession?.recordPrimarySample(sample);
+      if (diagnosticPoints) modelTestingSession?.recordCalibrationSample(target, diagnosticPoints);
     }
     if (elapsed < CALIBRATION_SETTLE_DURATION_MS) {
       return {
@@ -91,12 +81,7 @@ export function useCalibration() {
     }
     if (index === CALIBRATION_TARGETS.length - 1) {
       mapperRef.current = GazeCalibrationMapper.fit(dataRef.current.all);
-      downloadCalibrationFitComparison({
-        smoothed: getCalibrationFitDiagnostics(dataRef.current.all),
-        raw: getCalibrationFitDiagnostics(dataRef.current.raw),
-        compensated: getCalibrationFitDiagnostics(dataRef.current.compensated),
-        poseConditioned: getPoseConditionedCalibrationFitDiagnostics(dataRef.current.poseConditioned),
-      });
+      modelTestingSession?.complete();
       activeRef.current = false;
       readyRef.current = mapperRef.current !== null;
       console.info('[gaze-calibration] completed', {
@@ -118,18 +103,7 @@ export function useCalibration() {
     indexRef.current += 1;
     setState(value => ({ ...value, index: indexRef.current }));
     return { target, status: null, complete: false, settleProgress: 0, resetSmoother: true };
-  }, []);
+  }, [modelTestingSession]);
 
   return { state, activeRef, indexRef, readyRef, mapper: mapperRef, start, reset, process };
-}
-
-function downloadCalibrationFitComparison(comparison: Record<string, unknown>): void {
-  if (typeof document === 'undefined' || typeof Blob === 'undefined' || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') return;
-  const blob = new Blob([JSON.stringify(comparison, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `gaze-calibration-fit-comparison-${Date.now()}.json`;
-  link.click();
-  URL.revokeObjectURL(url);
 }

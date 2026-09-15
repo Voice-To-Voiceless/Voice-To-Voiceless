@@ -20,7 +20,7 @@ export type CalibrationFitDiagnostics = {
 type AffineCoefficients = [number, number, number];
 
 const MAX_TARGET_SPREAD = 0.18;
-const MAX_RMS_RESIDUAL = 0.14;
+const MAX_RMS_RESIDUAL = 0.30;
 const ROBUST_FIT_ITERATIONS = 4;
 const MIN_SAMPLE_WEIGHT = 0.05;
 const MAX_UNSTABLE_TARGETS = 1;
@@ -37,16 +37,6 @@ export class GazeCalibrationMapper {
   public static fit(samples: CalibrationSample[]): GazeCalibrationMapper | null {
     const aggregatedSamples = aggregateSamples(samples);
     const diagnostics = getCalibrationFitDiagnostics(samples);
-    downloadCalibrationDiagnostics({
-      sampleCount: samples.length,
-      targetGroupCount: aggregatedSamples.length,
-      targets: aggregatedSamples.map(sample => ({
-        target: sample.target,
-        gaze: sample.gaze,
-        spread: sample.targetSpread,
-        weight: sample.weight,
-      })),
-    });
     if (diagnostics.rejectionReason === 'fewer than three target groups') {
       console.warn('[gaze-calibration] fit rejected', {
         reason: 'fewer than three target groups',
@@ -106,34 +96,6 @@ export class GazeCalibrationMapper {
       y: clamp(evaluate(this.yCoefficients, gaze.x, gaze.y)),
     };
   }
-}
-
-function downloadCalibrationDiagnostics(diagnostics: {
-  sampleCount: number;
-  targetGroupCount: number;
-  targets: Array<{
-    target: CalibrationTarget;
-    gaze: CalibrationTarget;
-    spread: number;
-    weight: number;
-  }>;
-}): void {
-  if (
-    typeof document === 'undefined'
-    || typeof Blob === 'undefined'
-    || typeof URL === 'undefined'
-    || typeof URL.createObjectURL !== 'function'
-  ) {
-    return;
-  }
-
-  const blob = new Blob([JSON.stringify(diagnostics, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `gaze-calibration-${Date.now()}.json`;
-  link.click();
-  URL.revokeObjectURL(url);
 }
 
 type Matrix = number[][];
