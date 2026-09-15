@@ -1,28 +1,31 @@
 import React, { useEffect, useRef, useState } from 'react';
+import AppLayout from '../components/layout/AppLayout';
+import Header from '../components/layout/Header';
+import { CameraPanel } from '../components/camera/CameraPanel';
+import CameraPreview from '../components/camera/CameraPreview';
+import CameraOverlay from '../components/camera/CameraOverlay';
+import CommunicationBoard from '../components/communication/CommunicationBoard';
+import { ActionId, COMMUNICATION_ACTIONS } from '../types/communication';
+import { createModelTestingSession } from '../modelTesting/modelTestingSession';
 import { useBrowserTracking } from './hooks/useBrowserTracking';
+import { CALIBRATION_TARGETS } from './hooks/useCalibration';
 import { useFaceRecognition } from './hooks/useFaceRecognition';
 import { useSelectionFeedback } from './hooks/useSelectionFeedback';
-import { BrowserHeader } from './components/BrowserHeader';
-import { BrowserCameraPanel } from './components/BrowserCameraPanel';
-import { BrowserToastStack } from './components/BrowserToastStack';
-import { BrowserActionBoard } from './components/BrowserActionBoard';
-import { BrowserControls } from './components/BrowserControls';
 import { CalibrationTarget } from './components/CalibrationTarget';
-import { CALIBRATION_TARGETS } from './hooks/useCalibration';
-import { createModelTestingSession } from '../modelTesting/modelTestingSession';
 
 const ALERT_DURATION_MS = 3500;
 
-export function BrowserTrackingApp({ modelTesting = false }: { modelTesting?: boolean } = {}) {
+export function BrowserTrackingApp() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
-  const modelTestingSessionRef = useRef(modelTesting ? createModelTestingSession() : undefined);
-  const [selectedNoticeVisible, setSelectedNoticeVisible] = useState(false);
+  const [modelTestingSession] = useState(createModelTestingSession);
   const [statusVisible, setStatusVisible] = useState(true);
+  const [selectedNoticeVisible, setSelectedNoticeVisible] = useState(false);
   const selection = useSelectionFeedback();
-  const tracking = useBrowserTracking(videoRef, boardRef, selection.selectAction, modelTestingSessionRef.current);
+  const tracking = useBrowserTracking(videoRef, boardRef, selection.selectAction, modelTestingSession);
   const recognition = useFaceRecognition(videoRef);
-  const isTracking = tracking.snapshot.active;
+  const trackingActive = tracking.snapshot.active;
+  const recognitionActive = recognition.snapshot.active;
 
   useEffect(() => {
     setStatusVisible(true);
@@ -37,24 +40,80 @@ export function BrowserTrackingApp({ modelTesting = false }: { modelTesting?: bo
     return () => window.clearTimeout(timer);
   }, [selection.selectedAction]);
 
+  const status = trackingActive
+    ? tracking.status
+    : recognitionActive
+      ? 'Face recognition is live.'
+      : 'Camera is off. Start tracking to begin.';
+  const faceDetected = recognitionActive
+    ? recognition.snapshot.state !== 'no_face'
+    : tracking.snapshot.gazePoint !== null;
+
   const startTracking = () => {
-    if (recognition.snapshot.active) return;
-    tracking.start().catch(() => undefined);
+    if (!recognitionActive) tracking.start().catch(() => undefined);
   };
 
-  const startRecognition = () => {
-    if (isTracking) return;
-    if (recognition.snapshot.active) recognition.stop();
+  const toggleRecognition = () => {
+    if (trackingActive) return;
+    if (recognitionActive) recognition.stop();
     else recognition.start().catch(() => undefined);
   };
 
-  const status = isTracking ? tracking.status : recognition.snapshot.active ? 'Face recognition is live.' : 'Camera is off. Start tracking to begin.';
-  return <main className="tracking-app">
-    <CalibrationTarget gazePoint={tracking.snapshot.gazePoint} target={tracking.snapshot.calibrating ? CALIBRATION_TARGETS[tracking.snapshot.calibrationIndex] : null} progress={tracking.snapshot.calibrationProgress} />
-    <BrowserHeader tracking={isTracking} />
-    <BrowserCameraPanel videoRef={videoRef} tracking={isTracking} recognition={recognition.snapshot.active} face={recognition.snapshot} />
-    <BrowserToastStack status={status} error={tracking.error ?? recognition.error} statusVisible={statusVisible} emergencyPending={selection.emergencyPending} selectedAction={selection.selectedAction} selectedNoticeVisible={selectedNoticeVisible} />
-    <BrowserActionBoard boardRef={boardRef} selectedAction={selection.selectedAction} activeTarget={tracking.snapshot.activeTarget} dwellProgress={tracking.snapshot.dwellProgress} onSelect={selection.selectAction} />
-    <BrowserControls tracking={isTracking} recognition={recognition.snapshot.active} trackingState={tracking.snapshot} onTracking={isTracking ? tracking.stop : startTracking} onRecognition={startRecognition} onCalibrate={tracking.calibrate} />
-  </main>;
+  return (
+    <AppLayout videoRef={videoRef} boardRef={boardRef}>
+      <CalibrationTarget
+        gazePoint={tracking.snapshot.gazePoint}
+        target={tracking.snapshot.calibrating ? CALIBRATION_TARGETS[tracking.snapshot.calibrationIndex] : null}
+        progress={tracking.snapshot.calibrationProgress}
+      />
+      <Header />
+      <CameraPanel isLive={trackingActive || recognitionActive} fps={60}>
+        <CameraPreview>
+          <video ref={videoRef} className="camera-preview" autoPlay muted playsInline />
+        </CameraPreview>
+        <CameraOverlay
+          isLive={trackingActive || recognitionActive}
+          fps={60}
+          faceDetected={faceDetected}
+          trackingActive={trackingActive}
+          calibrationComplete={tracking.snapshot.calibrationReady}
+          faceRecognitionActive={recognitionActive}
+          faceState={recognition.snapshot.state}
+          faceRisk={recognition.snapshot.risk}
+          faceExpression={recognition.snapshot.expression}
+          faceIndicators={recognition.snapshot.indicators}
+        />
+      </CameraPanel>
+
+      <div className="toast-stack" aria-live="polite">
+        {statusVisible && <section className="status-panel"><strong>{status}</strong>{(tracking.error ?? recognition.error) && <span>{tracking.error ?? recognition.error}</span>}</section>}
+        {selection.emergencyPending && <section className="confirmation-banner"><strong>Confirm emergency request</strong><span>Look at Emergency again or touch it to confirm.</span></section>}
+        {selection.selectedAction && selectedNoticeVisible && <section className="selected-banner">Selected: <strong>{getActionLabel(selection.selectedAction)}</strong></section>}
+      </div>
+
+      <CommunicationBoard
+        actions={COMMUNICATION_ACTIONS}
+        boardRef={boardRef}
+        activeTarget={tracking.snapshot.activeTarget}
+        selectedAction={selection.selectedAction}
+        dwellProgress={tracking.snapshot.dwellProgress}
+        onActionSelect={action => selection.selectAction(action.id)}
+      />
+
+      <button type="button" className="tracking-button" onClick={trackingActive ? tracking.stop : startTracking} disabled={recognitionActive}>
+        {trackingActive ? 'Stop eye tracking' : 'Start eye tracking'}
+      </button>
+      <button type="button" className="face-recognition-button" onClick={toggleRecognition} disabled={trackingActive}>
+        {recognitionActive ? 'Stop face recognition' : 'Test face recognition'}
+      </button>
+      {trackingActive && <button type="button" className="calibration-button" onClick={tracking.calibrate} disabled={tracking.snapshot.calibrating}>
+        {tracking.snapshot.calibrating ? `Calibrating ${tracking.snapshot.calibrationIndex + 1}/9` : tracking.snapshot.calibrationReady ? 'Recalibrate gaze' : 'Calibrate gaze'}
+      </button>}
+      <p className="footer-note">Assistive communication prototype. Touch remains available at all times.</p>
+    </AppLayout>
+  );
+}
+
+function getActionLabel(actionId: ActionId): string {
+  return COMMUNICATION_ACTIONS.find(action => action.id === actionId)?.label ?? actionId;
 }
