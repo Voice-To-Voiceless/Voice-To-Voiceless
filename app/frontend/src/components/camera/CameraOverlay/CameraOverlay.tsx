@@ -15,6 +15,11 @@ export default function CameraOverlay({
     faceDetected,
     trackingActive,
     calibrationComplete,
+    faceRecognitionActive,
+    faceState,
+    faceRisk,
+    faceExpression,
+    faceIndicators,
 }: CameraOverlayProps) {
     return (
         <>
@@ -32,6 +37,18 @@ export default function CameraOverlay({
                 </div>
 
             </div>
+
+            {faceRecognitionActive && (
+                <div className="camera-overlay__face-data">
+                    <strong>Face recognition</strong>
+                    <span>State: {faceState}</span>
+                    <span>Risk: {faceRisk.toFixed(2)}</span>
+                    <span>Expression: {faceExpression}</span>
+                    <span>
+                        Indicators: {faceIndicators.length > 0 ? faceIndicators.join(", ") : "none"}
+                    </span>
+                </div>
+            )}
 
             <div className="camera-overlay__status">
 

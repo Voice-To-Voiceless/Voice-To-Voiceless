@@ -57,11 +57,10 @@ export function BrowserTrackingApp() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const [tracking, setTracking] = useState(false);
   const [faceRecognition, setFaceRecognition] = useState(false);
-  const [_faceState, setFaceState] = useState('normal');
-  const [_faceRisk, setFaceRisk] = useState(0);
-  const [_faceIndicators, setFaceIndicators] = useState<string[]>([]);
-  const [_faceExpression, setFaceExpression] = useState('neutral');
-  const [_faceConfidence, setFaceConfidence] = useState(0);
+  const [faceState, setFaceState] = useState('normal');
+  const [faceRisk, setFaceRisk] = useState(0);
+  const [faceIndicators, setFaceIndicators] = useState<string[]>([]);
+  const [faceExpression, setFaceExpression] = useState('neutral');
   const [status, setStatus] = useState('Camera is off. Start tracking to begin.');
   const [error, setError] = useState<string | null>(null);
   const [gazePoint, setGazePoint] = useState<{ x: number; y: number } | null>(null);
@@ -221,7 +220,6 @@ export function BrowserTrackingApp() {
     setFaceRisk(0);
     setFaceIndicators([]);
     setFaceExpression('neutral');
-    setFaceConfidence(0);
     setStatus('Camera is off. Start a mode to begin.');
   }, []);
 
@@ -245,26 +243,23 @@ export function BrowserTrackingApp() {
         setFaceRisk(0);
         setFaceIndicators([]);
         setFaceExpression('no_face');
-        setFaceConfidence(0);
       } else {
         const scores = observation.blendshapes;
         const smile = ((scores.mouthSmileLeft ?? 0) + (scores.mouthSmileRight ?? 0)) / 2;
         const frown = ((scores.mouthFrownLeft ?? 0) + (scores.mouthFrownRight ?? 0)) / 2;
         const sadness = Math.min(0.75 * frown + 0.25 * (scores.browInnerUp ?? 0), 1);
+        const jawOpen = scores.jawOpen ?? 0;
         const indicators: string[] = [];
         let risk = 0;
         if (smile >= 0.4 && smile >= sadness) {
           setFaceState('normal');
           setFaceRisk(0);
-          setFaceIndicators([]);
+          setFaceIndicators(jawOpen > 0.25 ? ['mouth_open'] : []);
           setFaceExpression('possible_smile');
-          setFaceConfidence(smile);
         } else if (sadness >= 0.25) {
           setFaceExpression('possible_sadness');
-          setFaceConfidence(sadness);
         } else {
           setFaceExpression('neutral');
-          setFaceConfidence(Math.max(smile, sadness));
         }
 
         if (!(smile >= 0.4 && smile >= sadness)) {
@@ -280,8 +275,7 @@ export function BrowserTrackingApp() {
             risk += Math.min(eyeTension * 0.4, 0.4);
           }
 
-          const jawOpen = scores.jawOpen ?? 0;
-          if (jawOpen > 0.25) {
+          if (jawOpen > 0.40) {
             indicators.push('mouth_open');
             risk += Math.min(jawOpen * 0.25, 0.25);
           }
@@ -542,7 +536,7 @@ export function BrowserTrackingApp() {
       )}
       <Header
       />
-      <CameraPanel isLive={tracking} fps={60}>
+      <CameraPanel isLive={tracking || faceRecognition} fps={60}>
         <CameraPreview>
           <video
             ref={videoRef}
@@ -553,11 +547,16 @@ export function BrowserTrackingApp() {
           />
         </CameraPreview>
         <CameraOverlay
-          isLive={tracking}
+          isLive={tracking || faceRecognition}
           fps={60}
-          faceDetected={gazePoint !== null}
+          faceDetected={faceRecognition ? faceState !== 'no_face' : gazePoint !== null}
           trackingActive={tracking}
           calibrationComplete={calibrationReady}
+          faceRecognitionActive={faceRecognition}
+          faceState={faceState}
+          faceRisk={faceRisk}
+          faceExpression={faceExpression}
+          faceIndicators={faceIndicators}
         />
       </CameraPanel>
 
