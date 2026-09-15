@@ -11,7 +11,7 @@ import type { CameraOverlayProps } from "./CameraOverlay.types";
 
 export default function CameraOverlay({
     isLive,
-    fps,
+    fps: _fps,
     faceDetected,
     trackingActive,
     calibrationComplete,
