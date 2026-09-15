@@ -44,6 +44,32 @@
         rgba(220,38,38,.92);
 }
 
+.camera-overlay__face-data {
+    position: absolute;
+    top: 90px;
+    left: 20px;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 250px;
+    padding: 14px 18px;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 18px;
+    background: rgba(15,23,42,.78);
+    backdrop-filter: blur(18px);
+    color: rgba(255,255,255,.82);
+    font-size: 13px;
+    line-height: 1.35;
+    box-shadow: 0 8px 20px rgba(0,0,0,.18);
+}
+
+.camera-overlay__face-data strong {
+    margin-bottom: 2px;
+    color: white;
+    font-size: 14px;
+}
+
 .camera-overlay__status {
 
     position: absolute;

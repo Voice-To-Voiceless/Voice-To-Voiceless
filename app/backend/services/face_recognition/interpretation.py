@@ -40,6 +40,7 @@ class FaceInterpreter:
 			+ scores.get("mouthFrownRight", 0.0)
 		) / 2
 		inner_brow_score = scores.get("browInnerUp", 0.0)
+		jaw_open = scores.get("jawOpen", 0.0)
 		sadness_score = min(
 			0.75 * frown_score + 0.25 * inner_brow_score,
 			1.0,
@@ -58,7 +59,7 @@ class FaceInterpreter:
 			return FaceInterpretation(
 				"normal",
 				0.0,
-				(),
+				("mouth_open",) if jaw_open > 0.25 else (),
 				expression,
 				expression_confidence,
 			)
@@ -73,8 +74,7 @@ class FaceInterpreter:
 			indicators.append("eye_tension")
 			risk_score += min(eye_tension * 0.40, 0.40)
 
-		jaw_open = scores.get("jawOpen", 0.0)
-		if jaw_open > 0.25:
+		if jaw_open > 0.40:
 			indicators.append("mouth_open")
 			risk_score += min(jaw_open * 0.25, 0.25)
 
