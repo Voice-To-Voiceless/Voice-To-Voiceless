@@ -63,7 +63,7 @@ test('rejects unstable target samples and high residual error', () => {
 
   const noisySamples = samples.map((sample, index) => ({
     ...sample,
-    target: index === 4 ? { x: 1, y: 0 } : sample.target,
+    target: index === 4 ? { x: 2, y: 0 } : sample.target,
   }));
   expect(GazeCalibrationMapper.fit(noisySamples)).toBeNull();
 });

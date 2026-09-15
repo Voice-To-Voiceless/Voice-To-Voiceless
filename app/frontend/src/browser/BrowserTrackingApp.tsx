@@ -9,16 +9,18 @@ import { BrowserActionBoard } from './components/BrowserActionBoard';
 import { BrowserControls } from './components/BrowserControls';
 import { CalibrationTarget } from './components/CalibrationTarget';
 import { CALIBRATION_TARGETS } from './hooks/useCalibration';
+import { createModelTestingSession } from '../modelTesting/modelTestingSession';
 
 const ALERT_DURATION_MS = 3500;
 
-export function BrowserTrackingApp() {
+export function BrowserTrackingApp({ modelTesting = false }: { modelTesting?: boolean } = {}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
+  const modelTestingSessionRef = useRef(modelTesting ? createModelTestingSession() : undefined);
   const [selectedNoticeVisible, setSelectedNoticeVisible] = useState(false);
   const [statusVisible, setStatusVisible] = useState(true);
   const selection = useSelectionFeedback();
-  const tracking = useBrowserTracking(videoRef, boardRef, selection.selectAction);
+  const tracking = useBrowserTracking(videoRef, boardRef, selection.selectAction, modelTestingSessionRef.current);
   const recognition = useFaceRecognition(videoRef);
   const isTracking = tracking.snapshot.active;
 

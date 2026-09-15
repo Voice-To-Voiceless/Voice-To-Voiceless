@@ -11,6 +11,7 @@ import { closeCamera, createFaceAdapter, openCamera } from '../services/browserC
 import { findVisibleTarget } from '../services/gazeTargetResolver';
 import { TrackingSnapshot } from '../browserTypes';
 import { MediaPipeFaceLandmarkerAdapter } from '../../vision/mediaPipeFaceLandmarker';
+import { ModelTestingSession } from '../../modelTesting/modelTestingSession';
 import { CALIBRATION_TARGETS, useCalibration } from './useCalibration';
 
 const initialSnapshot: TrackingSnapshot = { active: false, gazePoint: null, activeTarget: null, dwellProgress: 0, calibrating: false, calibrationIndex: 0, calibrationProgress: 0, calibrationReady: false };
@@ -19,6 +20,7 @@ export function useBrowserTracking(
   videoRef: React.RefObject<HTMLVideoElement | null>,
   boardRef: React.RefObject<HTMLDivElement | null>,
   onSelect: (actionId: ActionId) => void,
+  modelTestingSession?: ModelTestingSession,
 ) {
   const streamRef = useRef<MediaStream | null>(null);
   const adapterRef = useRef<MediaPipeFaceLandmarkerAdapter | null>(null);
@@ -28,8 +30,6 @@ export function useBrowserTracking(
   const smootherRef = useRef(new GazeSmoother());
   const joystickRef = useRef(new GazeJoystickController({ invertX: true, invertY: true }));
   const fallbackLoggedRef = useRef(false);
-  const eyeDiagnosticsTargetRef = useRef(-1);
-  const eyeDiagnosticsRef = useRef<Array<Record<string, unknown>>>([]);
   const dwellRef = useRef(new DwellSelector(1200));
   const lossRef = useRef(new FaceTrackingLossTracker());
   const poseRef = useRef<FacePoseReference | null>(null);
@@ -41,7 +41,7 @@ export function useBrowserTracking(
     start: startCalibration,
     reset: resetCalibration,
     process: processCalibration,
-  } = useCalibration();
+  } = useCalibration(modelTestingSession);
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [status, setStatus] = useState('Camera is off. Start tracking to begin.');
   const [error, setError] = useState<string | null>(null);
@@ -100,9 +100,7 @@ export function useBrowserTracking(
       const smoothed = smootherRef.current.update(compensateGazeForPose(gaze, pose, poseRef.current));
       if (calibrationActiveRef.current) {
         const targetIndex = calibrationIndexRef.current;
-        if (eyeDiagnosticsTargetRef.current !== targetIndex) {
-          eyeDiagnosticsTargetRef.current = targetIndex;
-          eyeDiagnosticsRef.current.push({
+        if (modelTestingSession) modelTestingSession.recordEyeDiagnostics(targetIndex, {
             targetIndex,
             target: CALIBRATION_TARGETS[targetIndex],
             timestamp,
@@ -112,7 +110,6 @@ export function useBrowserTracking(
             gaze,
             smoothed,
           });
-        }
         const result = processCalibration(gaze, timestamp, {
           raw: gaze,
           compensated: compensateGazeForPose(gaze, pose, poseRef.current),
@@ -129,9 +126,6 @@ export function useBrowserTracking(
           calibrationReady: calibrationReadyRef.current,
         }));
         if (result.resetSmoother) smootherRef.current.reset();
-        if (result.complete) {
-          downloadCalibrationEyeDiagnostics(eyeDiagnosticsRef.current);
-        }
         if (result.status) setStatus(result.status);
         return;
       }
@@ -162,19 +156,18 @@ export function useBrowserTracking(
       processingRef.current = false;
       if (activeRef.current) frameRef.current = requestAnimationFrame(processFrame);
     }
-  }, [boardRef, calibrationActiveRef, calibrationIndexRef, calibrationMapperRef, calibrationReadyRef, onSelect, processCalibration, resetInteraction, videoRef]);
+  }, [boardRef, calibrationActiveRef, calibrationIndexRef, calibrationMapperRef, calibrationReadyRef, modelTestingSession, onSelect, processCalibration, resetInteraction, videoRef]);
 
   const calibrate = useCallback(() => {
     if (!activeRef.current) return;
     startCalibration();
     fallbackLoggedRef.current = false;
-    eyeDiagnosticsTargetRef.current = -1;
-    eyeDiagnosticsRef.current = [];
+    modelTestingSession?.reset();
     resetInteraction();
     joystickRef.current.reset();
     setSnapshot(value => ({ ...value, calibrating: true, calibrationIndex: 0, calibrationProgress: 0, calibrationReady: false, gazePoint: { x: 0.1, y: 0.1 } }));
     setStatus('Calibration started. Look at the yellow dot.');
-  }, [resetInteraction, startCalibration]);
+  }, [modelTestingSession, resetInteraction, startCalibration]);
 
   const start = useCallback(async () => {
     if (activeRef.current || !videoRef.current) return;
@@ -197,23 +190,4 @@ export function useBrowserTracking(
 
   useEffect(() => stop, [stop]);
   return { snapshot, status, error, start, stop, calibrate };
-}
-
-function downloadCalibrationEyeDiagnostics(diagnostics: Array<Record<string, unknown>>): void {
-  if (
-    typeof document === 'undefined'
-    || typeof Blob === 'undefined'
-    || typeof URL === 'undefined'
-    || typeof URL.createObjectURL !== 'function'
-  ) {
-    return;
-  }
-
-  const blob = new Blob([JSON.stringify({ targets: diagnostics }, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `gaze-eye-diagnostics-${Date.now()}.json`;
-  link.click();
-  URL.revokeObjectURL(url);
 }
