@@ -1,13 +1,13 @@
 import React from 'react';
 import { StatusBar } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { CommunicationScreen } from './src/screens/CommunicationScreen';
+import { BrowserTrackingApp } from './src/browser/BrowserTrackingApp';
 
 function App() {
   return (
     <SafeAreaProvider>
       <StatusBar barStyle="dark-content" />
-      <CommunicationScreen />
+      <BrowserTrackingApp />
     </SafeAreaProvider>
   );
 }

@@ -1,3 +1,4 @@
+import Header from "../components/layout/Header";
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { MediaPipeFaceLandmarkerAdapter } from '../vision/mediaPipeFaceLandmarker';
 import { estimateGaze } from '../vision/gazeEstimator';
@@ -9,6 +10,11 @@ import { findGazeTarget } from '../vision/gazeTarget';
 import { DwellSelector } from '../interaction/dwellSelector';
 import { ActionDefinition, ActionId, COMMUNICATION_ACTIONS } from '../types/communication';
 import { NormalizedGazePoint } from '../vision/gazeTypes';
+import AppLayout from "../components/layout/AppLayout";
+import CommunicationBoard from "../components/communication/CommunicationBoard";
+import { CameraPanel } from "../components/camera/CameraPanel";
+import CameraPreview from "../components/camera/CameraPreview";
+import CameraOverlay from "../components/camera/CameraOverlay";
 
 const DWELL_DURATION_MS = 1200;
 const MODEL_PATH = '/models/face_landmarker.task';
@@ -51,11 +57,11 @@ export function BrowserTrackingApp() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const [tracking, setTracking] = useState(false);
   const [faceRecognition, setFaceRecognition] = useState(false);
-  const [faceState, setFaceState] = useState('normal');
-  const [faceRisk, setFaceRisk] = useState(0);
-  const [faceIndicators, setFaceIndicators] = useState<string[]>([]);
-  const [faceExpression, setFaceExpression] = useState('neutral');
-  const [faceConfidence, setFaceConfidence] = useState(0);
+  const [_faceState, setFaceState] = useState('normal');
+  const [_faceRisk, setFaceRisk] = useState(0);
+  const [_faceIndicators, setFaceIndicators] = useState<string[]>([]);
+  const [_faceExpression, setFaceExpression] = useState('neutral');
+  const [_faceConfidence, setFaceConfidence] = useState(0);
   const [status, setStatus] = useState('Camera is off. Start tracking to begin.');
   const [error, setError] = useState<string | null>(null);
   const [gazePoint, setGazePoint] = useState<{ x: number; y: number } | null>(null);
@@ -513,7 +519,10 @@ export function BrowserTrackingApp() {
   }
 
   return (
-    <main className="tracking-app">
+    <AppLayout
+        videoRef={videoRef}
+        boardRef={boardRef}
+    >
       {gazePoint && (
         <span
           aria-hidden="true"
@@ -531,28 +540,26 @@ export function BrowserTrackingApp() {
           style={{ left: `${CALIBRATION_TARGETS[calibrationIndex].x * 100}%`, top: `${CALIBRATION_TARGETS[calibrationIndex].y * 100}%` }}
         />
       )}
-      <header className="app-header">
-        <div>
-          <p className="eyebrow">V2VL EYE TRACKING PROTOTYPE</p>
-          <h1>How can we help?</h1>
-        </div>
-        <span className={tracking ? 'connection-badge ready' : 'connection-badge'}>
-          <span className="connection-dot" />
-          {tracking ? 'Tracking live' : 'Touch fallback'}
-        </span>
-      </header>
-
-      <section className="camera-panel">
-        <video ref={videoRef} className="camera-preview" autoPlay muted playsInline />
-        <div className="camera-overlay">
-          <span className="camera-status-dot" />
-          {tracking
-            ? 'Eye tracking active'
-            : faceRecognition
-              ? `Face: ${faceState} | risk: ${faceRisk.toFixed(2)} | ${faceExpression} (${faceConfidence.toFixed(2)})${faceIndicators.length > 0 ? ` | ${faceIndicators.join(', ')}` : ''}`
-              : 'Camera preview'}
-        </div>
-      </section>
+      <Header
+      />
+      <CameraPanel isLive={tracking} fps={60}>
+        <CameraPreview>
+          <video
+            ref={videoRef}
+            className="camera-preview"
+            autoPlay
+            muted
+            playsInline
+          />
+        </CameraPreview>
+        <CameraOverlay
+          isLive={tracking}
+          fps={60}
+          faceDetected={gazePoint !== null}
+          trackingActive={tracking}
+          calibrationComplete={calibrationReady}
+        />
+      </CameraPanel>
 
       <div className="toast-stack" aria-live="polite">
         {statusVisible && (
@@ -576,28 +583,14 @@ export function BrowserTrackingApp() {
         )}
       </div>
 
-      <section ref={boardRef} className="board-section">
-        <div className="section-heading">
-          <h2>Common needs</h2>
-          <span>Look or touch a choice</span>
-        </div>
-        <div className={`action-grid ${activeTarget ? 'has-gaze-target' : ''}`}>
-          {COMMUNICATION_ACTIONS.map(action => (
-            <button
-              key={action.id}
-              type="button"
-              data-action-id={action.id}
-              aria-pressed={selectedAction === action.id}
-              className={`action-card ${action.tone} ${activeTarget === action.id ? 'gaze-active' : ''} ${selectedAction === action.id ? 'selected' : ''}`}
-              onClick={() => handleTouchSelection(action)}>
-              <span className="action-label">{action.label}</span>
-              <span className="action-description">{action.description}</span>
-              {selectedAction === action.id && <span className="selected-marker">Chosen</span>}
-              {activeTarget === action.id && <span className="dwell-progress" style={{ width: `${dwellProgress * 100}%` }} />}
-            </button>
-          ))}
-        </div>
-      </section>
+      <CommunicationBoard
+        actions={COMMUNICATION_ACTIONS}
+        boardRef={boardRef}
+        activeTarget={activeTarget}
+        selectedAction={selectedAction}
+        dwellProgress={dwellProgress * 100}
+        onActionSelect={handleTouchSelection}
+      />
 
       <button type="button" className="tracking-button" onClick={tracking ? stopTracking : startTracking} disabled={faceRecognition}>
         {tracking ? 'Stop eye tracking' : 'Start eye tracking'}
@@ -615,7 +608,7 @@ export function BrowserTrackingApp() {
         </button>
       )}
       <p className="footer-note">Assistive communication prototype. Touch remains available at all times.</p>
-    </main>
+    </AppLayout>
   );
 }
 
