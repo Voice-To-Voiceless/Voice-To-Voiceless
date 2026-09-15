@@ -1,0 +1,38 @@
+.badge {
+
+    padding: 10px 16px;
+
+    border-radius: 999px;
+
+    font-size: 13px;
+
+    font-weight: 600;
+}
+
+.badge:hover{
+
+    transform:translateY(-2px);
+
+    box-shadow:0 10px 24px rgba(15,23,42,.08);
+}
+
+.badge--success{
+
+    background:#ECFDF5;
+
+    color:#15803D;
+}
+
+.badge--info{
+
+    background:#EFF6FF;
+
+    color:#2563EB;
+}
+
+.badge--neutral{
+
+    background:#F8FAFC;
+
+    color:#334155;
+}
