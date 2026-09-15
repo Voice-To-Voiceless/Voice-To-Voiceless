@@ -41,7 +41,8 @@ h2 { font-size: 1.4rem; margin: 0; }
 .camera-preview { height: 100%; object-fit: cover; transform: scaleX(-1); width: 100%; }
 .camera-overlay { align-items: center; background: #18352acc; border-radius: 999px; color: white; display: flex; font: 700 12px Arial, sans-serif; gap: 8px; left: 16px; padding: 9px 12px; position: absolute; top: 16px; }
 .gaze-cursor { background: #f8c66d; border: 4px solid white; border-radius: 50%; box-shadow: 0 0 0 9px #f8c66d66, 0 2px 8px #10251c99; height: 30px; pointer-events: none; position: fixed; transform: translate(-50%, -50%); transition: left .12s ease-out, top .12s ease-out; width: 30px; z-index: 10; }
-.calibration-target { background: #f8c66d; border: 5px solid white; border-radius: 50%; box-shadow: 0 0 0 8px #f8c66d66, 0 3px 12px #10251c99; height: 34px; pointer-events: none; position: fixed; transform: translate(-50%, -50%); width: 34px; z-index: 9; }
+.calibration-target { background: conic-gradient(#fff var(--calibration-progress), #f8c66d 0); border-radius: 50%; box-shadow: 0 0 0 8px #f8c66d66, 0 3px 12px #10251c99; height: 50px; pointer-events: none; position: fixed; transform: translate(-50%, -50%); width: 50px; z-index: 9; }
+.calibration-target::after { background: #f8c66d; border: 5px solid white; border-radius: 50%; content: ''; inset: 8px; position: absolute; }
 .toast-stack { display: flex; flex-direction: column; gap: 10px; max-width: min(440px, calc(100vw - 32px)); pointer-events: none; position: fixed; right: 16px; top: 16px; width: 100%; z-index: 20; }
 .status-panel, .confirmation-banner, .selected-banner { border-radius: 12px; box-shadow: 0 8px 24px #17352b1f; display: flex; gap: 10px; margin: 0; padding: 14px 16px; pointer-events: auto; }
 .status-panel { background: white; border: 1px solid #dfe7df; flex-direction: column; }
