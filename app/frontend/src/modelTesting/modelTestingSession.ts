@@ -1,4 +1,4 @@
-import { CalibrationSample, CalibrationFitDiagnostics, getCalibrationFitDiagnostics } from '../vision/gazeCalibration';
+import { CalibrationSample, getCalibrationFitDiagnostics } from '../vision/gazeCalibration';
 import { NormalizedGazePoint } from '../vision/gazeTypes';
 import {
   getPoseConditionedCalibrationFitDiagnostics,
