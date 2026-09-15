@@ -8,7 +8,7 @@ import {
     HeartPulse,
 } from "lucide-react";
 
-import Badge from "../../Badge";
+import Badge from "../../badge";
 
 export default function Header() {
     return (
