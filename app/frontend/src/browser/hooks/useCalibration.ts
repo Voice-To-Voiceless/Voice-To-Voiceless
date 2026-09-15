@@ -41,7 +41,7 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
     modelTestingSession?.reset();
     dataRef.current = { started: performance.now(), all: [], point: [] };
     setState({ active: true, index: 0, ready: false });
-  }, []);
+  }, [modelTestingSession]);
 
   const reset = useCallback(() => {
     modelTestingSession?.reset();
@@ -49,7 +49,7 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
     activeRef.current = false;
     indexRef.current = 0;
     setState(value => ({ ...value, active: false }));
-  }, []);
+  }, [modelTestingSession]);
 
   const process = useCallback((gaze: NormalizedGazePoint, timestamp: number, diagnosticPoints?: CalibrationDiagnosticPoints): CalibrationResult => {
     const index = indexRef.current;
