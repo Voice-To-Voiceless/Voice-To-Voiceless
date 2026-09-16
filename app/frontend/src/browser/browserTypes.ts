@@ -10,6 +10,7 @@ export type TrackingSnapshot = {
   dwellProgress: number;
   calibrating: boolean;
   calibrationIndex: number;
+  calibrationTarget: GazePoint | null;
   calibrationProgress: number;
   calibrationReady: boolean;
 };

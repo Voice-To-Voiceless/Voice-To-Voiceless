@@ -17,6 +17,12 @@ export type PoseLeaveOneTargetOutDiagnostics = {
   }>;
 };
 
+export type PoseValidationDiagnostics = {
+  rmsResidual: number | null;
+  maxResidual: number | null;
+  targetResiduals: Array<{ target: CalibrationSample['target']; residual: number }>;
+};
+
 export function getPoseConditionedCalibrationFitDiagnostics(samples: PoseSample[]): CalibrationFitDiagnostics {
   const groups = [...groupSamples(samples).values()];
   const coefficients = fitCoefficients(samples);
@@ -81,6 +87,20 @@ export function getPoseLeaveOneTargetOutDiagnostics(samples: PoseSample[]): Pose
     rmsResidual,
     maxResidual,
     targetResults,
+  };
+}
+
+export function getPoseValidationDiagnostics(training: PoseSample[], validation: PoseSample[]): PoseValidationDiagnostics {
+  const coefficients = fitCoefficients(training);
+  if (coefficients === null || validation.length === 0) return { rmsResidual: null, maxResidual: null, targetResiduals: [] };
+  const residuals = validation.map(sample => getResidual(sample, coefficients));
+  return {
+    rmsResidual: Math.sqrt(residuals.reduce((sum, residual) => sum + residual ** 2, 0) / residuals.length),
+    maxResidual: Math.max(...residuals),
+    targetResiduals: [...groupSamples(validation).values()].map(group => ({
+      target: group[0].target,
+      residual: Math.sqrt(group.map(sample => getResidual(sample, coefficients) ** 2).reduce((sum, value) => sum + value, 0) / group.length),
+    })),
   };
 }
 
@@ -150,4 +170,9 @@ function solve(matrix: number[][], vector: number[]): Coefficients | null {
 
 function dot(left: number[], right: number[]): number {
   return left.reduce((sum, value, index) => sum + value * right[index], 0);
+}
+
+function getResidual(sample: PoseSample, coefficients: { xCoefficients: Coefficients; yCoefficients: Coefficients }): number {
+  const features = getFeatures(sample);
+  return Math.hypot(dot(coefficients.xCoefficients, features) - sample.target.x, dot(coefficients.yCoefficients, features) - sample.target.y);
 }
