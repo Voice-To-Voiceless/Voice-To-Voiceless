@@ -1,12 +1,14 @@
 export type ActionId =
   | 'yes'
   | 'no'
-  | 'help'
-  | 'emergency'
-  | 'water'
-  | 'food'
   | 'bathroom'
-  | 'nurse';
+  | 'food'
+  | 'water'
+  | 'medication'
+  | 'pain'
+  | 'sleep'
+  | 'talk'
+  | 'fine';
 
 export type ActionTone = 'calm' | 'warm' | 'urgent';
 
@@ -20,20 +22,12 @@ export type ActionDefinition = {
 export const COMMUNICATION_ACTIONS: ActionDefinition[] = [
   { id: 'yes', label: 'Yes', description: 'I agree', tone: 'calm' },
   { id: 'no', label: 'No', description: 'I disagree', tone: 'calm' },
-  { id: 'help', label: 'Help', description: 'Please come here', tone: 'warm' },
-  {
-    id: 'emergency',
-    label: 'Emergency',
-    description: 'I need urgent help',
-    tone: 'urgent',
-  },
-  { id: 'water', label: 'Water', description: 'I need a drink', tone: 'calm' },
+  { id: 'bathroom', label: 'Bathroom', description: 'I need the bathroom', tone: 'calm' },
   { id: 'food', label: 'Food', description: 'I am hungry', tone: 'calm' },
-  {
-    id: 'bathroom',
-    label: 'Bathroom',
-    description: 'I need assistance',
-    tone: 'calm',
-  },
-  { id: 'nurse', label: 'Nurse', description: 'Please call my nurse', tone: 'warm' },
+  { id: 'water', label: 'Water', description: 'I need a drink', tone: 'calm' },
+  { id: 'medication', label: 'Medication', description: 'I need my medication', tone: 'calm' },
+  { id: 'pain', label: 'Pain', description: 'Something hurts', tone: 'warm' },
+  { id: 'sleep', label: 'Sleep', description: 'I want to rest', tone: 'calm' },
+  { id: 'talk', label: 'Talk to someone', description: 'I want to talk', tone: 'warm' },
+  { id: 'fine', label: "I'm fine", description: 'I am feeling okay', tone: 'calm' },
 ];
