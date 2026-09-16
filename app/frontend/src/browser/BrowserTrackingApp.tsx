@@ -8,17 +8,20 @@ import CommunicationBoard from '../components/communication/CommunicationBoard';
 import { ActionId, COMMUNICATION_ACTIONS } from '../types/communication';
 import { createModelTestingSession } from '../modelTesting/modelTestingSession';
 import { useBrowserTracking } from './hooks/useBrowserTracking';
-import { CALIBRATION_TARGETS } from './hooks/useCalibration';
 import { useFaceRecognition } from './hooks/useFaceRecognition';
 import { useSelectionFeedback } from './hooks/useSelectionFeedback';
 import { CalibrationTarget } from './components/CalibrationTarget';
 
-const ALERT_DURATION_MS = 3500;
+const ALERT_DURATION_MS = 3000;
 
-export function BrowserTrackingApp() {
+type BrowserTrackingAppProps = {
+  enableDiagnostics?: boolean;
+};
+
+export function BrowserTrackingApp({ enableDiagnostics = true }: BrowserTrackingAppProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
-  const [modelTestingSession] = useState(createModelTestingSession);
+  const [modelTestingSession] = useState(() => createModelTestingSession({ enableDiagnostics }));
   const [statusVisible, setStatusVisible] = useState(true);
   const [selectedNoticeVisible, setSelectedNoticeVisible] = useState(false);
   const selection = useSelectionFeedback();
@@ -63,7 +66,7 @@ export function BrowserTrackingApp() {
     <AppLayout videoRef={videoRef} boardRef={boardRef}>
       <CalibrationTarget
         gazePoint={tracking.snapshot.gazePoint}
-        target={tracking.snapshot.calibrating ? CALIBRATION_TARGETS[tracking.snapshot.calibrationIndex] : null}
+        target={tracking.snapshot.calibrating ? tracking.snapshot.calibrationTarget : null}
         progress={tracking.snapshot.calibrationProgress}
       />
       <Header />

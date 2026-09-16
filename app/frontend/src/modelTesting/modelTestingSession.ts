@@ -1,15 +1,36 @@
 import { CalibrationSample, getCalibrationFitDiagnostics } from '../vision/gazeCalibration';
+import { aggregateSamples, evaluate, fitRobustMapping, getMedianGazeByTarget } from '../vision/calibrationMath';
 import { NormalizedGazePoint } from '../vision/gazeTypes';
+import { CalibrationSampleQuality, CalibrationQualityRejectionReason } from '../vision/calibrationQuality';
 import {
   getPoseConditionedCalibrationFitDiagnostics,
   getPoseLeaveOneTargetOutDiagnostics,
+  getPoseValidationDiagnostics,
   PoseSample,
 } from './poseCalibrationDiagnostics';
+
+export type CalibrationPassKind = 'training' | 'validation';
+export type ModelTestingSessionOptions = {
+  enableDiagnostics?: boolean;
+};
+
+export type CalibrationPass = {
+  id: number;
+  kind: CalibrationPassKind;
+  targetOrder: CalibrationSample['target'][];
+};
 
 export type CalibrationDiagnosticPoints = {
   raw: NormalizedGazePoint;
   compensated: NormalizedGazePoint;
   pose: { yaw: number; pitch: number } | null;
+  quality: CalibrationSampleQuality;
+};
+
+export type CalibrationQualitySummary = {
+  accepted: number;
+  rejected: number;
+  rejectionReasons: Partial<Record<CalibrationQualityRejectionReason, number>>;
 };
 
 type CalibrationSessionData = {
@@ -19,18 +40,49 @@ type CalibrationSessionData = {
   poseConditioned: PoseSample[];
 };
 
+type PassData = CalibrationSessionData & {
+  qualityByTarget: Record<number, CalibrationQualitySummary>;
+  targetOrder: CalibrationSample['target'][];
+};
+
 export class ModelTestingSession {
-  private readonly data: CalibrationSessionData = { all: [], raw: [], compensated: [], poseConditioned: [] };
+  private readonly enableDiagnostics: boolean;
+  private readonly passes: PassData[] = [];
+  private currentPass: PassData | null = null;
+  private passIndex = 0;
   private eyeDiagnostics: Array<Record<string, unknown>> = [];
   private eyeDiagnosticsTarget = -1;
 
+  public constructor(options: ModelTestingSessionOptions = {}) {
+    this.enableDiagnostics = options.enableDiagnostics ?? false;
+  }
+
   public reset(): void {
-    this.data.all = [];
-    this.data.raw = [];
-    this.data.compensated = [];
-    this.data.poseConditioned = [];
+    this.passes.length = 0;
+    this.currentPass = null;
+    this.passIndex = 0;
     this.eyeDiagnostics = [];
     this.eyeDiagnosticsTarget = -1;
+  }
+
+  public startPass(targetOrder: CalibrationSample['target'][]): CalibrationPass {
+    const pass: PassData = {
+      all: [],
+      raw: [],
+      compensated: [],
+      poseConditioned: [],
+      qualityByTarget: {},
+      targetOrder,
+    };
+    this.currentPass = pass;
+    this.passes.push(pass);
+    const result = { id: this.passIndex, kind: this.passIndex === 0 ? 'training' : 'validation' as CalibrationPassKind, targetOrder };
+    this.passIndex += 1;
+    return result;
+  }
+
+  public get nextPassKind(): CalibrationPassKind {
+    return this.passes.length === 0 ? 'training' : 'validation';
   }
 
   public recordEyeDiagnostics(targetIndex: number, entry: Record<string, unknown>): void {
@@ -40,29 +92,96 @@ export class ModelTestingSession {
   }
 
   public recordCalibrationSample(target: CalibrationSample['target'], points: CalibrationDiagnosticPoints): void {
-    this.data.raw.push({ gaze: points.raw, target });
-    this.data.compensated.push({ gaze: points.compensated, target });
-    if (points.pose !== null) this.data.poseConditioned.push({ gaze: points.raw, target, pose: points.pose });
+    if (!this.currentPass) return;
+    this.currentPass.raw.push({ gaze: points.raw, target });
+    this.currentPass.compensated.push({ gaze: points.compensated, target });
+    if (points.pose !== null) this.currentPass.poseConditioned.push({ gaze: points.raw, target, pose: points.pose });
   }
 
   public recordPrimarySample(sample: CalibrationSample): void {
-    this.data.all.push(sample);
+    this.currentPass?.all.push(sample);
   }
 
-  public complete(): void {
-    downloadJson('gaze-calibration-fit-comparison', {
-      smoothed: getCalibrationFitDiagnostics(this.data.all),
-      raw: getCalibrationFitDiagnostics(this.data.raw),
-      compensated: getCalibrationFitDiagnostics(this.data.compensated),
-      poseConditioned: getPoseConditionedCalibrationFitDiagnostics(this.data.poseConditioned),
-      poseLeaveOneTargetOut: getPoseLeaveOneTargetOutDiagnostics(this.data.poseConditioned),
+  public recordQualityDecision(targetIndex: number, quality: CalibrationSampleQuality): void {
+    if (!this.currentPass) return;
+    const summary = this.currentPass.qualityByTarget[targetIndex] ?? { accepted: 0, rejected: 0, rejectionReasons: {} };
+    if (quality.accepted) {
+      summary.accepted += 1;
+    } else {
+      summary.rejected += 1;
+      quality.rejectionReasons.forEach(reason => {
+        summary.rejectionReasons[reason] = (summary.rejectionReasons[reason] ?? 0) + 1;
+      });
+    }
+    this.currentPass.qualityByTarget[targetIndex] = summary;
+  }
+
+  public get hasValidationData(): boolean {
+    return this.passes.length >= 2 && this.passes[1].all.length > 0;
+  }
+
+  public completePass(): void {
+    if (!this.enableDiagnostics || !this.currentPass) return;
+    this.exportDiagnostics();
+  }
+
+  public exportDiagnostics(): void {
+    if (!this.enableDiagnostics || this.passes.length === 0) return;
+    const training = this.passes[0];
+    const validation = this.passes[1];
+    downloadJson('gaze-calibration-diagnostics', {
+      calibrationFitComparison: {
+        passOrder: this.passes.map((pass, index) => ({ pass: index === 0 ? 'training' : 'validation', targetOrder: pass.targetOrder })),
+        training: getPassDiagnostics(training),
+        validation: validation ? getPassCaptureSummary(validation) : null,
+        separatePassValidation: {
+          ordinary: getOrdinaryValidationDiagnostics(training.all, validation?.all ?? []),
+          poseConditioned: getPoseValidationDiagnostics(training.poseConditioned, validation?.poseConditioned ?? []),
+        },
+      },
+      eyeDiagnostics: { targets: this.eyeDiagnostics, passCount: this.passes.length },
     });
-    downloadJson('gaze-eye-diagnostics', { targets: this.eyeDiagnostics });
   }
 }
 
-export function createModelTestingSession(): ModelTestingSession {
-  return new ModelTestingSession();
+function getOrdinaryValidationDiagnostics(training: CalibrationSample[], validation: CalibrationSample[]) {
+  const fit = fitRobustMapping(aggregateSamples(training));
+  if (fit === null || validation.length === 0) return { rmsResidual: null, maxResidual: null, targetResiduals: [] };
+  const residuals = validation.map(sample => Math.hypot(evaluate(fit.xCoefficients, sample.gaze.x, sample.gaze.y) - sample.target.x, evaluate(fit.yCoefficients, sample.gaze.x, sample.gaze.y) - sample.target.y));
+  return {
+    rmsResidual: Math.sqrt(residuals.reduce((sum, residual) => sum + residual ** 2, 0) / residuals.length),
+    maxResidual: Math.max(...residuals),
+    targetResiduals: [...new Set(validation.map(sample => `${sample.target.x}:${sample.target.y}`))].map(key => {
+      const group = validation.filter(sample => `${sample.target.x}:${sample.target.y}` === key);
+      const groupResiduals = group.map(sample => Math.hypot(evaluate(fit.xCoefficients, sample.gaze.x, sample.gaze.y) - sample.target.x, evaluate(fit.yCoefficients, sample.gaze.x, sample.gaze.y) - sample.target.y));
+      return { target: group[0].target, residual: Math.sqrt(groupResiduals.reduce((sum, residual) => sum + residual ** 2, 0) / groupResiduals.length) };
+    }),
+  };
+}
+
+function getPassDiagnostics(pass: PassData) {
+  return {
+    rawMedianGazeByTarget: getMedianGazeByTarget(pass.raw),
+    smoothed: getCalibrationFitDiagnostics(pass.all),
+    raw: getCalibrationFitDiagnostics(pass.raw),
+    compensated: getCalibrationFitDiagnostics(pass.compensated),
+    poseConditioned: getPoseConditionedCalibrationFitDiagnostics(pass.poseConditioned),
+    poseLeaveOneTargetOut: getPoseLeaveOneTargetOutDiagnostics(pass.poseConditioned),
+    qualityByTarget: pass.qualityByTarget,
+  };
+}
+
+function getPassCaptureSummary(pass: PassData) {
+  return {
+    sampleCount: pass.all.length,
+    rawSampleCount: pass.raw.length,
+    poseSampleCount: pass.poseConditioned.length,
+    qualityByTarget: pass.qualityByTarget,
+  };
+}
+
+export function createModelTestingSession(options?: ModelTestingSessionOptions): ModelTestingSession {
+  return new ModelTestingSession(options);
 }
 
 function downloadJson(name: string, value: unknown): void {
@@ -72,6 +191,10 @@ function downloadJson(name: string, value: unknown): void {
   const link = document.createElement('a');
   link.href = url;
   link.download = `${name}-${Date.now()}.json`;
+  document.body.appendChild(link);
   link.click();
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => {
+    link.remove();
+    URL.revokeObjectURL(url);
+  }, 1000);
 }

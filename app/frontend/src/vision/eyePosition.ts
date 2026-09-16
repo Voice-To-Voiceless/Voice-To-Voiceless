@@ -65,25 +65,13 @@ export function getEyePositionDiagnostics(eye: EyeObservation): EyePositionDiagn
     { x: eye.lowerLid.x - eye.upperLid.x, y: eye.lowerLid.y - eye.upperLid.y },
     verticalAxis,
   ));
-  if (projectedEyeHeight <= 0) {
-    const directHorizontalPosition = getDirectHorizontalPosition(eye, eyeMidpoint, horizontalAxis, horizontalLength);
-    return {
-      eyeWidth: horizontalLength,
-      horizontalLength,
-      horizontalAxis,
-      verticalAxis,
-      projectedEyeHeight,
-      eyeMidpoint,
-      directHorizontalPosition,
-      irisFromInner,
-      irisFromUpper,
-      position: null,
-      failureReason: 'invalid projected eye height',
-    };
-  }
-
   const anatomicalHorizontalPosition = Math.min(1, Math.max(0, dot(irisFromInner, horizontalAxis) / horizontalLength));
   const directHorizontalPosition = getDirectHorizontalPosition(eye, eyeMidpoint, horizontalAxis, horizontalLength);
+  const irisFromMidpoint = {
+    x: eye.irisCenter.x - eyeMidpoint.x,
+    y: eye.irisCenter.y - eyeMidpoint.y,
+  };
+  const verticalPosition = 0.5 + dot(irisFromMidpoint, verticalAxis) / horizontalLength;
 
   return {
     eyeWidth: horizontalLength,
@@ -97,7 +85,7 @@ export function getEyePositionDiagnostics(eye: EyeObservation): EyePositionDiagn
     irisFromUpper,
     position: {
       x: toScreenHorizontalPosition(anatomicalHorizontalPosition, eye.screenSide),
-      y: Math.min(1, Math.max(0, dot(irisFromUpper, verticalAxis) / projectedEyeHeight)),
+      y: Math.min(1, Math.max(0, verticalPosition)),
     },
     failureReason: null,
   };
