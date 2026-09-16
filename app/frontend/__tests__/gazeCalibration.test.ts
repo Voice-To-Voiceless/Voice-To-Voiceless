@@ -1,5 +1,6 @@
 import { GazeCalibrationMapper, CalibrationSample } from '../src/vision/gazeCalibration';
 import { getMedianGazeByTarget } from '../src/vision/calibrationMath';
+import { getPitchBinnedResidualDiagnostics, getPoseCoefficientDiagnostics, PoseSample } from '../src/modelTesting/poseCalibrationDiagnostics';
 
 const samples: CalibrationSample[] = [
   { gaze: { x: 0.1, y: 0.1 }, target: { x: 0.05, y: 0.1 } },
@@ -110,4 +111,52 @@ test('reports the median raw gaze position for each target', () => {
     gaze: { x: 0.8, y: 0.7 },
     sampleCount: 1,
   });
+});
+
+test('reports residuals and pose scale summaries by pitch bin', () => {
+  const poseSamples: PoseSample[] = samples.map((sample, index) => ({
+    ...sample,
+    pose: {
+      yaw: [0.03, -0.02, 0.01, 0.01, -0.03, 0.02, -0.02, 0.03, -0.01][index],
+      pitch: [0.02, -0.01, 0.03, -0.02, 0.01, -0.03, 0.015, -0.025, 0.005][index],
+      eyeScale: 0.04 + index * 0.001,
+      interEyeDistance: 0.1 + index * 0.002,
+    },
+  }));
+
+  const diagnostics = getPitchBinnedResidualDiagnostics(poseSamples);
+
+  expect(diagnostics).toHaveLength(3);
+  expect(diagnostics.every(bin => bin.sampleCount > 0)).toBe(true);
+  expect(diagnostics[0].lowerPitch).toBeLessThanOrEqual(diagnostics[1].lowerPitch);
+  expect(diagnostics[1].lowerPitch).toBeLessThanOrEqual(diagnostics[2].lowerPitch);
+  expect(diagnostics[0]).toEqual(expect.objectContaining({
+    meanEyeScale: expect.any(Number),
+    meanInterEyeDistance: expect.any(Number),
+    rmsResidual: expect.any(Number),
+    maxResidual: expect.any(Number),
+  }));
+});
+
+test('reports pose calibration coefficient magnitudes by feature', () => {
+  const poseSamples: PoseSample[] = samples.map((sample, index) => ({
+    ...sample,
+    pose: {
+      yaw: [0.03, -0.02, 0.01, 0.01, -0.03, 0.02, -0.02, 0.03, -0.01][index],
+      pitch: [0.02, -0.01, 0.03, -0.02, 0.01, -0.03, 0.015, -0.025, 0.005][index],
+      eyeScale: 0.04,
+      interEyeDistance: 0.1,
+    },
+  }));
+
+  const diagnostics = getPoseCoefficientDiagnostics(poseSamples);
+
+  expect(diagnostics).not.toBeNull();
+  expect(diagnostics!.featureNames).toEqual(['intercept', 'gazeX', 'gazeY', 'yaw', 'pitch']);
+  expect(diagnostics!.xCoefficients).toHaveLength(5);
+  expect(diagnostics!.yCoefficients).toHaveLength(5);
+  expect(diagnostics!.xAbsoluteMagnitudes).toEqual(diagnostics!.xCoefficients.map(Math.abs));
+  expect(diagnostics!.yAbsoluteMagnitudes).toEqual(diagnostics!.yCoefficients.map(Math.abs));
+  expect(diagnostics!.xMaxAbsoluteMagnitude).toBe(Math.max(...diagnostics!.xAbsoluteMagnitudes));
+  expect(diagnostics!.yMaxAbsoluteMagnitude).toBe(Math.max(...diagnostics!.yAbsoluteMagnitudes));
 });

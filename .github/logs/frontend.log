@@ -2,6 +2,7 @@
 2026-09-16: Focused calibration tests passed and frontend TypeScript typecheck completed without errors.
 2026-09-16: Replaced eyelid-height vertical gaze normalization with eye-corner midpoint and eye-width normalization.
 2026-09-16: Updated vertical gaze expectations; focused gaze tests pass after the geometry change.
+2026-09-16: Restored eyelid-relative production mapping and added diagnostic-only vertical feature candidates.
 2026-09-14: Added MediaPipe landmark contract tests and persisted the focused eye-tracking diagnostics implementation plan under .vscode.
 2026-09-14: Added structured binocular gaze diagnostics to the calibration JSON capture; full Jest suite, typecheck, lint, and web build pass.
 2026-09-14: Corrected MediaPipe eye-corner mapping to preserve anatomical inner/outer landmarks and removed the invalid screen-x orientation rejection.
