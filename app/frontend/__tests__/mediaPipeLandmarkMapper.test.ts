@@ -45,7 +45,7 @@ test('maps canonical MediaPipe eye landmarks into left-to-right eye coordinates'
       { x: 0.35, y: 0.4 }, { x: 0.34, y: 0.39 }, { x: 0.36, y: 0.39 },
       { x: 0.36, y: 0.41 }, { x: 0.34, y: 0.41 },
     ],
-    screenSide: 'left',
+    screenSide: 'right',
     confidence: 0.9,
   });
   expect(observation?.rightEye).toEqual({
@@ -58,7 +58,7 @@ test('maps canonical MediaPipe eye landmarks into left-to-right eye coordinates'
       { x: 0.75, y: 0.4 }, { x: 0.74, y: 0.39 }, { x: 0.76, y: 0.39 },
       { x: 0.76, y: 0.41 }, { x: 0.74, y: 0.41 },
     ],
-    screenSide: 'right',
+    screenSide: 'left',
     confidence: 0.9,
   });
 });

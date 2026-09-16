@@ -11,8 +11,8 @@ function createDirectionalLandmarks(screenX: number, screenY: number, roll = 0):
   const leftOuter = { x: 0.2, y: 0.4 };
   const rightInner = { x: 0.6, y: 0.4 };
   const rightOuter = { x: 0.8, y: 0.4 };
-  const leftIrisX = leftInner.x + (leftOuter.x - leftInner.x) * (1 - screenX);
-  const rightIrisX = rightInner.x + (rightOuter.x - rightInner.x) * screenX;
+  const leftIrisX = leftInner.x + (leftOuter.x - leftInner.x) * screenX;
+  const rightIrisX = rightInner.x + (rightOuter.x - rightInner.x) * (1 - screenX);
   const irisY = 0.3 + screenY * 0.2;
 
   landmarks[33] = leftOuter;
