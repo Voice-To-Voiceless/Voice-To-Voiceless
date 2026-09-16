@@ -1,0 +1,170 @@
+[
+  {
+    "label": "book",
+    "split": "train",
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\.tmp-wlasl\\start_kit\\raw_videos\\69241.mp4",
+    "video_id": "69241"
+  },
+  {
+    "label": "book",
+    "split": "train",
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\.tmp-wlasl\\start_kit\\raw_videos\\07069.mp4",
+    "video_id": "07069"
+  },
+  {
+    "label": "book",
+    "split": "train",
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\.tmp-wlasl\\start_kit\\raw_videos\\07068.mp4",
+    "video_id": "07068"
+  },
+  {
+    "label": "book",
+    "split": "train",
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\.tmp-wlasl\\start_kit\\raw_videos\\07070.mp4",
+    "video_id": "07070"
+  },
+  {
+    "label": "book",
+    "split": "val",
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\.tmp-wlasl\\start_kit\\raw_videos\\07099.mp4",
+    "video_id": "07099"
+  },
+  {
+    "label": "drink",
+    "split": "val",
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\.tmp-wlasl\\start_kit\\raw_videos\\69302.mp4",
+    "video_id": "69302"
+  },
+  {
+    "label": "drink",
+    "split": "train",
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\.tmp-wlasl\\start_kit\\raw_videos\\17710.mp4",
+    "video_id": "17710"
+  },
+  {
+    "label": "drink",
+    "split": "train",
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\.tmp-wlasl\\start_kit\\raw_videos\\17733.mp4",
+    "video_id": "17733"
+  },
+  {
+    "label": "drink",
+    "split": "val",
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\.tmp-wlasl\\start_kit\\raw_videos\\17734.mp4",
+    "video_id": "17734"
+  },
+  {
+    "label": "drink",
+    "split": "train",
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\.tmp-wlasl\\start_kit\\raw_videos\\17711.mp4",
+    "video_id": "17711"
+  },
+  {
+    "label": "drink",
+    "split": "train",
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\.tmp-wlasl\\start_kit\\raw_videos\\17712.mp4",
+    "video_id": "17712"
+  },
+  {
+    "label": "drink",
+    "split": "test",
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\.tmp-wlasl\\start_kit\\raw_videos\\17713.mp4",
+    "video_id": "17713"
+  },
+  {
+    "label": "drink",
+    "split": "train",
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\.tmp-wlasl\\start_kit\\raw_videos\\17709.mp4",
+    "video_id": "17709"
+  },
+  {
+    "label": "computer",
+    "split": "val",
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\.tmp-wlasl\\start_kit\\raw_videos\\12312.mp4",
+    "video_id": "12312"
+  },
+  {
+    "label": "computer",
+    "split": "train",
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\.tmp-wlasl\\start_kit\\raw_videos\\12311.mp4",
+    "video_id": "12311"
+  },
+  {
+    "label": "computer",
+    "split": "train",
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\.tmp-wlasl\\start_kit\\raw_videos\\12338.mp4",
+    "video_id": "12338"
+  },
+  {
+    "label": "computer",
+    "split": "train",
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\.tmp-wlasl\\start_kit\\raw_videos\\12313.mp4",
+    "video_id": "12313"
+  },
+  {
+    "label": "computer",
+    "split": "train",
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\.tmp-wlasl\\start_kit\\raw_videos\\12314.mp4",
+    "video_id": "12314"
+  },
+  {
+    "label": "computer",
+    "split": "val",
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\.tmp-wlasl\\start_kit\\raw_videos\\12315.mp4",
+    "video_id": "12315"
+  },
+  {
+    "label": "computer",
+    "split": "train",
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\.tmp-wlasl\\start_kit\\raw_videos\\12316.mp4",
+    "video_id": "12316"
+  },
+  {
+    "label": "computer",
+    "split": "train",
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\.tmp-wlasl\\start_kit\\raw_videos\\12317.mp4",
+    "video_id": "12317"
+  },
+  {
+    "label": "computer",
+    "split": "train",
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\.tmp-wlasl\\start_kit\\raw_videos\\12318.mp4",
+    "video_id": "12318"
+  },
+  {
+    "label": "computer",
+    "split": "train",
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\.tmp-wlasl\\start_kit\\raw_videos\\12319.mp4",
+    "video_id": "12319"
+  },
+  {
+    "label": "computer",
+    "split": "test",
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\.tmp-wlasl\\start_kit\\raw_videos\\12320.mp4",
+    "video_id": "12320"
+  },
+  {
+    "label": "before",
+    "split": "train",
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\.tmp-wlasl\\start_kit\\raw_videos\\05728.mp4",
+    "video_id": "05728"
+  },
+  {
+    "label": "before",
+    "split": "train",
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\.tmp-wlasl\\start_kit\\raw_videos\\05749.mp4",
+    "video_id": "05749"
+  },
+  {
+    "label": "before",
+    "split": "val",
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\.tmp-wlasl\\start_kit\\raw_videos\\05750.mp4",
+    "video_id": "05750"
+  },
+  {
+    "label": "before",
+    "split": "train",
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\.tmp-wlasl\\start_kit\\raw_videos\\05729.mp4",
+    "video_id": "05729"
+  }
+]

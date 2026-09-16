@@ -19,9 +19,23 @@ Endpoints:
 * `GET /health` checks that the API is running.
 * `POST /api/v1/sign-language/interpret` accepts an `image` multipart file
 	and returns `prediction` and `english`.
-* `WS /api/v1/translation/live` accepts binary image frames. It buffers 16
+* `WS /api/v1/translation/live` accepts binary image frames. It buffers 64
 	frames, then sends one ASL word prediction and English translation. Before
 	that, it reports the buffer status.
+* `POST /api/v1/notifications` accepts a shared notification payload with
+	`source`, `type`, `severity`, `message`, and `patient_metadata`.
+* `POST /api/v1/nurse/alerts` sends an alert from a nurse to a patient. The
+	payload contains `message`, `severity`, `patient_metadata`, and
+	`nurse_metadata`.
+* `GET /api/v1/notifications` returns notifications; use `recipient=patient`
+	or `recipient=nurse` to filter the target.
+* `POST /api/v1/notifications/{id}/read` marks one notification as read.
+
+The browser patient screen sends eye-tracking selections and face-recognition
+risk transitions to the notification API. The `Nurse desk` button opens the
+live notification page, which polls the API and displays patient metadata.
+Notifications are currently stored in memory and are cleared when the API
+restarts; replace `NotificationService` storage when persistence is needed.
 
 The default model is `UnconfiguredSignLanguageModel`, which safely returns an
 `unknown` prediction. For word-level ASL, WLASL provides an academic dataset
@@ -62,3 +76,24 @@ Install the optional ML dependencies separately:
 If the three WLASL variables are missing, the API intentionally uses the
 safe `unknown` fallback instead of starting with an incorrectly configured
 model.
+
+Custom webcam vocabulary
+------------------------
+
+For reliable recognition in the target camera conditions, record a small
+vocabulary instead of fine-tuning all 2,000 WLASL classes. The recorder uses
+30 clips per label and creates a validation split automatically:
+
+	.\.venv\Scripts\python.exe tools\record_custom_asl.py --labels "hello,thank you,help,yes,no,please,sorry,goodbye"
+
+Press Enter before each clip and perform the complete sign for three seconds.
+After recording, train the custom head:
+
+	.\.venv\Scripts\python.exe tools\train_wlasl_subset.py --data data\custom_asl --output models\wlasl\custom_asl.pt --epochs 12
+
+Then start the API with the custom checkpoint and its generated labels:
+
+	$env:WLASL_CHECKPOINT = "models/wlasl/custom_asl.pt"
+	$env:WLASL_LABELS = "models/wlasl/custom_asl.labels.txt"
+	$env:WLASL_CLASS_COUNT = "8"
+	.\.venv\Scripts\python.exe -m uvicorn app.backend.main:app --host 127.0.0.1 --port 8000

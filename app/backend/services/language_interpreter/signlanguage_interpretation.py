@@ -49,6 +49,7 @@ class WlaslI3dSignLanguageModel:
 		labels_path: str,
 		wlasl_source_path: str,
 		class_count: int = 2000,
+		allowed_labels: Sequence[str] | None = None,
 	) -> None:
 		try:
 			import numpy as np
@@ -79,6 +80,13 @@ class WlaslI3dSignLanguageModel:
 		]
 		if len(self._labels) < class_count:
 			raise ValueError("WLASL labels do not match the checkpoint class count")
+		allowed = {label.strip().lower() for label in allowed_labels or () if label.strip()}
+		self._allowed_indices = [
+			index for index, label in enumerate(self._labels[:class_count])
+			if not allowed or label.lower() in allowed
+		]
+		if not self._allowed_indices:
+			raise ValueError("WLASL allowed labels do not match the label file")
 		self._model = InceptionI3d(400, in_channels=3)
 		self._model.replace_logits(class_count)
 		state = torch.load(checkpoint_path, map_location="cpu")
@@ -86,18 +94,21 @@ class WlaslI3dSignLanguageModel:
 		self._model.eval()
 
 	def predict(self, image: bytes) -> SignPrediction:
-		return self.predict_sequence([image] * 16)
+		return self.predict_sequence([image] * 64)
 
 	def predict_sequence(self, images: Sequence[bytes]) -> SignPrediction:
 		if not images or any(not image for image in images):
 			raise ValueError("ASL frame sequence cannot be empty")
-		frames = [
-			self._np.asarray(
-				self._image.open(BytesIO(image)).convert("RGB").resize((224, 224)),
-				dtype=self._np.float32,
-			)
-			for image in images
-		]
+		frames = []
+		for image in images:
+			frame = self._image.open(BytesIO(image)).convert("RGB")
+			scale = 224 / frame.height
+			resized_width = max(224, round(frame.width * scale))
+			frame = frame.resize((resized_width, 224))
+			left = (resized_width - 224) // 2
+			frame = frame.crop((left, 0, left + 224, 224))
+			# WLASL's reference loader uses OpenCV BGR frame order.
+			frames.append(self._np.asarray(frame, dtype=self._np.float32)[:, :, ::-1])
 		video = self._np.stack(frames, axis=0) / 127.5 - 1.0
 		tensor = self._torch.from_numpy(video).permute(3, 0, 1, 2).unsqueeze(0)
 		with self._torch.no_grad():
@@ -106,6 +117,10 @@ class WlaslI3dSignLanguageModel:
 				logits = logits.max(dim=2).values
 			elif logits.ndim != 2:
 				raise ValueError("Unexpected WLASL model output shape")
+			if len(self._allowed_indices) < logits.shape[1]:
+				filtered_logits = self._torch.full_like(logits, -self._torch.inf)
+				filtered_logits[:, self._allowed_indices] = logits[:, self._allowed_indices]
+				logits = filtered_logits
 			probabilities = self._torch.softmax(logits, dim=1)
 			confidence, index = probabilities.max(dim=1)
 		return SignPrediction(
