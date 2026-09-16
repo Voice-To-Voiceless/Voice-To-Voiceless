@@ -1,6 +1,8 @@
 import { CalibrationFitDiagnostics, CalibrationSample } from '../vision/gazeCalibration';
 
-export type PoseSample = CalibrationSample & { pose: { yaw: number; pitch: number } };
+export type PoseSample = CalibrationSample & {
+  pose: { yaw: number; pitch: number; eyeScale: number; interEyeDistance: number };
+};
 type Coefficients = number[];
 const MAX_RMS_RESIDUAL = 0.14;
 
@@ -23,6 +25,27 @@ export type PoseValidationDiagnostics = {
   targetResiduals: Array<{ target: CalibrationSample['target']; residual: number }>;
 };
 
+export type PitchBinDiagnostics = {
+  lowerPitch: number;
+  upperPitch: number;
+  sampleCount: number;
+  meanPitch: number;
+  meanEyeScale: number;
+  meanInterEyeDistance: number;
+  rmsResidual: number;
+  maxResidual: number;
+};
+
+export type PoseCoefficientDiagnostics = {
+  featureNames: ['intercept', 'gazeX', 'gazeY', 'yaw', 'pitch'];
+  xCoefficients: Coefficients;
+  yCoefficients: Coefficients;
+  xAbsoluteMagnitudes: Coefficients;
+  yAbsoluteMagnitudes: Coefficients;
+  xMaxAbsoluteMagnitude: number;
+  yMaxAbsoluteMagnitude: number;
+};
+
 export function getPoseConditionedCalibrationFitDiagnostics(samples: PoseSample[]): CalibrationFitDiagnostics {
   const groups = [...groupSamples(samples).values()];
   const coefficients = fitCoefficients(samples);
@@ -43,6 +66,21 @@ export function getPoseConditionedCalibrationFitDiagnostics(samples: PoseSample[
     rmsResidual,
     targetResiduals,
     rejectionReason: rmsResidual > MAX_RMS_RESIDUAL ? 'residual exceeds threshold' : null,
+  };
+}
+
+export function getPoseCoefficientDiagnostics(samples: PoseSample[]): PoseCoefficientDiagnostics | null {
+  const coefficients = fitCoefficients(samples);
+  if (coefficients === null) return null;
+  const { xCoefficients, yCoefficients } = coefficients;
+  return {
+    featureNames: ['intercept', 'gazeX', 'gazeY', 'yaw', 'pitch'],
+    xCoefficients,
+    yCoefficients,
+    xAbsoluteMagnitudes: xCoefficients.map(Math.abs),
+    yAbsoluteMagnitudes: yCoefficients.map(Math.abs),
+    xMaxAbsoluteMagnitude: Math.max(...xCoefficients.map(Math.abs)),
+    yMaxAbsoluteMagnitude: Math.max(...yCoefficients.map(Math.abs)),
   };
 }
 
@@ -90,6 +128,31 @@ export function getPoseLeaveOneTargetOutDiagnostics(samples: PoseSample[]): Pose
   };
 }
 
+export function getPitchBinnedResidualDiagnostics(samples: PoseSample[]): PitchBinDiagnostics[] {
+  const coefficients = fitCoefficients(samples);
+  if (coefficients === null || samples.length === 0) return [];
+  const sorted = [...samples].sort((left, right) => left.pose.pitch - right.pose.pitch);
+  const binCount = Math.min(3, sorted.length);
+  const bins: PitchBinDiagnostics[] = [];
+  for (let index = 0; index < binCount; index += 1) {
+    const start = Math.floor(index * sorted.length / binCount);
+    const end = Math.floor((index + 1) * sorted.length / binCount);
+    const group = sorted.slice(start, Math.max(start + 1, end));
+    const residuals = group.map(sample => getResidual(sample, coefficients));
+    bins.push({
+      lowerPitch: group[0].pose.pitch,
+      upperPitch: group[group.length - 1].pose.pitch,
+      sampleCount: group.length,
+      meanPitch: mean(group.map(sample => sample.pose.pitch)),
+      meanEyeScale: mean(group.map(sample => sample.pose.eyeScale)),
+      meanInterEyeDistance: mean(group.map(sample => sample.pose.interEyeDistance)),
+      rmsResidual: Math.sqrt(mean(residuals.map(residual => residual ** 2))),
+      maxResidual: Math.max(...residuals),
+    });
+  }
+  return bins;
+}
+
 export function getPoseValidationDiagnostics(training: PoseSample[], validation: PoseSample[]): PoseValidationDiagnostics {
   const coefficients = fitCoefficients(training);
   if (coefficients === null || validation.length === 0) return { rmsResidual: null, maxResidual: null, targetResiduals: [] };
@@ -132,6 +195,10 @@ function groupSamples(samples: PoseSample[]): Map<string, PoseSample[]> {
 
 function getFeatures(sample: PoseSample): number[] {
   return [1, sample.gaze.x, sample.gaze.y, sample.pose.yaw, sample.pose.pitch];
+}
+
+function mean(values: number[]): number {
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
 function createMatrix(size: number): number[][] {

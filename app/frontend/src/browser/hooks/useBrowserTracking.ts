@@ -107,7 +107,12 @@ export function useBrowserTracking(
           leftConfidence: observation.leftEye.confidence,
           rightConfidence: observation.rightEye.confidence,
           diagnostics: gazeDiagnostics,
-          pose: pose !== null && pose.yaw !== null && pose.pitch !== null ? { yaw: pose.yaw, pitch: pose.pitch } : null,
+          pose: pose !== null && pose.yaw !== null && pose.pitch !== null ? {
+            yaw: pose.yaw,
+            pitch: pose.pitch,
+            eyeScale: pose.eyeScale,
+            interEyeDistance: pose.interEyeDistance,
+          } : null,
         });
         if (modelTestingSession) modelTestingSession.recordEyeDiagnostics(targetIndex, {
             targetIndex,
@@ -122,7 +127,12 @@ export function useBrowserTracking(
         const result = processCalibration(gaze, timestamp, {
           raw: gaze,
           compensated: compensateGazeForPose(gaze, pose, poseRef.current),
-          pose: pose !== null && pose.yaw !== null && pose.pitch !== null ? { yaw: pose.yaw, pitch: pose.pitch } : null,
+          pose: pose !== null && pose.yaw !== null && pose.pitch !== null ? {
+            yaw: pose.yaw,
+            pitch: pose.pitch,
+            eyeScale: pose.eyeScale,
+            interEyeDistance: pose.interEyeDistance,
+          } : null,
           quality,
         });
         setSnapshot(value => ({

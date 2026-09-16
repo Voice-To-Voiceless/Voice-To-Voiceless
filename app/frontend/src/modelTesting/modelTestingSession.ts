@@ -4,6 +4,8 @@ import { NormalizedGazePoint } from '../vision/gazeTypes';
 import { CalibrationSampleQuality, CalibrationQualityRejectionReason } from '../vision/calibrationQuality';
 import {
   getPoseConditionedCalibrationFitDiagnostics,
+  getPoseCoefficientDiagnostics,
+  getPitchBinnedResidualDiagnostics,
   getPoseLeaveOneTargetOutDiagnostics,
   getPoseValidationDiagnostics,
   PoseSample,
@@ -23,7 +25,7 @@ export type CalibrationPass = {
 export type CalibrationDiagnosticPoints = {
   raw: NormalizedGazePoint;
   compensated: NormalizedGazePoint;
-  pose: { yaw: number; pitch: number } | null;
+  pose: { yaw: number; pitch: number; eyeScale: number; interEyeDistance: number } | null;
   quality: CalibrationSampleQuality;
 };
 
@@ -160,13 +162,23 @@ function getOrdinaryValidationDiagnostics(training: CalibrationSample[], validat
 }
 
 function getPassDiagnostics(pass: PassData) {
+  const poseConditioned = getPoseConditionedCalibrationFitDiagnostics(pass.poseConditioned);
+  const poseLeaveOneTargetOut = getPoseLeaveOneTargetOutDiagnostics(pass.poseConditioned);
   return {
     rawMedianGazeByTarget: getMedianGazeByTarget(pass.raw),
     smoothed: getCalibrationFitDiagnostics(pass.all),
     raw: getCalibrationFitDiagnostics(pass.raw),
     compensated: getCalibrationFitDiagnostics(pass.compensated),
-    poseConditioned: getPoseConditionedCalibrationFitDiagnostics(pass.poseConditioned),
-    poseLeaveOneTargetOut: getPoseLeaveOneTargetOutDiagnostics(pass.poseConditioned),
+    poseConditioned: {
+      ...poseConditioned,
+      accepted: poseConditioned.accepted && poseLeaveOneTargetOut.accepted,
+      rejectionReason: poseConditioned.accepted && !poseLeaveOneTargetOut.accepted
+        ? 'leave-one-target-out residual exceeds threshold'
+        : poseConditioned.rejectionReason,
+    },
+    poseCoefficientDiagnostics: getPoseCoefficientDiagnostics(pass.poseConditioned),
+    pitchBinnedResiduals: getPitchBinnedResidualDiagnostics(pass.poseConditioned),
+    poseLeaveOneTargetOut,
     qualityByTarget: pass.qualityByTarget,
   };
 }
