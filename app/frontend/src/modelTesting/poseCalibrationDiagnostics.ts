@@ -46,20 +46,6 @@ export type PoseCoefficientDiagnostics = {
   yMaxAbsoluteMagnitude: number;
 };
 
-export type PoseFeatureRange = {
-  min: number;
-  max: number;
-  range: number;
-  mean: number;
-};
-
-export type PoseFeatureRanges = {
-  yaw: PoseFeatureRange;
-  pitch: PoseFeatureRange;
-  eyeScale: PoseFeatureRange;
-  interEyeDistance: PoseFeatureRange;
-};
-
 export function getPoseConditionedCalibrationFitDiagnostics(samples: PoseSample[]): CalibrationFitDiagnostics {
   const groups = [...groupSamples(samples).values()];
   const coefficients = fitCoefficients(samples);
@@ -240,18 +226,6 @@ function getFeatures(sample: PoseSample): number[] {
 
 function mean(values: number[]): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
-
-function median(values: number[]): number {
-  const sorted = [...values].sort((left, right) => left - right);
-  const middle = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle];
-}
-
-function getFeatureRange(values: number[]): PoseFeatureRange {
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  return { min, max, range: max - min, mean: mean(values) };
 }
 
 function createMatrix(size: number): number[][] {
