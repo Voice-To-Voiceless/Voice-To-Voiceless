@@ -4,13 +4,14 @@
     flex-direction:column;
     justify-content:center;
     align-items:center;
-    gap:10px;
+    gap:9px;
     width:100%;
-    min-height:124px;
-    padding:16px 10px;
+    aspect-ratio:1.5 / 1;
+    min-height:0;
+    padding:14px 10px;
     border:none;
     border:1px solid #dce8e1;
-    border-radius:16px;
+    border-radius:14px;
     background:#ffffff;
     cursor:pointer;
     overflow:hidden;
@@ -88,8 +89,8 @@
 }
 
 .communication-card__icon{
-    width:44px;
-    height:44px;
+    width:46px;
+    height:46px;
     border-radius:50%;
     background:#e4f5eb;
     display:flex;
@@ -98,13 +99,13 @@
 }
 
 .communication-card__icon svg{
-    width:24px;
-    height:24px;
+    width:30px;
+    height:30px;
 }
 
 .communication-card__title{
     max-width:100%;
-    font-size:clamp(12px, 1.2vw, 14px);
+    font-size:clamp(11px, 1.2vw, 14px);
     line-height:1.1;
     font-weight:700;
     color:#102A22;
@@ -113,3 +114,25 @@
     text-wrap:balance;
     margin:0;
 }
+
+.communication-card[data-action-id="yes"] { background:#e2f1e3; border-color:#9ac49b; }
+.communication-card[data-action-id="no"] { background:#f8dedd; border-color:#efb8b5; }
+.communication-card[data-action-id="bathroom"] { background:#dce9f7; border-color:#b5cee9; }
+.communication-card[data-action-id="food"] { background:#faead8; border-color:#ebcfac; }
+.communication-card[data-action-id="water"] { background:#e7e0f5; border-color:#c9b8e7; }
+.communication-card[data-action-id="medication"] { background:#dceef0; border-color:#add8dc; }
+.communication-card[data-action-id="pain"] { background:#f8edc9; border-color:#e8d58b; }
+.communication-card[data-action-id="sleep"] { background:#dfe6ee; border-color:#bdcbd9; }
+.communication-card[data-action-id="talk"] { background:#f4dce7; border-color:#e5b9cd; }
+.communication-card[data-action-id="fine"] { background:#dcefe4; border-color:#b2d9c0; }
+
+.communication-card[data-action-id="yes"] .communication-card__icon { background:#c7e4cb; }
+.communication-card[data-action-id="no"] .communication-card__icon { background:#f1c3c0; }
+.communication-card[data-action-id="bathroom"] .communication-card__icon { background:#c6dbef; }
+.communication-card[data-action-id="food"] .communication-card__icon { background:#f1d5b5; }
+.communication-card[data-action-id="water"] .communication-card__icon { background:#d3c6eb; }
+.communication-card[data-action-id="medication"] .communication-card__icon { background:#c2e1e4; }
+.communication-card[data-action-id="pain"] .communication-card__icon { background:#f1dfa1; }
+.communication-card[data-action-id="sleep"] .communication-card__icon { background:#cbd7e3; }
+.communication-card[data-action-id="talk"] .communication-card__icon { background:#e9c2d5; }
+.communication-card[data-action-id="fine"] .communication-card__icon { background:#c5e3d0; }
