@@ -1,6 +1,6 @@
 """Application composition root and dependency configuration."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import os
 from pathlib import Path
 
@@ -13,6 +13,7 @@ from app.backend.services.language_interpreter.signlanguage_interpretation impor
 	UnconfiguredSignLanguageModel,
 	WlaslI3dSignLanguageModel,
 )
+from app.backend.services.notification import NotificationService
 
 
 @dataclass(frozen=True)
@@ -21,7 +22,8 @@ class ApplicationServices:
 
 	sign_language_model: SignLanguageModel
 	english_translator: EnglishTranslator
-	sequence_length: int = 16
+	sequence_length: int = 64
+	notification_service: NotificationService = field(default_factory=NotificationService)
 
 
 def create_services() -> ApplicationServices:
@@ -39,6 +41,11 @@ def create_services() -> ApplicationServices:
 		"WLASL_SOURCE_PATH",
 		str(project_root / ".tmp-wlasl" / "code" / "I3D"),
 	)
+	class_count = int(os.getenv("WLASL_CLASS_COUNT", "2000"))
+	allowed_labels = os.getenv(
+		"WLASL_ALLOWED_LABELS",
+		"hello,thank you,help,nervous,yes,no,please,sorry,water,drink,eat,want,need,stop,friend,name,how,what,where,understand,again,love",
+	).split(",")
 	if not all(Path(path).exists() for path in (checkpoint, labels, source)):
 		checkpoint = labels = source = None
 	if checkpoint and labels and source:
@@ -46,11 +53,14 @@ def create_services() -> ApplicationServices:
 			checkpoint_path=checkpoint,
 			labels_path=labels,
 			wlasl_source_path=source,
+			class_count=class_count,
+				allowed_labels=allowed_labels,
 		)
 	else:
 		sign_language_model = UnconfiguredSignLanguageModel()
 	return ApplicationServices(
 		sign_language_model=sign_language_model,
 		english_translator=GlossaryEnglishTranslator(),
-		sequence_length=16,
+		sequence_length=64,
+		notification_service=NotificationService(),
 	)

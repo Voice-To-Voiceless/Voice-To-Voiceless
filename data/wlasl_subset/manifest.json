@@ -1,0 +1,57 @@
+[
+  {
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\data\\wlasl_subset\\help\\27194.mp4",
+    "label": "help",
+    "split": "test"
+  },
+  {
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\data\\wlasl_subset\\help\\69364.mp4",
+    "label": "help",
+    "split": "val"
+  },
+  {
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\data\\wlasl_subset\\help\\27206.mp4",
+    "label": "help",
+    "split": "train"
+  },
+  {
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\data\\wlasl_subset\\help\\27207.mp4",
+    "label": "help",
+    "split": "train"
+  },
+  {
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\data\\wlasl_subset\\help\\27208.mp4",
+    "label": "help",
+    "split": "train"
+  },
+  {
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\data\\wlasl_subset\\help\\27209.mp4",
+    "label": "help",
+    "split": "test"
+  },
+  {
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\data\\wlasl_subset\\no\\38482.mp4",
+    "label": "no",
+    "split": "test"
+  },
+  {
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\data\\wlasl_subset\\no\\68110.mp4",
+    "label": "no",
+    "split": "val"
+  },
+  {
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\data\\wlasl_subset\\no\\38539.mp4",
+    "label": "no",
+    "split": "train"
+  },
+  {
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\data\\wlasl_subset\\no\\38540.mp4",
+    "label": "no",
+    "split": "train"
+  },
+  {
+    "path": "C:\\Endava\\EndevLocal\\Voice-To-Voiceless\\data\\wlasl_subset\\no\\38541.mp4",
+    "label": "no",
+    "split": "train"
+  }
+]
