@@ -3,6 +3,85 @@ import { estimateGaze, getGazeDiagnostics } from '../src/vision/gazeEstimator';
 import { GazeSmoother } from '../src/vision/gazeSmoother';
 import { getEyeAperture, getEyePositionDiagnostics } from '../src/vision/eyePosition';
 import { compensateGazeForPose, estimateRelativeFacePose } from '../src/vision/facePoseEstimator';
+import { mapMediaPipeLandmarks } from '../src/vision/mediaPipeLandmarkMapper';
+
+function createDirectionalLandmarks(screenX: number, screenY: number, roll = 0): Array<{ x: number; y: number }> {
+  const landmarks = Array.from({ length: 478 }, () => ({ x: 0.5, y: 0.5 }));
+  const leftInner = { x: 0.4, y: 0.4 };
+  const leftOuter = { x: 0.2, y: 0.4 };
+  const rightInner = { x: 0.6, y: 0.4 };
+  const rightOuter = { x: 0.8, y: 0.4 };
+  const leftIrisX = leftInner.x + (leftOuter.x - leftInner.x) * (1 - screenX);
+  const rightIrisX = rightInner.x + (rightOuter.x - rightInner.x) * screenX;
+  const irisY = 0.3 + screenY * 0.2;
+
+  landmarks[33] = leftOuter;
+  landmarks[133] = leftInner;
+  landmarks[159] = { x: 0.3, y: 0.3 };
+  landmarks[145] = { x: 0.3, y: 0.5 };
+  landmarks[468] = { x: leftIrisX, y: irisY };
+  landmarks[469] = { x: leftIrisX - 0.01, y: irisY - 0.01 };
+  landmarks[470] = { x: leftIrisX + 0.01, y: irisY - 0.01 };
+  landmarks[471] = { x: leftIrisX + 0.01, y: irisY + 0.01 };
+  landmarks[472] = { x: leftIrisX - 0.01, y: irisY + 0.01 };
+  landmarks[362] = rightInner;
+  landmarks[263] = rightOuter;
+  landmarks[386] = { x: 0.7, y: 0.3 };
+  landmarks[374] = { x: 0.7, y: 0.5 };
+  landmarks[473] = { x: rightIrisX, y: irisY };
+  landmarks[474] = { x: rightIrisX - 0.01, y: irisY - 0.01 };
+  landmarks[475] = { x: rightIrisX + 0.01, y: irisY - 0.01 };
+  landmarks[476] = { x: rightIrisX + 0.01, y: irisY + 0.01 };
+  landmarks[477] = { x: rightIrisX - 0.01, y: irisY + 0.01 };
+
+  if (roll === 0) {
+    return landmarks;
+  }
+
+  const cos = Math.cos(roll);
+  const sin = Math.sin(roll);
+  return landmarks.map(point => ({
+    x: 0.5 + (point.x - 0.5) * cos - (point.y - 0.4) * sin,
+    y: 0.4 + (point.x - 0.5) * sin + (point.y - 0.4) * cos,
+  }));
+}
+
+function estimateDirectionalGaze(screenX: number, screenY: number, roll = 0) {
+  const observation = mapMediaPipeLandmarks(createDirectionalLandmarks(screenX, screenY, roll), 100, 0.9);
+  expect(observation).not.toBeNull();
+  return estimateGaze(observation!);
+}
+
+test('preserves horizontal and vertical direction through the raw landmark pipeline', () => {
+  const left = estimateDirectionalGaze(0.2, 0.5);
+  const center = estimateDirectionalGaze(0.5, 0.5);
+  const right = estimateDirectionalGaze(0.8, 0.5);
+  const up = estimateDirectionalGaze(0.5, 0.25);
+  const down = estimateDirectionalGaze(0.5, 0.75);
+
+  expect(left).not.toBeNull();
+  expect(center).not.toBeNull();
+  expect(right).not.toBeNull();
+  expect(up).not.toBeNull();
+  expect(down).not.toBeNull();
+  expect(left!.x).toBeLessThan(center!.x);
+  expect(center!.x).toBeLessThan(right!.x);
+  expect(up!.y).toBeLessThan(center!.y);
+  expect(center!.y).toBeLessThan(down!.y);
+  expect(estimateDirectionalGaze(0.5, 0.5, Math.PI / 18)?.x).toBeCloseTo(0.5, 2);
+  expect(estimateDirectionalGaze(0.5, 0.5, Math.PI / 18)?.y).toBeCloseTo(0.5, 2);
+});
+
+test('rejects the raw pipeline when one mapped eye is closed', () => {
+  const landmarks = createDirectionalLandmarks(0.5, 0.5);
+  landmarks[159] = { x: 0.3, y: 0.4 };
+  landmarks[145] = { x: 0.3, y: 0.41 };
+
+  const observation = mapMediaPipeLandmarks(landmarks, 101, 0.9);
+
+  expect(observation).not.toBeNull();
+  expect(estimateGaze(observation!)).toBeNull();
+});
 
 test('smooths gaze movement while preserving the latest confidence and timestamp', () => {
   const smoother = new GazeSmoother(0.25);
@@ -110,7 +189,7 @@ test('rejects gaze when an eye has invalid geometry or low confidence', () => {
   expect(estimateGaze({ ...observation, leftEye: { ...observation.leftEye, confidence: 0.2 } })).toBeNull();
 });
 
-test('estimates vertical gaze from iris position between the eyelids', () => {
+test('estimates vertical gaze from iris position relative to the eye-corner midpoint', () => {
   const gaze = estimateGaze({
     leftEye: {
       innerCorner: { x: 0.2, y: 0.4 },
@@ -131,7 +210,7 @@ test('estimates vertical gaze from iris position between the eyelids', () => {
     timestamp: 500,
   });
 
-  expect(gaze?.y).toBeCloseTo(0.25);
+  expect(gaze?.y).toBe(0);
 });
 
 test('weights gaze toward the eye with higher confidence', () => {
@@ -316,7 +395,21 @@ test('compares projected and direct midpoint iris horizontal positions', () => {
   expect(diagnostics.eyeMidpoint).toEqual({ x: 0.30000000000000004, y: 0.4 });
   expect(diagnostics.eyeWidth).toBeCloseTo(0.2);
   expect(diagnostics.position?.x).toBeCloseTo(0.7);
+  expect(diagnostics.position?.y).toBeCloseTo(0.5);
   expect(diagnostics.directHorizontalPosition).toBeCloseTo(0.7);
+});
+
+test('normalizes vertical iris position from the eye-corner midpoint and eye width', () => {
+  const diagnostics = getEyePositionDiagnostics({
+    innerCorner: { x: 0.2, y: 0.4 },
+    outerCorner: { x: 0.4, y: 0.4 },
+    upperLid: { x: 0.3, y: 0.3 },
+    lowerLid: { x: 0.3, y: 0.5 },
+    irisCenter: { x: 0.3, y: 0.5 },
+    confidence: 0.9,
+  });
+
+  expect(diagnostics.position?.y).toBeCloseTo(1);
 });
 
 test('normalizes mapped eyes into the same screen-horizontal direction', () => {

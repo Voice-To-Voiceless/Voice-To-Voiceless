@@ -4,8 +4,14 @@ type AffineCoefficients = [number, number, number];
 type Matrix = number[][];
 type Vector = [number, number, number];
 export type AggregatedCalibrationSample = CalibrationSample & { weight: number; targetSpread: number };
+export type MedianGazeByTarget = {
+  target: CalibrationTarget;
+  gaze: CalibrationTarget;
+  sampleCount: number;
+  targetSpread: number;
+};
 
-export const MAX_RMS_RESIDUAL = 0.30;
+export const MAX_RMS_RESIDUAL = 0.14;
 const MAX_TARGET_SPREAD = 0.18;
 const ROBUST_FIT_ITERATIONS = 4;
 const MIN_SAMPLE_WEIGHT = 0.05;
@@ -30,6 +36,23 @@ export function aggregateSamples(samples: CalibrationSample[]): AggregatedCalibr
   });
 }
 
+export function getMedianGazeByTarget(samples: CalibrationSample[]): MedianGazeByTarget[] {
+  const groups = new Map<string, CalibrationSample[]>();
+  for (const sample of samples) {
+    const key = `${sample.target.x}:${sample.target.y}`;
+    groups.set(key, [...(groups.get(key) ?? []), sample]);
+  }
+  return [...groups.values()].map(group => {
+    const aggregated = aggregateSamples(group)[0];
+    return {
+      target: group[0].target,
+      gaze: aggregated.gaze,
+      sampleCount: group.length,
+      targetSpread: aggregated.targetSpread,
+    };
+  });
+}
+
 export function fitRobustMapping(samples: AggregatedCalibrationSample[]): { xCoefficients: AffineCoefficients; yCoefficients: AffineCoefficients } | null {
   let weights = samples.map(sample => sample.weight);
   let xCoefficients: AffineCoefficients | null = null;
@@ -48,6 +71,8 @@ export function fitRobustMapping(samples: AggregatedCalibrationSample[]): { xCoe
   }
   return xCoefficients && yCoefficients ? { xCoefficients, yCoefficients } : null;
 }
+
+export type AffineFitCoefficients = { xCoefficients: AffineCoefficients; yCoefficients: AffineCoefficients };
 
 export function getCalibrationFitDiagnostics(samples: CalibrationSample[]): CalibrationFitDiagnostics {
   const aggregatedSamples = aggregateSamples(samples);

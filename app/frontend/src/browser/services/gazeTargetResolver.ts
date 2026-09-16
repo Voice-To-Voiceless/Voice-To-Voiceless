@@ -22,3 +22,4 @@ export function findVisibleTarget(
 
   return findGazeTarget({ x, y, confidence: 1, timestamp: performance.now() }, bounds) as ActionId | null;
 }
+
