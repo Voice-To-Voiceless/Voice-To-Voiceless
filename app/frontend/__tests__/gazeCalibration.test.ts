@@ -1,4 +1,5 @@
 import { GazeCalibrationMapper, CalibrationSample } from '../src/vision/gazeCalibration';
+import { getMedianGazeByTarget } from '../src/vision/calibrationMath';
 
 const samples: CalibrationSample[] = [
   { gaze: { x: 0.1, y: 0.1 }, target: { x: 0.05, y: 0.1 } },
@@ -88,4 +89,25 @@ test('keeps calibration usable when one target is unstable', () => {
   );
 
   expect(GazeCalibrationMapper.fit(samplesWithOneUnstableTarget)).not.toBeNull();
+});
+
+test('reports the median raw gaze position for each target', () => {
+  const diagnostics = getMedianGazeByTarget([
+    { target: { x: 0.1, y: 0.1 }, gaze: { x: 0.3, y: 0.4 } },
+    { target: { x: 0.1, y: 0.1 }, gaze: { x: 0.2, y: 0.5 } },
+    { target: { x: 0.1, y: 0.1 }, gaze: { x: 0.4, y: 0.6 } },
+    { target: { x: 0.9, y: 0.9 }, gaze: { x: 0.8, y: 0.7 } },
+  ]);
+
+  expect(diagnostics).toHaveLength(2);
+  expect(diagnostics[0]).toMatchObject({
+    target: { x: 0.1, y: 0.1 },
+    gaze: { x: 0.3, y: 0.5 },
+    sampleCount: 3,
+  });
+  expect(diagnostics[1]).toMatchObject({
+    target: { x: 0.9, y: 0.9 },
+    gaze: { x: 0.8, y: 0.7 },
+    sampleCount: 1,
+  });
 });

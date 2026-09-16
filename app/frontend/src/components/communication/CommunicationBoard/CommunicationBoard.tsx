@@ -51,6 +51,7 @@ export default function CommunicationBoard({
     onActionSelect,
 }: CommunicationBoardProps) {
     const communicationActions = actions.map(toCommunicationAction);
+        const dwellProgressPercentage = dwellProgress * 100;
 
     return (
         <div ref={boardRef} className="communication-board">
@@ -58,7 +59,7 @@ export default function CommunicationBoard({
                 actions={communicationActions}
                 hoveredActionId={activeTarget}
                 selectedActionId={selectedAction}
-                progress={dwellProgress}
+                    progress={dwellProgressPercentage}
                 onActionPress={(action) => {
                     const selected = actions.find((item) => item.id === action.id);
                     if (selected) {
@@ -69,7 +70,7 @@ export default function CommunicationBoard({
 
             <SelectionProgress
                 title={communicationActions.find((action) => action.id === selectedAction)?.title ?? ""}
-                progress={dwellProgress}
+                    progress={dwellProgressPercentage}
                 visible={selectedAction !== null}
             />
 
