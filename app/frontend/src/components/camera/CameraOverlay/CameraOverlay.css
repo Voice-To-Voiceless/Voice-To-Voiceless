@@ -44,6 +44,7 @@
         rgba(220,38,38,.92);
 }
 
+<<<<<<< HEAD
 .camera-overlay__face-data {
     position: absolute;
     top: 90px;
@@ -70,6 +71,8 @@
     font-size: 14px;
 }
 
+=======
+>>>>>>> 2032aa2bd7cb21fe43aaf264d93d53b21f3665b2
 .camera-overlay__status {
 
     position: absolute;
