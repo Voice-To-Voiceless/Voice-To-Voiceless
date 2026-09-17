@@ -7,7 +7,7 @@ export type CalibrationFitDiagnostics = {
   accepted: boolean;
   rmsResidual: number | null;
   targetResiduals: Array<{ target: CalibrationTarget; residual: number }>;
-  rejectionReason: 'fewer than three target groups' | 'too many unstable target groups' | 'singular calibration matrix' | 'residual exceeds threshold' | null;
+  rejectionReason: 'fewer than three target groups' | 'fewer than five target groups' | 'too many unstable target groups' | 'singular calibration matrix' | 'residual exceeds threshold' | null;
 };
 
 export class GazeCalibrationMapper {

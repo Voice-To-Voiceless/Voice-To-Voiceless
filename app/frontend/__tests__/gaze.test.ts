@@ -189,14 +189,14 @@ test('rejects gaze when an eye has invalid geometry or low confidence', () => {
   expect(estimateGaze({ ...observation, leftEye: { ...observation.leftEye, confidence: 0.2 } })).toBeNull();
 });
 
-test('estimates vertical gaze from iris position relative to the eye-corner midpoint', () => {
+test('estimates vertical gaze from iris position relative to eye width', () => {
   const gaze = estimateGaze({
     leftEye: {
       innerCorner: { x: 0.2, y: 0.4 },
       outerCorner: { x: 0.4, y: 0.4 },
       upperLid: { x: 0.3, y: 0.2 },
       lowerLid: { x: 0.3, y: 0.6 },
-      irisCenter: { x: 0.3, y: 0.3 },
+      irisCenter: { x: 0.3, y: 0.35 },
       confidence: 0.9,
     },
     rightEye: {
@@ -204,13 +204,13 @@ test('estimates vertical gaze from iris position relative to the eye-corner midp
       outerCorner: { x: 0.8, y: 0.4 },
       upperLid: { x: 0.7, y: 0.2 },
       lowerLid: { x: 0.7, y: 0.6 },
-      irisCenter: { x: 0.7, y: 0.3 },
+      irisCenter: { x: 0.7, y: 0.35 },
       confidence: 0.9,
     },
     timestamp: 500,
   });
 
-  expect(gaze?.y).toBe(0);
+  expect(gaze?.y).toBeCloseTo(0.25);
 });
 
 test('weights gaze toward the eye with higher confidence', () => {
@@ -397,6 +397,8 @@ test('compares projected and direct midpoint iris horizontal positions', () => {
   expect(diagnostics.position?.x).toBeCloseTo(0.7);
   expect(diagnostics.position?.y).toBeCloseTo(0.5);
   expect(diagnostics.directHorizontalPosition).toBeCloseTo(0.7);
+  expect(diagnostics.verticalFeatureCandidates.eyelidRelative).toBeCloseTo(0.5);
+  expect(diagnostics.verticalFeatureCandidates.cornerMidpoint).toBeCloseTo(0.5);
 });
 
 test('normalizes vertical iris position from the eye-corner midpoint and eye width', () => {
@@ -410,6 +412,24 @@ test('normalizes vertical iris position from the eye-corner midpoint and eye wid
   });
 
   expect(diagnostics.position?.y).toBeCloseTo(1);
+});
+
+test('reports iris-ring and depth vertical feature candidates', () => {
+  const diagnostics = getEyePositionDiagnostics({
+    innerCorner: { x: 0.2, y: 0.4, z: 0.1 },
+    outerCorner: { x: 0.4, y: 0.4, z: 0.1 },
+    upperLid: { x: 0.3, y: 0.3, z: 0.05 },
+    lowerLid: { x: 0.3, y: 0.5, z: 0.05 },
+    irisCenter: { x: 0.3, y: 0.4, z: 0.08 },
+    irisRing: [
+      { x: 0.3, y: 0.4, z: 0.08 },
+      { x: 0.3, y: 0.41, z: 0.08 },
+    ],
+    confidence: 0.9,
+  });
+
+  expect(diagnostics.verticalFeatureCandidates.irisRing).toBeCloseTo(0.525);
+  expect(diagnostics.verticalFeatureCandidates.irisDepth).toBeCloseTo(-0.02);
 });
 
 test('normalizes mapped eyes into the same screen-horizontal direction', () => {

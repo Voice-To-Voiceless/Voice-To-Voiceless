@@ -21,7 +21,7 @@ export type CalibrationQualityInput = {
   leftConfidence: number;
   rightConfidence: number;
   diagnostics: GazeDiagnostics;
-  pose: { yaw: number; pitch: number } | null;
+  pose: { yaw: number; pitch: number; eyeScale?: number; interEyeDistance?: number } | null;
 };
 
 export type CalibrationSampleQuality = {
