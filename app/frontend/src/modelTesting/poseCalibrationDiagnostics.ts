@@ -46,14 +46,28 @@ export type PoseCoefficientDiagnostics = {
   yMaxAbsoluteMagnitude: number;
 };
 
+export type PoseFeatureRange = {
+  min: number;
+  max: number;
+  range: number;
+  mean: number;
+};
+
+export type PoseFeatureRanges = {
+  yaw: PoseFeatureRange;
+  pitch: PoseFeatureRange;
+  eyeScale: PoseFeatureRange;
+  interEyeDistance: PoseFeatureRange;
+};
+
 export function getPoseConditionedCalibrationFitDiagnostics(samples: PoseSample[]): CalibrationFitDiagnostics {
   const groups = [...groupSamples(samples).values()];
   const coefficients = fitCoefficients(samples);
-  if (groups.length < 5) return { accepted: false, rmsResidual: null, targetResiduals: [], rejectionReason: 'fewer than three target groups' };
+  if (groups.length < 5) return { accepted: false, rmsResidual: null, targetResiduals: [], rejectionReason: 'fewer than five target groups' };
   if (coefficients === null) return { accepted: false, rmsResidual: null, targetResiduals: [], rejectionReason: 'singular calibration matrix' };
   const { xCoefficients, yCoefficients } = coefficients;
   const targetResiduals = groups.map(group => {
-    const sample = group[0];
+    const sample = aggregatePoseGroup(group);
     const features = getFeatures(sample);
     return {
       target: sample.target,
@@ -167,6 +181,16 @@ export function getPoseValidationDiagnostics(training: PoseSample[], validation:
   };
 }
 
+export function getPoseFeatureRanges(samples: PoseSample[]): PoseFeatureRanges | null {
+  if (samples.length === 0) return null;
+  return {
+    yaw: getFeatureRange(samples.map(sample => sample.pose.yaw)),
+    pitch: getFeatureRange(samples.map(sample => sample.pose.pitch)),
+    eyeScale: getFeatureRange(samples.map(sample => sample.pose.eyeScale)),
+    interEyeDistance: getFeatureRange(samples.map(sample => sample.pose.interEyeDistance)),
+  };
+}
+
 function fitCoefficients(samples: PoseSample[]): { xCoefficients: Coefficients; yCoefficients: Coefficients } | null {
   const groups = [...groupSamples(samples).values()];
   if (groups.length < 5) return null;
@@ -174,14 +198,31 @@ function fitCoefficients(samples: PoseSample[]): { xCoefficients: Coefficients; 
   const xVector = Array(5).fill(0) as number[];
   const yVector = Array(5).fill(0) as number[];
   for (const group of groups) {
-    const features = getFeatures(group[0]);
+    const representative = aggregatePoseGroup(group);
+    const features = getFeatures(representative);
     addOuterProduct(matrix, features);
-    addVector(xVector, features, group[0].target.x);
-    addVector(yVector, features, group[0].target.y);
+    addVector(xVector, features, representative.target.x);
+    addVector(yVector, features, representative.target.y);
   }
   const xCoefficients = solve(matrix, xVector);
   const yCoefficients = solve(matrix, yVector);
   return xCoefficients === null || yCoefficients === null ? null : { xCoefficients, yCoefficients };
+}
+
+function aggregatePoseGroup(group: PoseSample[]): PoseSample {
+  return {
+    gaze: {
+      x: median(group.map(sample => sample.gaze.x)),
+      y: median(group.map(sample => sample.gaze.y)),
+    },
+    target: group[0].target,
+    pose: {
+      yaw: median(group.map(sample => sample.pose.yaw)),
+      pitch: median(group.map(sample => sample.pose.pitch)),
+      eyeScale: median(group.map(sample => sample.pose.eyeScale)),
+      interEyeDistance: median(group.map(sample => sample.pose.interEyeDistance)),
+    },
+  };
 }
 
 function groupSamples(samples: PoseSample[]): Map<string, PoseSample[]> {
@@ -199,6 +240,18 @@ function getFeatures(sample: PoseSample): number[] {
 
 function mean(values: number[]): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function median(values: number[]): number {
+  const sorted = [...values].sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle];
+}
+
+function getFeatureRange(values: number[]): PoseFeatureRange {
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  return { min, max, range: max - min, mean: mean(values) };
 }
 
 function createMatrix(size: number): number[][] {

@@ -23,7 +23,7 @@ export function mapMediaPipeLandmarks(
       lowerLid: landmarks[145],
       irisCenter: landmarks[468],
       irisRing: landmarks.slice(468, 473),
-      screenSide: 'right',
+      screenSide: 'left',
       confidence,
     },
     rightEye: {
@@ -33,7 +33,7 @@ export function mapMediaPipeLandmarks(
       lowerLid: landmarks[374],
       irisCenter: landmarks[473],
       irisRing: landmarks.slice(473, 478),
-      screenSide: 'left',
+      screenSide: 'right',
       confidence,
     },
     faceAnchors: {

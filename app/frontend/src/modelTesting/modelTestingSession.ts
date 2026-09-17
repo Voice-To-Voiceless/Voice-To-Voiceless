@@ -7,6 +7,7 @@ import {
   getPoseCoefficientDiagnostics,
   getPitchBinnedResidualDiagnostics,
   getPoseLeaveOneTargetOutDiagnostics,
+  getPoseFeatureRanges,
   getPoseValidationDiagnostics,
   PoseSample,
 } from './poseCalibrationDiagnostics';
@@ -33,6 +34,19 @@ export type CalibrationQualitySummary = {
   accepted: number;
   rejected: number;
   rejectionReasons: Partial<Record<CalibrationQualityRejectionReason, number>>;
+};
+
+export type CalibrationDiagnosticsSnapshot = {
+  calibrationFitComparison: {
+    passOrder: Array<{ pass: CalibrationPassKind; targetOrder: CalibrationSample['target'][] }>;
+    training: ReturnType<typeof getPassDiagnostics>;
+    validation: ReturnType<typeof getPassCaptureSummary> | null;
+    separatePassValidation: {
+      ordinary: ReturnType<typeof getOrdinaryValidationDiagnostics>;
+      poseConditioned: ReturnType<typeof getPoseValidationDiagnostics>;
+    };
+  };
+  eyeDiagnostics: { targets: Array<Record<string, unknown>>; passCount: number };
 };
 
 type CalibrationSessionData = {
@@ -129,9 +143,13 @@ export class ModelTestingSession {
 
   public exportDiagnostics(): void {
     if (!this.enableDiagnostics || this.passes.length === 0) return;
+    downloadJson('gaze-calibration-diagnostics', this.getDiagnosticsSnapshot());
+  }
+
+  public getDiagnosticsSnapshot(): CalibrationDiagnosticsSnapshot {
     const training = this.passes[0];
     const validation = this.passes[1];
-    downloadJson('gaze-calibration-diagnostics', {
+    return {
       calibrationFitComparison: {
         passOrder: this.passes.map((pass, index) => ({ pass: index === 0 ? 'training' : 'validation', targetOrder: pass.targetOrder })),
         training: getPassDiagnostics(training),
@@ -142,7 +160,7 @@ export class ModelTestingSession {
         },
       },
       eyeDiagnostics: { targets: this.eyeDiagnostics, passCount: this.passes.length },
-    });
+    };
   }
 }
 
@@ -188,6 +206,7 @@ function getPassCaptureSummary(pass: PassData) {
     sampleCount: pass.all.length,
     rawSampleCount: pass.raw.length,
     poseSampleCount: pass.poseConditioned.length,
+    poseFeatureRanges: getPoseFeatureRanges(pass.poseConditioned),
     qualityByTarget: pass.qualityByTarget,
   };
 }

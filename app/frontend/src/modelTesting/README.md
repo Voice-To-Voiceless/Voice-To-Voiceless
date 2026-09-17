@@ -6,4 +6,4 @@ For a diagnostics-only build, render `BrowserTrackingApp` with `enableDiagnostic
 
 - `gaze-calibration-diagnostics-*.json`
 
-The downloaded JSON contains calibration comparison data and eye diagnostics. The comparison data includes ordinary, raw, compensated, pose-conditioned, and leave-one-target-out results. The runtime mapper remains in `src/vision/gazeCalibration.ts` and has no JSON download side effects.
+The downloaded JSON contains calibration comparison data and eye diagnostics. The comparison data includes ordinary, raw, compensated, pose-conditioned, and leave-one-target-out results. Validation captures also include min/max/range/mean summaries for yaw, pitch, eye scale, and inter-eye distance. Pose fitting uses median gaze and pose values per target to reduce the effect of bad frames. The runtime mapper remains in `src/vision/gazeCalibration.ts` and has no JSON download side effects.
