@@ -1,6 +1,6 @@
 import { GazeCalibrationMapper, CalibrationSample } from '../src/vision/gazeCalibration';
 import { getMedianGazeByTarget } from '../src/vision/calibrationMath';
-import { getPitchBinnedResidualDiagnostics, getPoseCoefficientDiagnostics, PoseSample } from '../src/modelTesting/poseCalibrationDiagnostics';
+import { getPitchBinnedResidualDiagnostics, getPoseCoefficientDiagnostics, getPoseFeatureRanges, PoseSample } from '../src/modelTesting/poseCalibrationDiagnostics';
 
 const samples: CalibrationSample[] = [
   { gaze: { x: 0.1, y: 0.1 }, target: { x: 0.05, y: 0.1 } },
@@ -159,4 +159,54 @@ test('reports pose calibration coefficient magnitudes by feature', () => {
   expect(diagnostics!.yAbsoluteMagnitudes).toEqual(diagnostics!.yCoefficients.map(Math.abs));
   expect(diagnostics!.xMaxAbsoluteMagnitude).toBe(Math.max(...diagnostics!.xAbsoluteMagnitudes));
   expect(diagnostics!.yMaxAbsoluteMagnitude).toBe(Math.max(...diagnostics!.yAbsoluteMagnitudes));
+});
+
+test('reports pose feature ranges', () => {
+  const poseSamples: PoseSample[] = samples.map((sample, index) => ({
+    ...sample,
+    pose: {
+      yaw: index / 10,
+      pitch: index / 20,
+      eyeScale: 0.04 + index / 100,
+      interEyeDistance: 0.1 + index / 200,
+    },
+  }));
+
+  const ranges = getPoseFeatureRanges(poseSamples)!;
+  expect(ranges.yaw).toEqual(expect.objectContaining({ min: 0, max: 0.8, range: 0.8 }));
+  expect(ranges.yaw.mean).toBeCloseTo(0.4);
+  expect(ranges.pitch).toEqual(expect.objectContaining({ min: 0, max: 0.4, range: 0.4 }));
+  expect(ranges.pitch.mean).toBeCloseTo(0.2);
+  expect(ranges.eyeScale).toEqual(expect.objectContaining({ min: 0.04, max: 0.12 }));
+  expect(ranges.eyeScale.range).toBeCloseTo(0.08);
+  expect(ranges.eyeScale.mean).toBeCloseTo(0.08);
+  expect(ranges.interEyeDistance).toEqual(expect.objectContaining({ min: 0.1, max: 0.14 }));
+  expect(ranges.interEyeDistance.range).toBeCloseTo(0.04);
+  expect(ranges.interEyeDistance.mean).toBeCloseTo(0.12);
+});
+
+test('uses median pose and gaze values per target before fitting', () => {
+  const baseSamples: PoseSample[] = samples.map((sample, index) => ({
+    ...sample,
+    pose: {
+      yaw: [0.03, -0.02, 0.01, 0.01, -0.03, 0.02, -0.02, 0.03, -0.01][index],
+      pitch: [0.02, -0.01, 0.03, -0.02, 0.01, -0.03, 0.015, -0.025, 0.005][index],
+      eyeScale: 0.04 + index * 0.001,
+      interEyeDistance: 0.1 + index * 0.002,
+    },
+  }));
+  const outlier = {
+    gaze: { x: 1, y: 0 },
+    target: baseSamples[0].target,
+    pose: { yaw: 1, pitch: -1, eyeScale: 1, interEyeDistance: 1 },
+  };
+
+  const diagnostics = getPoseCoefficientDiagnostics([
+    ...baseSamples,
+    baseSamples[0],
+    outlier,
+  ]);
+  const baseline = getPoseCoefficientDiagnostics(baseSamples);
+
+  expect(diagnostics).toEqual(baseline);
 });
