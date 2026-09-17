@@ -43,9 +43,9 @@ export default function CameraOverlay({
                 <div className="camera-overlay__face-data">
                     <strong>Face recognition</strong>
                     <span>State: {faceState}</span>
-                    <span>Risk: {faceRisk.toFixed(2)}</span>
+                    <span>Risk: {(faceRisk ?? 0).toFixed(2)}</span>
                     <span>Expression: {faceExpression}</span>
-                    <span>Indicators: {faceIndicators.length > 0 ? faceIndicators.join(", ") : "None"}</span>
+                    <span>Indicators: {faceIndicators && faceIndicators.length > 0 ? faceIndicators.join(", ") : "None"}</span>
                 </div>
             )}
 

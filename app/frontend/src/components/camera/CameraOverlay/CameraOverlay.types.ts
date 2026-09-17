@@ -4,9 +4,9 @@ export interface CameraOverlayProps {
     faceDetected: boolean;
     trackingActive: boolean;
     calibrationComplete: boolean;
-    faceRecognitionActive: boolean;
-    faceState: string;
-    faceRisk: number;
-    faceExpression: string;
-    faceIndicators: string[];
+    faceRecognitionActive?: boolean;
+    faceState?: string;
+    faceRisk?: number;
+    faceExpression?: string;
+    faceIndicators?: string[];
 }
