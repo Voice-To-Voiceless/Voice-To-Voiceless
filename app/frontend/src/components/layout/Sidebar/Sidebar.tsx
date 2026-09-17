@@ -5,9 +5,6 @@ import {
     House,
     Accessibility,
     Settings,
-    Clock3,
-    MessageSquare,
-    Phone,
     CircleHelp,
     HeartPulse,
 } from "lucide-react";
