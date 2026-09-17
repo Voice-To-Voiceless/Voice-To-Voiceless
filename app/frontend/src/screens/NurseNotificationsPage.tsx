@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   getNotifications,
   markNotificationRead,
@@ -23,8 +23,10 @@ export function NurseNotificationsPage({ onBack }: NurseNotificationsPageProps) 
   }
 
   useEffect(() => {
-    void loadNotifications();
-    const interval = window.setInterval(() => void loadNotifications(), 3000);
+    loadNotifications();
+    const interval = window.setInterval(() => {
+      loadNotifications();
+    }, 3000);
     return () => window.clearInterval(interval);
   }, []);
 
@@ -62,7 +64,7 @@ export function NurseNotificationsPage({ onBack }: NurseNotificationsPageProps) 
             <h2>{notification.message}</h2>
             <p>{notification.patient_metadata.name || notification.patient_metadata.patient_id} · {notification.patient_metadata.room || 'Room not specified'}</p>
             <span className="notification-source">{notification.source} / {notification.type}</span>
-            {!notification.read && <button type="button" className="notification-read-button" onClick={() => void markRead(notification)}>Mark as read</button>}
+            {!notification.read && <button type="button" className="notification-read-button" onClick={() => { markRead(notification); }}>Mark as read</button>}
           </article>
         ))}
       </section>

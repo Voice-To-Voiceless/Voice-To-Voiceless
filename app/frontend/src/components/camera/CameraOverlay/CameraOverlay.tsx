@@ -6,6 +6,7 @@ import {
     Eye,
     Radio,
 } from "lucide-react";
+import type { ReactNode } from "react";
 
 import type { CameraOverlayProps } from "./CameraOverlay.types";
 
@@ -42,11 +43,9 @@ export default function CameraOverlay({
                 <div className="camera-overlay__face-data">
                     <strong>Face recognition</strong>
                     <span>State: {faceState}</span>
-                    <span>Risk: {faceRisk.toFixed(2)}</span>
+                    <span>Risk: {(faceRisk ?? 0).toFixed(2)}</span>
                     <span>Expression: {faceExpression}</span>
-                    <span>
-                        Indicators: {faceIndicators.length > 0 ? faceIndicators.join(", ") : "none"}
-                    </span>
+                    <span>Indicators: {faceIndicators && faceIndicators.length > 0 ? faceIndicators.join(", ") : "None"}</span>
                 </div>
             )}
 
@@ -88,7 +87,7 @@ export default function CameraOverlay({
 }
 
 type StatusItemProps = {
-    icon: React.ReactNode;
+    icon: ReactNode;
     label: string;
     active: boolean;
 };

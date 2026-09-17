@@ -7,9 +7,7 @@ export default function CameraPanel({
 }: CameraPanelProps) {
     return (
         <section className="camera-panel">
-
             {children}
-
         </section>
     );
 }

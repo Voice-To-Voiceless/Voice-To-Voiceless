@@ -20,7 +20,6 @@ export default function CameraPreview({
                     </p>
                 </div>
             )}
-
         </div>
     );
 }
