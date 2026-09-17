@@ -4,7 +4,7 @@ import Header from '../components/layout/Header';
 import { CameraPanel } from '../components/camera/CameraPanel';
 import CameraPreview from '../components/camera/CameraPreview';
 import CommunicationBoard from '../components/communication/CommunicationBoard';
-import { COMMUNICATION_ACTIONS } from '../types/communication';
+import { ActionId, COMMUNICATION_ACTIONS } from '../types/communication';
 import { createModelTestingSession } from '../modelTesting/modelTestingSession';
 import { useBrowserTracking } from './hooks/useBrowserTracking';
 import { useFaceRecognition } from './hooks/useFaceRecognition';
@@ -23,6 +23,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true }: BrowserTracking
   const boardRef = useRef<HTMLDivElement>(null);
   const [modelTestingSession] = useState(() => createModelTestingSession({ enableDiagnostics }));
   const [statusVisible, setStatusVisible] = useState(true);
+  const [selectedNoticeVisible, setSelectedNoticeVisible] = useState(false);
   const selection = useSelectionFeedback();
   const tracking = useBrowserTracking(videoRef, boardRef, selection.selectAction, modelTestingSession);
   const recognition = useFaceRecognition(videoRef);
@@ -34,6 +35,13 @@ export function BrowserTrackingApp({ enableDiagnostics = true }: BrowserTracking
     const timer = window.setTimeout(() => setStatusVisible(false), ALERT_DURATION_MS);
     return () => window.clearTimeout(timer);
   }, [tracking.status, tracking.error, recognition.error]);
+
+  useEffect(() => {
+    setSelectedNoticeVisible(selection.selectedAction !== null);
+    if (selection.selectedAction === null) return undefined;
+    const timer = window.setTimeout(() => setSelectedNoticeVisible(false), ALERT_DURATION_MS);
+    return () => window.clearTimeout(timer);
+  }, [selection.selectedAction]);
 
   const status = trackingActive
     ? tracking.status
@@ -58,7 +66,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true }: BrowserTracking
     <AppLayout sidebarNotification={
       <section className="sidebar__notification" aria-live="polite">
         <div className="sidebar__notification-heading"><Bell size={14} aria-hidden="true" /> Notifications</div>
-        {statusVisible ? <><strong>{status}</strong>{(tracking.error ?? recognition.error) && <span>{tracking.error ?? recognition.error}</span>}</> : <span>All systems are ready.</span>}
+        {statusVisible ? <><strong>{status}</strong>{(tracking.error ?? recognition.error) && <span>{tracking.error ?? recognition.error}</span>}</> : selection.selectedAction && selectedNoticeVisible ? <><strong>Action selected</strong><span>{getActionLabel(selection.selectedAction)} is ready.</span></> : <span>All systems are ready.</span>}
       </section>
     }>
       <CalibrationTarget
@@ -164,3 +172,6 @@ function StatusDetail({ label, value }: { label: string; value: string }) {
   );
 }
 
+function getActionLabel(actionId: ActionId): string {
+  return COMMUNICATION_ACTIONS.find(action => action.id === actionId)?.label ?? actionId;
+}
