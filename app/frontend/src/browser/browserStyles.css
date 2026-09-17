@@ -117,3 +117,4 @@ h2 { font-size: 1.4rem; margin: 0; }
 }
 @media (max-width: 760px) { .tracking-app { padding: 20px 16px; } .action-grid { grid-template-columns: repeat(2, 1fr); } .app-header { flex-direction: column; } .camera-panel { aspect-ratio: 4 / 3; min-height: 320px; } }
 @media (max-width: 760px) { .calibration-modal { padding: 16px; } .calibration-modal__content { padding: 18px; } .calibration-modal__body { grid-template-columns: 1fr; } .camera-status-sidebar:not(.camera-status-sidebar--details) { display: grid; grid-template-columns: repeat(3, 1fr); } .camera-status-sidebar__item { flex-direction: column; justify-content: center; text-align: center; } }
+.footer-note { margin: 18px 0 0; text-align: center; }

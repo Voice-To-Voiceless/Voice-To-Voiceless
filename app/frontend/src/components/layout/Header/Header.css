@@ -4,36 +4,44 @@
     align-items: center;
     gap: 12px;
     min-height: 56px;
-    padding: 0 2px 12px;
-    border-bottom: 1px solid #dfe7df;
+        justify-content: space-between;
 }
-
-.app-header__tracking,
-.app-header__camera {
-    align-items: center;
+        padding: 20px 28px;
+        background: #FFFFFF;
+        border-radius: 24px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, .06);
+        border: 1px solid #EEF2F7;
     background: #f8faf8;
     border: 1px solid #d5dfd6;
     border-radius: 10px;
-    color: #52645a;
-    display: inline-flex;
-    font: 600 12px Arial, sans-serif;
-    gap: 7px;
-    min-height: 40px;
-    padding: 0 12px;
-    white-space: nowrap;
-}
+        align-items: center; 
+        gap: 10px; 
+        margin-right: auto; 
+        order: -1; 
+    }
 
-.app-header__status-dot {
-    background: #b6c2b8;
-    border-radius: 50%;
-    height: 8px;
-    width: 8px;
-}
+    .app-header__logo { 
+        align-items: center; 
+        background: linear-gradient(135deg, #27AE60, #134E4A); 
+        border-radius: 12px; 
+        color: white; 
+        display: flex; 
+        height: 40px; 
+        justify-content: center; 
+        width: 40px; 
+    } 
+    .app-header__title { 
+        color: #102A22; 
+        font-size: 20px; 
+        line-height: 1.1; 
+        margin: 0; 
+    } 
+    .app-header__subtitle { 
+        color: #64748B; 
+        font-size: 11px; 
+        margin: 3px 0 0; 
+    } 
 
-.app-header__tracking--active .app-header__status-dot { background: #55a76f; }
-
-.app-header__camera {
-    margin-left: auto;
 }
 
 .app-header__account {
@@ -56,4 +64,10 @@
 .app-header__account:hover {
     background: #2b6647;
     transform: translateY(-1px);
+    justify-content: flex-start;
+    align-items: center;
+    gap: 12px;
+    min-height: 56px;
+    padding: 0 2px 12px;
+    border-bottom: 1px solid #dfe7df;
 }
