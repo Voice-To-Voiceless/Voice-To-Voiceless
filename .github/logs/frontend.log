@@ -1,2 +1,0 @@
-2026-09-18: Added ideal 1280x720 browser camera constraints for higher-resolution eye tracking.
-2026-09-18: Added camera constraint regression coverage; focused test, typecheck, and web build pass.
