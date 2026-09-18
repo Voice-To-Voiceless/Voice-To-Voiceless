@@ -6,7 +6,7 @@
     align-items:center;
     gap:9px;
     width:100%;
-    aspect-ratio:1.5 / 1;
+    aspect-ratio:auto;
     min-height:0;
     padding:14px 10px;
     border:none;

@@ -18,7 +18,8 @@
 
     gap:12px;
     min-height:0;
-    overflow:hidden;
+    overflow-y:auto;
+    overflow-x:hidden;
 
     min-width:0;
     padding:16px 18px;
@@ -38,6 +39,10 @@
     .sidebar{
 
         width:100%;
+    }
+
+    .app-layout__content {
+        overflow:visible;
     }
 
 }
