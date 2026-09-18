@@ -146,7 +146,10 @@ export class ModelTestingSession {
 
   public completePass(): void {
     if (!this.currentPass) return;
-    if (this.passes.length >= 2) this.sessionClosed = true;
+    if (this.passes.length >= 2) {
+      this.sessionClosed = true;
+      this.currentPass = null;
+    }
     if (this.enableDiagnostics) this.exportDiagnostics();
   }
 

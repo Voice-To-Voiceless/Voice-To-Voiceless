@@ -1,5 +1,5 @@
-2026-09-18: Restored pose-conditioned rejection when validation pitch range exceeds training by >50%.
-2026-09-18: Added the pitch-shift rejection regression test; focused test and typecheck pass.
+2026-09-18: Added ideal 1280x720 browser camera constraints for higher-resolution eye tracking.
+2026-09-18: Added camera constraint regression coverage; focused test, typecheck, and web build pass.
 2026-09-16: Added raw median gaze-by-target calibration diagnostics and a focused unit test.
 2026-09-16: Focused calibration tests passed and frontend TypeScript typecheck completed without errors.
 2026-09-16: Replaced eyelid-height vertical gaze normalization with eye-corner midpoint and eye-width normalization.
