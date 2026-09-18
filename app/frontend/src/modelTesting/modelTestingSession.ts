@@ -44,7 +44,7 @@ export type CalibrationDiagnosticsSnapshot = {
     poseDistributionShift: ReturnType<typeof getPoseDistributionShift>;
     separatePassValidation: {
       ordinary: ReturnType<typeof getOrdinaryValidationDiagnostics>;
-      poseConditioned: ReturnType<typeof getPoseValidationDiagnostics>;
+      poseConditioned: ReturnType<typeof getAcceptedPoseValidationDiagnostics>;
     };
   };
   eyeDiagnostics: { targets: Array<Record<string, unknown>>; passCount: number };
@@ -169,7 +169,10 @@ export class ModelTestingSession {
         ),
         separatePassValidation: {
           ordinary: getOrdinaryValidationDiagnostics(training.all, validation?.all ?? []),
-          poseConditioned: getPoseValidationDiagnostics(training.poseConditioned, validation?.poseConditioned ?? []),
+          poseConditioned: getAcceptedPoseValidationDiagnostics(
+            training.poseConditioned,
+            validation?.poseConditioned ?? [],
+          ),
         },
       },
       eyeDiagnostics: { targets: this.eyeDiagnostics, passCount: this.passes.length },
@@ -225,6 +228,18 @@ function getPoseDistributionShift(
     pitch: validation.pitch.range > training.pitch.range * 1.5,
     eyeScale: validation.eyeScale.range > training.eyeScale.range * 1.5,
     interEyeDistance: validation.interEyeDistance.range > training.interEyeDistance.range * 1.5,
+  };
+}
+
+function getAcceptedPoseValidationDiagnostics(training: PoseSample[], validation: PoseSample[]) {
+  const diagnostics = getPoseValidationDiagnostics(training, validation);
+  const shift = getPoseDistributionShift(getPoseFeatureRanges(training), getPoseFeatureRanges(validation));
+  return {
+    ...diagnostics,
+    accepted: diagnostics.rmsResidual !== null && !shift?.pitch,
+    rejectionReason: shift?.pitch
+      ? 'validation pitch range exceeds training by >50%'
+      : null,
   };
 }
 

@@ -1,5 +1,5 @@
-2026-09-18: Closed the model-testing session after the training and validation passes.
-2026-09-18: Added third-pass regression coverage; focused lifecycle tests and typecheck pass.
+2026-09-18: Restored pose-conditioned rejection when validation pitch range exceeds training by >50%.
+2026-09-18: Added the pitch-shift rejection regression test; focused test and typecheck pass.
 2026-09-16: Added raw median gaze-by-target calibration diagnostics and a focused unit test.
 2026-09-16: Focused calibration tests passed and frontend TypeScript typecheck completed without errors.
 2026-09-16: Replaced eyelid-height vertical gaze normalization with eye-corner midpoint and eye-width normalization.

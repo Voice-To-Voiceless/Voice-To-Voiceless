@@ -91,17 +91,21 @@ test('flags validation pose ranges that exceed training by more than fifty perce
   session.recordCalibrationSample(target, {
     raw: { ...target, confidence: 0.9, timestamp: 3 },
     compensated: { ...target, confidence: 0.9, timestamp: 3 },
-    pose: { yaw: 1.6, pitch: 1.4, eyeScale: 1.5, interEyeDistance: 1.2 },
+    pose: { yaw: 1.6, pitch: 1.6, eyeScale: 1.5, interEyeDistance: 1.2 },
     quality: { accepted: true, rejectionReasons: [] },
   });
   session.recordPrimarySample({ gaze: target, target });
 
   expect(session.getDiagnosticsSnapshot().calibrationFitComparison.poseDistributionShift).toEqual({
     yaw: true,
-    pitch: false,
+    pitch: true,
     eyeScale: false,
     interEyeDistance: false,
   });
+  expect(session.getDiagnosticsSnapshot().calibrationFitComparison.separatePassValidation.poseConditioned).toEqual(expect.objectContaining({
+    accepted: false,
+    rejectionReason: 'validation pitch range exceeds training by >50%',
+  }));
 });
 
 test('closes after the validation pass and does not silently accept a third pass', () => {
