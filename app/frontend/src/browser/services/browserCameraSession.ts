@@ -5,7 +5,11 @@ export const WASM_PATH = '/wasm';
 
 export async function openCamera(video: HTMLVideoElement): Promise<MediaStream> {
   const stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: 'user' },
+    video: {
+      facingMode: 'user',
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+    },
     audio: false,
   });
   video.srcObject = stream;

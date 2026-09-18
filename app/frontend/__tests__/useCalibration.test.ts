@@ -117,14 +117,30 @@ test('uses reversed target order for validation and preserves the training mappe
   unmount();
 });
 
+test('allows production recalibration after diagnostics passes are complete', () => {
+  const session = new ModelTestingSession();
+  const { handle, unmount } = renderCalibration(session);
+
+  completeCalibration(handle, index => createGaze(CALIBRATION_TARGETS[index].x, CALIBRATION_TARGETS[index].y, index));
+  completeCalibration(handle, index => createGaze(CALIBRATION_TARGETS[index].x, CALIBRATION_TARGETS[index].y, index));
+  expect(session.nextPassKind).toBeNull();
+
+  completeCalibration(handle, index => createGaze(CALIBRATION_TARGETS[index].x, CALIBRATION_TARGETS[index].y, index));
+
+  expect(handle.mapper.current).not.toBeNull();
+  expect(handle.readyRef.current).toBe(true);
+  expect(session.getDiagnosticsSnapshot().eyeDiagnostics.passCount).toBe(2);
+  unmount();
+});
+
 test('defines distinct training and validation target orders', () => {
   const session = new ModelTestingSession();
   const training = session.startPass(CALIBRATION_TARGETS);
   const validation = session.startPass([...CALIBRATION_TARGETS].reverse());
 
-  expect(training.kind).toBe('training');
-  expect(validation.kind).toBe('validation');
-  expect(validation.targetOrder).toEqual([...CALIBRATION_TARGETS].reverse());
+  expect(training?.kind).toBe('training');
+  expect(validation?.kind).toBe('validation');
+  expect(validation?.targetOrder).toEqual([...CALIBRATION_TARGETS].reverse());
 });
 
 test('leaves calibrated mode unavailable when the fit is rejected', () => {

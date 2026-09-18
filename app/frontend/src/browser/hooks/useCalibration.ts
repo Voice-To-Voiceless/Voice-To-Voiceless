@@ -42,9 +42,10 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
 
   const start = useCallback(() => {
     if (!modelTestingSession) mapperRef.current = null;
-    const pass = modelTestingSession?.startPass(
-      modelTestingSession.nextPassKind === 'training' ? CALIBRATION_TARGET_ORDERS[0] : CALIBRATION_TARGET_ORDERS[1],
-    );
+    const nextPassKind = modelTestingSession?.nextPassKind;
+    const pass = nextPassKind
+      ? modelTestingSession?.startPass(nextPassKind === 'training' ? CALIBRATION_TARGET_ORDERS[0] : CALIBRATION_TARGET_ORDERS[1])
+      : null;
     if (pass) {
       passKindRef.current = pass.kind;
       targetsRef.current = pass.targetOrder;

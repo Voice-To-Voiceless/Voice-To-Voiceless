@@ -13,7 +13,7 @@ export type GazeDiagnostics = {
 export function estimateGaze(
   observation: FaceLandmarkObservation,
   minimumConfidence = 0.5,
-  minimumAperture = 0.08,
+  minimumAperture = 0.15,
 ): NormalizedGazePoint | null {
   const diagnostics = getGazeDiagnostics(observation);
 

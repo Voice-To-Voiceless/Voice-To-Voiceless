@@ -41,9 +41,10 @@ export type CalibrationDiagnosticsSnapshot = {
     passOrder: Array<{ pass: CalibrationPassKind; targetOrder: CalibrationSample['target'][] }>;
     training: ReturnType<typeof getPassDiagnostics>;
     validation: ReturnType<typeof getPassCaptureSummary> | null;
+    poseDistributionShift: ReturnType<typeof getPoseDistributionShift>;
     separatePassValidation: {
       ordinary: ReturnType<typeof getOrdinaryValidationDiagnostics>;
-      poseConditioned: ReturnType<typeof getPoseValidationDiagnostics>;
+      poseConditioned: ReturnType<typeof getAcceptedPoseValidationDiagnostics>;
     };
   };
   eyeDiagnostics: { targets: Array<Record<string, unknown>>; passCount: number };
@@ -66,6 +67,7 @@ export class ModelTestingSession {
   private readonly passes: PassData[] = [];
   private currentPass: PassData | null = null;
   private passIndex = 0;
+  private sessionClosed = false;
   private eyeDiagnostics: Array<Record<string, unknown>> = [];
   private eyeDiagnosticsTarget = -1;
 
@@ -77,11 +79,16 @@ export class ModelTestingSession {
     this.passes.length = 0;
     this.currentPass = null;
     this.passIndex = 0;
+    this.sessionClosed = false;
     this.eyeDiagnostics = [];
     this.eyeDiagnosticsTarget = -1;
   }
 
-  public startPass(targetOrder: CalibrationSample['target'][]): CalibrationPass {
+  public startPass(targetOrder: CalibrationSample['target'][]): CalibrationPass | null {
+    if (this.sessionClosed) {
+      this.currentPass = null;
+      return null;
+    }
     const pass: PassData = {
       all: [],
       raw: [],
@@ -97,7 +104,8 @@ export class ModelTestingSession {
     return result;
   }
 
-  public get nextPassKind(): CalibrationPassKind {
+  public get nextPassKind(): CalibrationPassKind | null {
+    if (this.sessionClosed) return null;
     return this.passes.length === 0 ? 'training' : 'validation';
   }
 
@@ -137,8 +145,12 @@ export class ModelTestingSession {
   }
 
   public completePass(): void {
-    if (!this.enableDiagnostics || !this.currentPass) return;
-    this.exportDiagnostics();
+    if (!this.currentPass) return;
+    if (this.passes.length >= 2) {
+      this.sessionClosed = true;
+      this.currentPass = null;
+    }
+    if (this.enableDiagnostics) this.exportDiagnostics();
   }
 
   public exportDiagnostics(): void {
@@ -154,9 +166,16 @@ export class ModelTestingSession {
         passOrder: this.passes.map((pass, index) => ({ pass: index === 0 ? 'training' : 'validation', targetOrder: pass.targetOrder })),
         training: getPassDiagnostics(training),
         validation: validation ? getPassCaptureSummary(validation) : null,
+        poseDistributionShift: getPoseDistributionShift(
+          getPoseFeatureRanges(training.poseConditioned),
+          getPoseFeatureRanges(validation?.poseConditioned ?? []),
+        ),
         separatePassValidation: {
           ordinary: getOrdinaryValidationDiagnostics(training.all, validation?.all ?? []),
-          poseConditioned: getPoseValidationDiagnostics(training.poseConditioned, validation?.poseConditioned ?? []),
+          poseConditioned: getAcceptedPoseValidationDiagnostics(
+            training.poseConditioned,
+            validation?.poseConditioned ?? [],
+          ),
         },
       },
       eyeDiagnostics: { targets: this.eyeDiagnostics, passCount: this.passes.length },
@@ -197,7 +216,33 @@ function getPassDiagnostics(pass: PassData) {
     poseCoefficientDiagnostics: getPoseCoefficientDiagnostics(pass.poseConditioned),
     pitchBinnedResiduals: getPitchBinnedResidualDiagnostics(pass.poseConditioned),
     poseLeaveOneTargetOut,
+    poseFeatureRanges: getPoseFeatureRanges(pass.poseConditioned),
     qualityByTarget: pass.qualityByTarget,
+  };
+}
+
+function getPoseDistributionShift(
+  training: ReturnType<typeof getPoseFeatureRanges>,
+  validation: ReturnType<typeof getPoseFeatureRanges>,
+) {
+  if (training === null || validation === null) return null;
+  return {
+    yaw: validation.yaw.range > training.yaw.range * 1.5,
+    pitch: validation.pitch.range > training.pitch.range * 1.5,
+    eyeScale: validation.eyeScale.range > training.eyeScale.range * 1.5,
+    interEyeDistance: validation.interEyeDistance.range > training.interEyeDistance.range * 1.5,
+  };
+}
+
+function getAcceptedPoseValidationDiagnostics(training: PoseSample[], validation: PoseSample[]) {
+  const diagnostics = getPoseValidationDiagnostics(training, validation);
+  const shift = getPoseDistributionShift(getPoseFeatureRanges(training), getPoseFeatureRanges(validation));
+  return {
+    ...diagnostics,
+    accepted: diagnostics.rmsResidual !== null && !shift?.pitch,
+    rejectionReason: shift?.pitch
+      ? 'validation pitch range exceeds training by >50%'
+      : null,
   };
 }
 
