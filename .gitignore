@@ -1,6 +1,8 @@
 # Git ignore file for the V2VL project
 .vscode/
 logs/
+logs/frontend.log
+logs/backend.log
 *.log
 node_modules/
 
