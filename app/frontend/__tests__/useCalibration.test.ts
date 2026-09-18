@@ -122,9 +122,9 @@ test('defines distinct training and validation target orders', () => {
   const training = session.startPass(CALIBRATION_TARGETS);
   const validation = session.startPass([...CALIBRATION_TARGETS].reverse());
 
-  expect(training.kind).toBe('training');
-  expect(validation.kind).toBe('validation');
-  expect(validation.targetOrder).toEqual([...CALIBRATION_TARGETS].reverse());
+  expect(training?.kind).toBe('training');
+  expect(validation?.kind).toBe('validation');
+  expect(validation?.targetOrder).toEqual([...CALIBRATION_TARGETS].reverse());
 });
 
 test('leaves calibrated mode unavailable when the fit is rejected', () => {
