@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 class BlendshapeSmoother:
 	"""Apply exponential smoothing to blendshape scores."""
 
-	alpha: float = 0.30
+	alpha: float = 0.35
 	_values: dict[str, float] = field(default_factory=dict, init=False)
 
 	def __post_init__(self) -> None:
