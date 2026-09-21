@@ -55,28 +55,27 @@ class FaceInterpreter:
 			expression = "neutral"
 			expression_confidence = max(smile_score, sadness_score)
 
-		if expression == "possible_smile":
-			return FaceInterpretation(
-				"normal",
-				0.0,
-				("mouth_open",) if jaw_open > 0.25 else (),
-				expression,
-				expression_confidence,
-			)
-
 		brow_tension = self._strongest(scores, "browDownLeft", "browDownRight")
 		if brow_tension > 0.25:
 			indicators.append("brow_tension")
 			risk_score += min(brow_tension * 0.40, 0.40)
 
-		eye_tension = self._strongest(scores, "eyeSquintLeft", "eyeSquintRight")
-		if eye_tension > 0.25:
+		eye_tension = (
+			scores.get("eyeSquintLeft", 0.0)
+			+ scores.get("eyeSquintRight", 0.0)
+		) / 2
+		if eye_tension > 0.5:
 			indicators.append("eye_tension")
 			risk_score += min(eye_tension * 0.40, 0.40)
 
-		if jaw_open > 0.40:
+		mouth_open = max(
+			jaw_open,
+			scores.get("mouthLowerDownLeft", 0.0),
+			scores.get("mouthLowerDownRight", 0.0),
+		)
+		if mouth_open > 0.15:
 			indicators.append("mouth_open")
-			risk_score += min(jaw_open * 0.25, 0.25)
+			risk_score += min(mouth_open * 0.40, 0.40)
 
 		mouth_discomfort = self._strongest(
 			scores,
@@ -96,7 +95,7 @@ class FaceInterpreter:
 		risk_score = min(risk_score, 1.0)
 		if risk_score >= 0.45:
 			state = "attention_required"
-		elif risk_score >= 0.22:
+		elif risk_score >= 0.25:
 			state = "possible_discomfort"
 		else:
 			state = "normal"
