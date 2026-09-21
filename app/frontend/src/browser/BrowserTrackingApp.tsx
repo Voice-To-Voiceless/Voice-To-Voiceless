@@ -73,13 +73,14 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
     }>
       <CalibrationTarget
         gazePoint={tracking.snapshot.gazePoint}
-        target={tracking.snapshot.calibrating ? tracking.snapshot.calibrationTarget : null}
+        target={tracking.snapshot.calibrating || tracking.snapshot.calibrationFailed ? tracking.snapshot.calibrationTarget : null}
         progress={tracking.snapshot.calibrationProgress}
+        passKind={tracking.snapshot.calibrationPassKind}
       />
       {enableDebugOverlay && <DebugOverlay rawGaze={tracking.snapshot.rawGaze} calibratedGaze={tracking.snapshot.calibratedGaze} />}
       <Header trackingActive={trackingActive} recognitionActive={recognitionActive} />
       <section
-        className={`calibration-modal${tracking.snapshot.calibrating || recognitionActive ? '' : ' calibration-modal--hidden'}`}
+        className={`calibration-modal${tracking.snapshot.calibrating || tracking.snapshot.calibrationFailed || recognitionActive ? '' : ' calibration-modal--hidden'}`}
         role="dialog"
         aria-modal="true"
         aria-label={tracking.snapshot.calibrating ? 'Camera calibration' : 'Face recognition'}
@@ -90,7 +91,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
             className="calibration-modal__close"
             aria-label="Close camera popup"
             title="Close"
-            onClick={tracking.snapshot.calibrating ? tracking.stop : recognition.stop}
+            onClick={tracking.snapshot.calibrating || tracking.snapshot.calibrationFailed ? tracking.cancelCalibration : recognition.stop}
           >
             <X size={20} aria-hidden="true" />
           </button>
@@ -119,8 +120,9 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
             )}
           </div>
           <div className="calibration-modal__progress" aria-live="polite">
-            {tracking.snapshot.calibrating && <span>{tracking.snapshot.calibrationIndex + 1}/9</span>}
+            {(tracking.snapshot.calibrating || tracking.snapshot.calibrationFailed) && <span>{tracking.snapshot.calibrationIndex + 1}/9</span>}
             <strong>{recognitionActive ? 'Face recognition is live.' : tracking.status}</strong>
+            {tracking.snapshot.calibrationFailed && <div className="calibration-modal__actions"><button type="button" onClick={tracking.calibrate}>Retry</button><button type="button" onClick={tracking.cancelCalibration}>Cancel</button></div>}
           </div>
         </div>
       </section>
@@ -141,7 +143,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
         <button type="button" className="face-recognition-button" onClick={toggleRecognition} disabled={trackingActive}>
           {recognitionActive ? 'Stop face recognition' : 'Test face recognition'}
         </button>
-        {trackingActive && <button type="button" className="calibration-button" onClick={tracking.calibrate} disabled={tracking.snapshot.calibrating}>
+        {trackingActive && <button type="button" className="calibration-button" onClick={tracking.calibrate} disabled={tracking.snapshot.calibrating || tracking.snapshot.calibrationFailed}>
           {tracking.snapshot.calibrating ? `Calibrating ${tracking.snapshot.calibrationIndex + 1}/9` : tracking.snapshot.calibrationReady ? 'Recalibrate gaze' : 'Calibrate gaze'}
         </button>}
       </div>

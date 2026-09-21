@@ -14,6 +14,9 @@ export type TrackingSnapshot = {
   calibrationIndex: number;
   calibrationTarget: GazePoint | null;
   calibrationProgress: number;
+  calibrationPassKind: 'training' | 'validation' | null;
+  calibrationFailed: boolean;
+  calibrationFailure: string | null;
   calibrationReady: boolean;
 };
 

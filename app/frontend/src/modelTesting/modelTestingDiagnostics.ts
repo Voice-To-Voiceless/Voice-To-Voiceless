@@ -1,5 +1,5 @@
-import { CalibrationSample, getCalibrationFitDiagnostics } from '../vision/gazeCalibration';
-import { aggregateSamples, evaluate, fitRobustMapping, getMedianGazeByTarget, MAX_RMS_RESIDUAL } from '../vision/calibrationMath';
+import { CalibrationSample, GazeCalibrationMapper, getCalibrationFitDiagnostics } from '../vision/gazeCalibration';
+import { getMedianGazeByTarget, MAX_RMS_RESIDUAL } from '../vision/calibrationMath';
 import {
   getPoseConditionedCalibrationFitDiagnostics,
   getPoseCoefficientDiagnostics,
@@ -18,18 +18,23 @@ export function hasCompleteTargetCoverage(pass: PassData): boolean {
 }
 
 export function getOrdinaryValidationDiagnostics(training: CalibrationSample[], validation: CalibrationSample[]) {
-  const fit = fitRobustMapping(aggregateSamples(training));
-  if (fit === null || validation.length === 0) return { rmsResidual: null, maxResidual: null, targetResiduals: [] };
-  const residuals = validation.map(sample => Math.hypot(evaluate(fit.xCoefficients, sample.gaze.x, sample.gaze.y) - sample.target.x, evaluate(fit.yCoefficients, sample.gaze.x, sample.gaze.y) - sample.target.y));
+  const mapper = GazeCalibrationMapper.fit(training);
+  if (mapper === null || validation.length === 0) return { rmsResidual: null, maxResidual: null, targetResiduals: [] };
+  const residuals = validation.map(sample => getMapperResidual(mapper, sample));
   return {
     rmsResidual: Math.sqrt(residuals.reduce((sum, residual) => sum + residual ** 2, 0) / residuals.length),
     maxResidual: Math.max(...residuals),
     targetResiduals: [...new Set(validation.map(sample => `${sample.target.x}:${sample.target.y}`))].map(key => {
       const group = validation.filter(sample => `${sample.target.x}:${sample.target.y}` === key);
-      const groupResiduals = group.map(sample => Math.hypot(evaluate(fit.xCoefficients, sample.gaze.x, sample.gaze.y) - sample.target.x, evaluate(fit.yCoefficients, sample.gaze.x, sample.gaze.y) - sample.target.y));
+      const groupResiduals = group.map(sample => getMapperResidual(mapper, sample));
       return { target: group[0].target, residual: Math.sqrt(groupResiduals.reduce((sum, residual) => sum + residual ** 2, 0) / groupResiduals.length) };
     }),
   };
+}
+
+function getMapperResidual(mapper: GazeCalibrationMapper, sample: CalibrationSample): number {
+  const mapped = mapper.map({ ...sample.gaze, confidence: 1, timestamp: 0 }, sample.features);
+  return Math.hypot(mapped.x - sample.target.x, mapped.y - sample.target.y);
 }
 
 export function getPassDiagnostics(pass: PassData) {

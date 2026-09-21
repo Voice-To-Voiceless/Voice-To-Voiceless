@@ -1,3 +1,13 @@
+2026-09-21: Made calibration target collection loss-tolerant: valid targets advance after 20 samples, under-sampled targets remain visible for up to 5 seconds, missing-face intervals pause the clock, and timeout UI shows counts/rejection reasons with Retry/Cancel while joystick fallback stays disabled. Relaxed binocular disagreement to 0.25 to preserve stable per-eye offsets. Full Jest suite (17 suites, 85 tests), typecheck, web build, and diff check pass.
+2026-09-21: Hardened first-pass completion against invalid target state, mapper-fit exceptions, and diagnostic export failures so the camera loop continues into validation instead of crashing. Full Jest suite, typecheck, web build, and diff check pass.
+2026-09-21: Fixed the two-pass calibration lifecycle by automatically starting reverse-order validation after training, making repeated starts idempotent, and rendering validation targets blue with explicit pass status. Full Jest suite (17 suites, 85 tests), typecheck, and web build pass.
+2026-09-21: Prevented the first-calibration post-fit crash when runtime pose features are temporarily unavailable; ridge mappers now pass raw gaze through safely, with regression coverage. Full Jest suite, typecheck, and web build pass.
+2026-09-21: Fixed validation pass freezing when the training pose envelope rejected validation frames; pose-envelope gating now applies only outside active calibration. Full Jest suite, typecheck, and web build pass.
+2026-09-21: Added frame-level per-eye and pose features with standardized quadratic ridge calibration; runtime and exported validation share the feature mapper. Full Jest suite, typecheck, and web build pass.
+2026-09-21: Exported ordinary validation now evaluates the fitted runtime grid mapper; added a skewed-grid regression, and full Jest suite, typecheck, and web build pass.
+2026-09-21: Replaced top-row/left-column calibration interpolation with a piecewise 2D triangular warp; skewed-grid regression, full Jest suite, typecheck, and web build pass.
+2026-09-21: Adjusted calibration binocular disagreement rejection to 0.15 after 0.1 rejected nearly all frames in real captures; focused quality tests, full Jest suite, and typecheck pass.
+2026-09-21: Added a learned yaw, pitch, scale, eye-distance, and face-position envelope; runtime tracking pauses outside it instead of applying fixed-gain pose compensation. Full Jest suite, typecheck, and web build pass.
 2026-09-21: Hardened validation diagnostics against partial passes, residual failures, and pose distribution shifts.
 2026-09-21: Raised minimum calibration aperture to 0.25 to reject near-closed-eye vertical outliers.
 2026-09-21: Aperture fix passes 74 tests, typecheck, production build, and file-size checks.

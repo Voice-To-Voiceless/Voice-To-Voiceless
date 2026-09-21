@@ -70,6 +70,8 @@ h2 { font-size: 1.4rem; margin: 0; }
 .debug-overlay__target { background: #10251ce6; border-radius: 6px; color: white; font: 700 12px Arial, sans-serif; padding: 6px 9px; position: absolute; right: 12px; top: 12px; }
 .calibration-target { background: conic-gradient(#fff var(--calibration-progress), #f8c66d 0); border-radius: 50%; box-shadow: 0 0 0 8px #f8c66d66, 0 3px 12px #10251c99; height: 50px; pointer-events: none; position: fixed; transform: translate(-50%, -50%); width: 50px; z-index: 41; }
 .calibration-target::after { background: #f8c66d; border: 5px solid white; border-radius: 50%; content: ''; inset: 8px; position: absolute; }
+.calibration-target--validation { background: conic-gradient(#fff var(--calibration-progress), #4da3ff 0); box-shadow: 0 0 0 8px #4da3ff66, 0 3px 12px #10251c99; }
+.calibration-target--validation::after { background: #4da3ff; }
 .toast-stack { display: flex; flex-direction: column; gap: 10px; max-width: min(440px, calc(100vw - 32px)); pointer-events: none; position: fixed; right: 16px; top: 16px; width: 100%; z-index: 20; }
 .status-panel, .confirmation-banner, .selected-banner { border-radius: 12px; box-shadow: 0 8px 24px #17352b1f; display: flex; gap: 10px; margin: 0; padding: 14px 16px; pointer-events: auto; }
 .status-panel { background: white; border: 1px solid #dfe7df; flex-direction: column; }

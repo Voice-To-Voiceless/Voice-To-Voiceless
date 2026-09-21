@@ -1,6 +1,7 @@
 import {
   GazeCalibrationMapper,
   CalibrationSample,
+  RidgeCalibrationFeatures,
 } from '../src/vision/gazeCalibration';
 import { getMedianGazeByTarget } from '../src/vision/calibrationMath';
 const samples: CalibrationSample[] = [
@@ -125,4 +126,42 @@ test('reports the median raw gaze position for each target', () => {
     gaze: { x: 0.8, y: 0.7 },
     sampleCount: 1,
   });
+});
+
+test('fits frame-level quadratic ridge features', () => {
+  const featureSamples: CalibrationSample[] = Array.from({ length: 36 }, (_, index) => {
+    const leftIrisX = 0.2 + (index % 9) * 0.07;
+    const rightIrisY = 0.2 + Math.floor(index / 9) * 0.2;
+    const features: RidgeCalibrationFeatures = {
+      leftIrisX, leftIrisY: rightIrisY, rightIrisX: leftIrisX + 0.03, rightIrisY,
+      yaw: leftIrisX - 0.5, pitch: rightIrisY - 0.5, roll: 0.01 * index,
+      eyeScale: 0.04, faceCenterX: 0.5, faceCenterY: 0.5,
+    };
+    return {
+      features,
+      gaze: { x: 0.5, y: 0.5 },
+      target: { x: leftIrisX ** 2 + 0.1, y: rightIrisY },
+    };
+  });
+  const mapper = GazeCalibrationMapper.fit(featureSamples);
+  expect(mapper).not.toBeNull();
+  const features = featureSamples[17].features!;
+  const mapped = mapper!.map({ x: 0.5, y: 0.5, confidence: 1, timestamp: 1 }, features);
+
+  expect(mapped.x).toBeCloseTo(featureSamples[17].target.x, 1);
+  expect(mapped.y).toBeCloseTo(featureSamples[17].target.y, 1);
+});
+
+test('does not crash when ridge features are unavailable at runtime', () => {
+  const featureSamples = samples.flatMap(sample => Array.from({ length: 4 }, () => ({
+    ...sample,
+    features: {
+      leftIrisX: sample.gaze.x, leftIrisY: sample.gaze.y, rightIrisX: sample.gaze.x,
+      rightIrisY: sample.gaze.y, yaw: 0, pitch: 0, roll: 0, eyeScale: 0.04,
+      faceCenterX: 0.5, faceCenterY: 0.5,
+    },
+  })));
+  const mapper = GazeCalibrationMapper.fit(featureSamples);
+  expect(mapper).not.toBeNull();
+  expect(mapper!.map({ x: 0.4, y: 0.6, confidence: 1, timestamp: 1 })).toMatchObject({ x: 0.4, y: 0.6 });
 });

@@ -1,6 +1,7 @@
-import { CalibrationSample } from '../vision/gazeCalibration';
+import { CalibrationSample, RidgeCalibrationFeatures } from '../vision/gazeCalibration';
 import { NormalizedGazePoint } from '../vision/gazeTypes';
 import { CalibrationSampleQuality, CalibrationQualityRejectionReason } from '../vision/calibrationQuality';
+import type { RelativeFacePose } from '../vision/facePoseEstimator';
 import { getPoseFeatureRanges, PoseSample } from './poseCalibrationDiagnostics';
 import {
   downloadJson,
@@ -27,6 +28,8 @@ export type CalibrationDiagnosticPoints = {
   raw: NormalizedGazePoint;
   compensated: NormalizedGazePoint;
   pose: { yaw: number; pitch: number; eyeScale: number; interEyeDistance: number } | null;
+  poseSource?: RelativeFacePose | null;
+  features?: RidgeCalibrationFeatures;
   quality: CalibrationSampleQuality;
 };
 
@@ -117,9 +120,9 @@ export class ModelTestingSession {
 
   public recordCalibrationSample(target: CalibrationSample['target'], points: CalibrationDiagnosticPoints): void {
     if (!this.currentPass) return;
-    this.currentPass.raw.push({ gaze: points.raw, target });
-    this.currentPass.compensated.push({ gaze: points.compensated, target });
-    if (points.pose !== null) this.currentPass.poseConditioned.push({ gaze: points.raw, target, pose: points.pose });
+      this.currentPass.raw.push({ gaze: points.raw, target, features: points.features });
+      this.currentPass.compensated.push({ gaze: points.compensated, target, features: points.features });
+      if (points.pose !== null) this.currentPass.poseConditioned.push({ gaze: points.raw, target, pose: points.pose, features: points.features });
   }
 
   public recordPrimarySample(sample: CalibrationSample): void {
@@ -151,6 +154,14 @@ export class ModelTestingSession {
       this.currentPass = null;
     }
     if (this.enableDiagnostics) this.exportDiagnostics();
+  }
+
+  public discardCurrentPass(): void {
+    if (!this.currentPass) return;
+    this.passes.pop();
+    this.currentPass = null;
+    this.passIndex = Math.max(0, this.passIndex - 1);
+    this.sessionClosed = false;
   }
 
   public exportDiagnostics(): void {

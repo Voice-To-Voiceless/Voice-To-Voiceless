@@ -4,7 +4,7 @@ import { NormalizedGazePoint } from './gazeTypes';
 export const DEFAULT_CALIBRATION_QUALITY_POLICY = {
   minimumConfidence: 0.5,
   minimumAperture: 0.25,
-  maximumEyeDisagreement: 0.2,
+  maximumEyeDisagreement: 0.25,
   minimumAcceptedSamplesPerTarget: 20,
 } as const;
 
