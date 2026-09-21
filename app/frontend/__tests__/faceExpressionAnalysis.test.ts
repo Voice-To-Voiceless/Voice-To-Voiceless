@@ -12,7 +12,7 @@ test('detects an open mouth while smiling', () => {
   const result = analyzeFaceExpression({
     mouthSmileLeft: 0.8,
     mouthSmileRight: 0.7,
-    jawOpen: 0.2,
+    jawOpen: 0.7,
     eyeSquintLeft: 0.5,
     eyeSquintRight: 0.5,
   });
