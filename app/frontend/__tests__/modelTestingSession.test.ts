@@ -104,8 +104,23 @@ test('flags validation pose ranges that exceed training by more than fifty perce
   });
   expect(session.getDiagnosticsSnapshot().calibrationFitComparison.separatePassValidation.poseConditioned).toEqual(expect.objectContaining({
     accepted: false,
-    rejectionReason: 'validation pitch range exceeds training by >50%',
+    rejectionReason: 'validation pose distribution shift exceeds threshold',
   }));
+});
+
+test('uses the first validation pass with complete target coverage', () => {
+  const session = new ModelTestingSession();
+  const targets = [
+    { x: 0.1, y: 0.1 }, { x: 0.5, y: 0.1 }, { x: 0.9, y: 0.1 },
+  ];
+  session.startPass(targets);
+  targets.forEach(target => session.recordPrimarySample({ gaze: target, target }));
+  session.startPass(targets);
+  session.recordPrimarySample({ gaze: targets[0], target: targets[0] });
+  session.startPass(targets);
+  targets.forEach(target => session.recordPrimarySample({ gaze: target, target }));
+
+  expect(session.getDiagnosticsSnapshot().calibrationFitComparison.validation?.sampleCount).toBe(3);
 });
 
 test('closes after the validation pass and does not silently accept a third pass', () => {

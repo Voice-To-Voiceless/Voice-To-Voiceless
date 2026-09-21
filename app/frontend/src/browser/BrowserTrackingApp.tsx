@@ -10,15 +10,17 @@ import { useBrowserTracking } from './hooks/useBrowserTracking';
 import { useFaceRecognition } from './hooks/useFaceRecognition';
 import { useSelectionFeedback } from './hooks/useSelectionFeedback';
 import { CalibrationTarget } from './components/CalibrationTarget';
+import { DebugOverlay } from './components/DebugOverlay';
 import { Bell, Camera, CheckCircle2, Eye, X } from 'lucide-react';
 
 const ALERT_DURATION_MS = 3000;
 
 type BrowserTrackingAppProps = {
   enableDiagnostics?: boolean;
+  enableDebugOverlay?: boolean;
 };
 
-export function BrowserTrackingApp({ enableDiagnostics = true }: BrowserTrackingAppProps) {
+export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverlay = false }: BrowserTrackingAppProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const [modelTestingSession] = useState(() => createModelTestingSession({ enableDiagnostics }));
@@ -74,6 +76,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true }: BrowserTracking
         target={tracking.snapshot.calibrating ? tracking.snapshot.calibrationTarget : null}
         progress={tracking.snapshot.calibrationProgress}
       />
+      {enableDebugOverlay && <DebugOverlay rawGaze={tracking.snapshot.rawGaze} calibratedGaze={tracking.snapshot.calibratedGaze} />}
       <Header trackingActive={trackingActive} recognitionActive={recognitionActive} />
       <section
         className={`calibration-modal${tracking.snapshot.calibrating || recognitionActive ? '' : ' calibration-modal--hidden'}`}

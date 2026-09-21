@@ -1,16 +1,16 @@
-import { CalibrationSample, getCalibrationFitDiagnostics } from '../vision/gazeCalibration';
-import { aggregateSamples, evaluate, fitRobustMapping, getMedianGazeByTarget } from '../vision/calibrationMath';
+import { CalibrationSample } from '../vision/gazeCalibration';
 import { NormalizedGazePoint } from '../vision/gazeTypes';
 import { CalibrationSampleQuality, CalibrationQualityRejectionReason } from '../vision/calibrationQuality';
+import { getPoseFeatureRanges, PoseSample } from './poseCalibrationDiagnostics';
 import {
-  getPoseConditionedCalibrationFitDiagnostics,
-  getPoseCoefficientDiagnostics,
-  getPitchBinnedResidualDiagnostics,
-  getPoseLeaveOneTargetOutDiagnostics,
-  getPoseFeatureRanges,
-  getPoseValidationDiagnostics,
-  PoseSample,
-} from './poseCalibrationDiagnostics';
+  downloadJson,
+  getAcceptedPoseValidationDiagnostics,
+  getOrdinaryValidationDiagnostics,
+  getPassCaptureSummary,
+  getPassDiagnostics,
+  getPoseDistributionShift,
+  hasCompleteTargetCoverage,
+} from './modelTestingDiagnostics';
 
 export type CalibrationPassKind = 'training' | 'validation';
 export type ModelTestingSessionOptions = {
@@ -57,7 +57,7 @@ type CalibrationSessionData = {
   poseConditioned: PoseSample[];
 };
 
-type PassData = CalibrationSessionData & {
+export type PassData = CalibrationSessionData & {
   qualityByTarget: Record<number, CalibrationQualitySummary>;
   targetOrder: CalibrationSample['target'][];
 };
@@ -141,7 +141,7 @@ export class ModelTestingSession {
   }
 
   public get hasValidationData(): boolean {
-    return this.passes.length >= 2 && this.passes[1].all.length > 0;
+    return this.getValidationPass() !== null;
   }
 
   public completePass(): void {
@@ -160,7 +160,7 @@ export class ModelTestingSession {
 
   public getDiagnosticsSnapshot(): CalibrationDiagnosticsSnapshot {
     const training = this.passes[0];
-    const validation = this.passes[1];
+    const validation = this.getValidationPass();
     return {
       calibrationFitComparison: {
         passOrder: this.passes.map((pass, index) => ({ pass: index === 0 ? 'training' : 'validation', targetOrder: pass.targetOrder })),
@@ -181,96 +181,12 @@ export class ModelTestingSession {
       eyeDiagnostics: { targets: this.eyeDiagnostics, passCount: this.passes.length },
     };
   }
-}
 
-function getOrdinaryValidationDiagnostics(training: CalibrationSample[], validation: CalibrationSample[]) {
-  const fit = fitRobustMapping(aggregateSamples(training));
-  if (fit === null || validation.length === 0) return { rmsResidual: null, maxResidual: null, targetResiduals: [] };
-  const residuals = validation.map(sample => Math.hypot(evaluate(fit.xCoefficients, sample.gaze.x, sample.gaze.y) - sample.target.x, evaluate(fit.yCoefficients, sample.gaze.x, sample.gaze.y) - sample.target.y));
-  return {
-    rmsResidual: Math.sqrt(residuals.reduce((sum, residual) => sum + residual ** 2, 0) / residuals.length),
-    maxResidual: Math.max(...residuals),
-    targetResiduals: [...new Set(validation.map(sample => `${sample.target.x}:${sample.target.y}`))].map(key => {
-      const group = validation.filter(sample => `${sample.target.x}:${sample.target.y}` === key);
-      const groupResiduals = group.map(sample => Math.hypot(evaluate(fit.xCoefficients, sample.gaze.x, sample.gaze.y) - sample.target.x, evaluate(fit.yCoefficients, sample.gaze.x, sample.gaze.y) - sample.target.y));
-      return { target: group[0].target, residual: Math.sqrt(groupResiduals.reduce((sum, residual) => sum + residual ** 2, 0) / groupResiduals.length) };
-    }),
-  };
-}
-
-function getPassDiagnostics(pass: PassData) {
-  const poseConditioned = getPoseConditionedCalibrationFitDiagnostics(pass.poseConditioned);
-  const poseLeaveOneTargetOut = getPoseLeaveOneTargetOutDiagnostics(pass.poseConditioned);
-  return {
-    rawMedianGazeByTarget: getMedianGazeByTarget(pass.raw),
-    smoothed: getCalibrationFitDiagnostics(pass.all),
-    raw: getCalibrationFitDiagnostics(pass.raw),
-    compensated: getCalibrationFitDiagnostics(pass.compensated),
-    poseConditioned: {
-      ...poseConditioned,
-      accepted: poseConditioned.accepted && poseLeaveOneTargetOut.accepted,
-      rejectionReason: poseConditioned.accepted && !poseLeaveOneTargetOut.accepted
-        ? 'leave-one-target-out residual exceeds threshold'
-        : poseConditioned.rejectionReason,
-    },
-    poseCoefficientDiagnostics: getPoseCoefficientDiagnostics(pass.poseConditioned),
-    pitchBinnedResiduals: getPitchBinnedResidualDiagnostics(pass.poseConditioned),
-    poseLeaveOneTargetOut,
-    poseFeatureRanges: getPoseFeatureRanges(pass.poseConditioned),
-    qualityByTarget: pass.qualityByTarget,
-  };
-}
-
-function getPoseDistributionShift(
-  training: ReturnType<typeof getPoseFeatureRanges>,
-  validation: ReturnType<typeof getPoseFeatureRanges>,
-) {
-  if (training === null || validation === null) return null;
-  return {
-    yaw: validation.yaw.range > training.yaw.range * 1.5,
-    pitch: validation.pitch.range > training.pitch.range * 1.5,
-    eyeScale: validation.eyeScale.range > training.eyeScale.range * 1.5,
-    interEyeDistance: validation.interEyeDistance.range > training.interEyeDistance.range * 1.5,
-  };
-}
-
-function getAcceptedPoseValidationDiagnostics(training: PoseSample[], validation: PoseSample[]) {
-  const diagnostics = getPoseValidationDiagnostics(training, validation);
-  const shift = getPoseDistributionShift(getPoseFeatureRanges(training), getPoseFeatureRanges(validation));
-  return {
-    ...diagnostics,
-    accepted: diagnostics.rmsResidual !== null && !shift?.pitch,
-    rejectionReason: shift?.pitch
-      ? 'validation pitch range exceeds training by >50%'
-      : null,
-  };
-}
-
-function getPassCaptureSummary(pass: PassData) {
-  return {
-    sampleCount: pass.all.length,
-    rawSampleCount: pass.raw.length,
-    poseSampleCount: pass.poseConditioned.length,
-    poseFeatureRanges: getPoseFeatureRanges(pass.poseConditioned),
-    qualityByTarget: pass.qualityByTarget,
-  };
+  private getValidationPass(): PassData | null {
+    return this.passes.slice(1).find(pass => hasCompleteTargetCoverage(pass)) ?? null;
+  }
 }
 
 export function createModelTestingSession(options?: ModelTestingSessionOptions): ModelTestingSession {
   return new ModelTestingSession(options);
-}
-
-function downloadJson(name: string, value: unknown): void {
-  if (typeof document === 'undefined' || typeof Blob === 'undefined' || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') return;
-  const blob = new Blob([JSON.stringify(value, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${name}-${Date.now()}.json`;
-  document.body.appendChild(link);
-  link.click();
-  window.setTimeout(() => {
-    link.remove();
-    URL.revokeObjectURL(url);
-  }, 1000);
 }

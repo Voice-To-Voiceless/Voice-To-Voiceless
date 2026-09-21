@@ -14,9 +14,7 @@ import { MediaPipeFaceLandmarkerAdapter } from '../../vision/mediaPipeFaceLandma
 import { ModelTestingSession } from '../../modelTesting/modelTestingSession';
 import { CALIBRATION_TARGETS, useCalibration } from './useCalibration';
 import { evaluateCalibrationSampleQuality } from '../../vision/calibrationQuality';
-
-const initialSnapshot: TrackingSnapshot = { active: false, gazePoint: null, activeTarget: null, dwellProgress: 0, calibrating: false, calibrationIndex: 0, calibrationTarget: null, calibrationProgress: 0, calibrationReady: false };
-
+const initialSnapshot: TrackingSnapshot = { active: false, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0, calibrating: false, calibrationIndex: 0, calibrationTarget: null, calibrationProgress: 0, calibrationReady: false };
 export function useBrowserTracking(
   videoRef: React.RefObject<HTMLVideoElement | null>,
   boardRef: React.RefObject<HTMLDivElement | null>,
@@ -39,6 +37,7 @@ export function useBrowserTracking(
     indexRef: calibrationIndexRef,
     readyRef: calibrationReadyRef,
     mapper: calibrationMapperRef,
+    targetsRef: calibrationTargetsRef,
     start: startCalibration,
     reset: resetCalibration,
     process: processCalibration,
@@ -46,16 +45,14 @@ export function useBrowserTracking(
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [status, setStatus] = useState('Camera is off. Start tracking to begin.');
   const [error, setError] = useState<string | null>(null);
-
   const resetInteraction = useCallback(() => {
     smootherRef.current.reset();
     lossRef.current.reset();
     dwellRef.current.cancel();
     joystickRef.current.reset();
     poseRef.current = null;
-    setSnapshot(value => ({ ...value, gazePoint: null, activeTarget: null, dwellProgress: 0 }));
+    setSnapshot(value => ({ ...value, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0 }));
   }, []);
-
   const stop = useCallback(() => {
     if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
     frameRef.current = null;
@@ -70,7 +67,6 @@ export function useBrowserTracking(
     setSnapshot(initialSnapshot);
     setStatus('Camera is off. Start tracking to begin.');
   }, [resetCalibration, resetInteraction]);
-
   const processFrame = useCallback(async (timestamp: number) => {
     const video = videoRef.current;
     const adapter = adapterRef.current;
@@ -82,7 +78,7 @@ export function useBrowserTracking(
         const sustainedLoss = lossRef.current.markLost();
         joystickRef.current.resetVelocity();
         dwellRef.current.cancel();
-        setSnapshot(value => ({ ...value, gazePoint: null, activeTarget: null, dwellProgress: 0 }));
+        setSnapshot(value => ({ ...value, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0 }));
         if (sustainedLoss) resetInteraction();
         setStatus('Face not detected. Keep your face in view.');
         return;
@@ -92,14 +88,15 @@ export function useBrowserTracking(
       if (!gaze) {
         joystickRef.current.resetVelocity();
         dwellRef.current.cancel();
-        setSnapshot(value => ({ ...value, gazePoint: null, activeTarget: null, dwellProgress: 0 }));
+        setSnapshot(value => ({ ...value, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0 }));
         setStatus('Gaze confidence is low. Keep your eyes visible.');
         return;
       }
       const pose = estimateRelativeFacePose(observation);
       if (!poseRef.current && pose !== null && pose.yaw !== null && pose.pitch !== null) poseRef.current = { yaw: pose.yaw, pitch: pose.pitch };
+      const poseSample = getPoseSample(pose);
       const gazeDiagnostics = getGazeDiagnostics(observation);
-      const smoothed = smootherRef.current.update(compensateGazeForPose(gaze, pose, poseRef.current));
+      const smoothed = smootherRef.current.update(gaze);
       if (calibrationActiveRef.current) {
         const targetIndex = calibrationIndexRef.current;
         const quality = evaluateCalibrationSampleQuality({
@@ -107,16 +104,11 @@ export function useBrowserTracking(
           leftConfidence: observation.leftEye.confidence,
           rightConfidence: observation.rightEye.confidence,
           diagnostics: gazeDiagnostics,
-          pose: pose !== null && pose.yaw !== null && pose.pitch !== null ? {
-            yaw: pose.yaw,
-            pitch: pose.pitch,
-            eyeScale: pose.eyeScale,
-            interEyeDistance: pose.interEyeDistance,
-          } : null,
+          pose: poseSample,
         });
         if (modelTestingSession) modelTestingSession.recordEyeDiagnostics(targetIndex, {
             targetIndex,
-            target: CALIBRATION_TARGETS[targetIndex],
+            target: calibrationTargetsRef.current[targetIndex],
             timestamp,
             leftEye: { landmarks: observation.leftEye, ...getEyePositionDiagnostics(observation.leftEye) },
             rightEye: { landmarks: observation.rightEye, ...getEyePositionDiagnostics(observation.rightEye) },
@@ -124,19 +116,15 @@ export function useBrowserTracking(
             gaze,
             smoothed,
           });
-        const result = processCalibration(gaze, timestamp, {
+        const result = processCalibration(smoothed, timestamp, {
           raw: gaze,
           compensated: compensateGazeForPose(gaze, pose, poseRef.current),
-          pose: pose !== null && pose.yaw !== null && pose.pitch !== null ? {
-            yaw: pose.yaw,
-            pitch: pose.pitch,
-            eyeScale: pose.eyeScale,
-            interEyeDistance: pose.interEyeDistance,
-          } : null,
+          pose: poseSample,
           quality,
         });
         setSnapshot(value => ({
           ...value,
+          rawGaze: { x: gaze.x, y: gaze.y },
           gazePoint: result.target,
           activeTarget: null,
           dwellProgress: 0,
@@ -151,6 +139,7 @@ export function useBrowserTracking(
         return;
       }
       const mapper = calibrationMapperRef.current;
+      const calibratedGaze = mapper?.map(smoothed) ?? null;
       if (!mapper && !fallbackLoggedRef.current) {
         fallbackLoggedRef.current = true;
         console.warn('[gaze-tracking] using joystick fallback', {
@@ -163,31 +152,29 @@ export function useBrowserTracking(
       const targetId = boardRef.current ? findVisibleTarget(boardRef.current, point.x, point.y) : null;
       if (!targetId) {
         dwellRef.current.cancel();
-        setSnapshot(value => ({ ...value, gazePoint: point, activeTarget: null, dwellProgress: 0 }));
+        setSnapshot(value => ({ ...value, rawGaze: { x: gaze.x, y: gaze.y }, calibratedGaze, gazePoint: point, activeTarget: null, dwellProgress: 0 }));
         setStatus('Tracking ready. Look at a communication action.');
         return;
       }
       const selection = dwellRef.current.update(targetId, timestamp);
       const dwellProgress = selection ? 1 : dwellRef.current.progress(targetId, timestamp);
-      setSnapshot(value => ({ ...value, gazePoint: point, activeTarget: targetId, dwellProgress }));
+      setSnapshot(value => ({ ...value, rawGaze: { x: gaze.x, y: gaze.y }, calibratedGaze, gazePoint: point, activeTarget: targetId, dwellProgress }));
       setStatus(`Looking at ${targetId}. Hold to select.`);
       if (selection) onSelect(targetId);
     } finally {
       processingRef.current = false;
       if (activeRef.current) frameRef.current = requestAnimationFrame(processFrame);
     }
-  }, [boardRef, calibrationActiveRef, calibrationIndexRef, calibrationMapperRef, calibrationReadyRef, modelTestingSession, onSelect, processCalibration, resetInteraction, videoRef]);
-
+  }, [boardRef, calibrationActiveRef, calibrationIndexRef, calibrationMapperRef, calibrationReadyRef, calibrationTargetsRef, modelTestingSession, onSelect, processCalibration, resetInteraction, videoRef]);
   const calibrate = useCallback(() => {
     if (!activeRef.current) return;
     startCalibration();
     fallbackLoggedRef.current = false;
     resetInteraction();
     joystickRef.current.reset();
-    setSnapshot(value => ({ ...value, calibrating: true, calibrationIndex: 0, calibrationTarget: { x: 0.1, y: 0.1 }, calibrationProgress: 0, calibrationReady: false, gazePoint: { x: 0.1, y: 0.1 } }));
+    setSnapshot(value => ({ ...value, calibrating: true, calibrationIndex: 0, calibrationTarget: calibrationTargetsRef.current[0], calibrationProgress: 0, calibrationReady: false, gazePoint: calibrationTargetsRef.current[0] }));
     setStatus('Calibration started. Look at the yellow dot.');
-  }, [resetInteraction, startCalibration]);
-
+  }, [calibrationTargetsRef, resetInteraction, startCalibration]);
   const start = useCallback(async () => {
     if (activeRef.current || !videoRef.current) return;
     setError(null);
@@ -206,7 +193,9 @@ export function useBrowserTracking(
       setStatus('Tracking unavailable. Touch remains available.');
     }
   }, [calibrate, processFrame, resetInteraction, stop, videoRef]);
-
   useEffect(() => stop, [stop]);
   return { snapshot, status, error, start, stop, calibrate };
+}
+function getPoseSample(pose: ReturnType<typeof estimateRelativeFacePose>) { if (pose === null || pose.yaw === null || pose.pitch === null) return null;
+  return { yaw: pose.yaw, pitch: pose.pitch, eyeScale: pose.eyeScale, interEyeDistance: pose.interEyeDistance };
 }

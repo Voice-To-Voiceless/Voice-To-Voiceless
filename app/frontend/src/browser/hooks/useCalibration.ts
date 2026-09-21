@@ -131,6 +131,6 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
     return { target, status: null, complete: false, settleProgress: 0, resetSmoother: true };
   }, [modelTestingSession]);
 
-  return { state, activeRef, indexRef, readyRef, mapper: mapperRef, start, reset, process };
+  return { state, activeRef, indexRef, readyRef, mapper: mapperRef, targetsRef, start, reset, process };
 }
 

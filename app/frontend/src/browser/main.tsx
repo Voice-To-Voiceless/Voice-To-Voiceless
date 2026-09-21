@@ -5,6 +5,6 @@ import './browserStyles.css';
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <BrowserTrackingApp />
+    <BrowserTrackingApp enableDebugOverlay={import.meta.env.DEV} />
   </React.StrictMode>,
 );
