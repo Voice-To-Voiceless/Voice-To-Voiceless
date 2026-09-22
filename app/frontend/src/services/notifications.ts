@@ -13,12 +13,14 @@ export type PatientNotification = {
   type: string;
   severity: NotificationSeverity;
   message: string;
+  recipient?: string;
   patient_metadata: PatientMetadata;
   created_at: string;
   read: boolean;
 };
 
-const API_BASE_URL = `http://${window.location.hostname}:8000`;
+const API_HOSTNAME = typeof window !== 'undefined' && window.location?.hostname ? window.location.hostname : 'localhost';
+const API_BASE_URL = `http://${API_HOSTNAME}:8000`;
 
 export async function createNotification(notification: {
   source: string;

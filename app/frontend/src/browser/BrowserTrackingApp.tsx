@@ -12,25 +12,49 @@ import { useSelectionFeedback } from './hooks/useSelectionFeedback';
 import { CalibrationTarget } from './components/CalibrationTarget';
 import { DebugOverlay } from './components/DebugOverlay';
 import { Bell, Camera, CheckCircle2, Eye, X } from 'lucide-react';
+import { getNotifications, type PatientNotification } from '../services/notifications';
 
 const ALERT_DURATION_MS = 3000;
+const TABLET_PATIENT_ID = 'patient-001';
 
 type BrowserTrackingAppProps = {
   enableDiagnostics?: boolean;
   enableDebugOverlay?: boolean;
+  layout?: 'phone' | 'tablet';
 };
 
-export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverlay = false }: BrowserTrackingAppProps) {
+export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverlay = false, layout = 'tablet' }: BrowserTrackingAppProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const [modelTestingSession] = useState(() => createModelTestingSession({ enableDiagnostics }));
   const [statusVisible, setStatusVisible] = useState(true);
   const [selectedNoticeVisible, setSelectedNoticeVisible] = useState(false);
+  const [nurseAlert, setNurseAlert] = useState<PatientNotification | null>(null);
   const selection = useSelectionFeedback();
   const tracking = useBrowserTracking(videoRef, boardRef, selection.selectAction, modelTestingSession);
   const recognition = useFaceRecognition(videoRef);
   const trackingActive = tracking.snapshot.active;
   const recognitionActive = recognition.snapshot.active;
+
+  useEffect(() => {
+    let active = true;
+    const loadNurseAlert = () => {
+      getNotifications()
+        .then(items => {
+          if (!active) return;
+          const latest = items.find(item => item.recipient === 'patient' && item.patient_metadata.patient_id === TABLET_PATIENT_ID && !item.read);
+          if (latest) setNurseAlert(latest);
+        })
+        .catch(() => undefined);
+    };
+
+    loadNurseAlert();
+    const timer = window.setInterval(loadNurseAlert, 3000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, []);
 
   useEffect(() => {
     setStatusVisible(true);
@@ -65,10 +89,10 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   };
 
   return (
-    <AppLayout sidebarNotification={
+    <AppLayout className={`tracking-layout tracking-layout--${layout}`} sidebarNotification={
       <section className="sidebar__notification" aria-live="polite">
         <div className="sidebar__notification-heading"><Bell size={14} aria-hidden="true" /> Notifications</div>
-        {statusVisible ? <><strong>{status}</strong>{(tracking.error ?? recognition.error) && <span>{tracking.error ?? recognition.error}</span>}</> : selection.selectedAction && selectedNoticeVisible ? <><strong>Action selected</strong><span>{getActionLabel(selection.selectedAction)} is ready.</span></> : <span>All systems are ready.</span>}
+        {nurseAlert ? <><strong>Message from assistant</strong><span>{nurseAlert.message}</span></> : statusVisible ? <><strong>{status}</strong>{(tracking.error ?? recognition.error) && <span>{tracking.error ?? recognition.error}</span>}</> : selection.selectedAction && selectedNoticeVisible ? <><strong>Action selected</strong><span>{getActionLabel(selection.selectedAction)} is ready.</span></> : <span>All systems are ready.</span>}
       </section>
     }>
       <CalibrationTarget
