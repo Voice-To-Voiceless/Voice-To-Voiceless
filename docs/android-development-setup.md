@@ -7,7 +7,7 @@ This guide configures the Windows tools required to build and run the React Nati
 Run frontend commands from:
 
 ```powershell
-cd C:\Projects\V2VL\app\frontend
+cd C:\Endava\EndevLocal\Voice-To-Voiceless\app\frontend
 ```
 
 ## One-time Windows configuration
@@ -73,14 +73,14 @@ If no AVD appears, create one in **Android Studio > Device Manager**. Start the 
 Start Metro from the frontend directory:
 
 ```powershell
-cd C:\Projects\V2VL\app\frontend
+cd C:\Endava\EndevLocal\Voice-To-Voiceless\app\frontend
 npm start
 ```
 
 In a second terminal, with the emulator running, build and install the Android application:
 
 ```powershell
-cd C:\Projects\V2VL\app\frontend
+cd C:\Endava\EndevLocal\Voice-To-Voiceless\app\frontend
 npm run android
 ```
 
