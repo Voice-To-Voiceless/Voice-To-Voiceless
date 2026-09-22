@@ -5,6 +5,8 @@ export type RelativeFacePose = {
   rollRadians: number;
   interEyeDistance: number;
   eyeScale: number;
+  faceCenterX?: number;
+  faceCenterY?: number;
   yaw: number | null;
   pitch: number | null;
 };
@@ -19,6 +21,7 @@ export type GazePoseCompensationOptions = {
 export function estimateRelativeFacePose(observation: FaceLandmarkObservation): RelativeFacePose | null {
   const leftCenter = midpoint(observation.leftEye.innerCorner, observation.leftEye.outerCorner);
   const rightCenter = midpoint(observation.rightEye.innerCorner, observation.rightEye.outerCorner);
+  const faceCenter = midpoint(leftCenter, rightCenter);
   const deltaX = rightCenter.x - leftCenter.x;
   const deltaY = rightCenter.y - leftCenter.y;
   const interEyeDistance = Math.hypot(deltaX, deltaY);
@@ -40,6 +43,8 @@ export function estimateRelativeFacePose(observation: FaceLandmarkObservation): 
     rollRadians: Math.atan2(deltaY, deltaX),
     interEyeDistance,
     eyeScale: (leftEyeWidth + rightEyeWidth) / 2,
+    faceCenterX: faceCenter.x,
+    faceCenterY: faceCenter.y,
     yaw: anchors === undefined || faceWidth <= 0
       ? null
       : clamp((anchors.noseTip.x - faceCenterX) / faceWidth, -0.5, 0.5),

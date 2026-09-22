@@ -12,6 +12,7 @@ export type MedianGazeByTarget = {
 };
 
 export const MAX_RMS_RESIDUAL = 0.14;
+export const MIN_CALIBRATION_AXIS_SPAN = 0.05;
 const MAX_TARGET_SPREAD = 0.18;
 const ROBUST_FIT_ITERATIONS = 4;
 const MIN_SAMPLE_WEIGHT = 0.05;
@@ -78,6 +79,7 @@ export function getCalibrationFitDiagnostics(samples: CalibrationSample[]): Cali
   const aggregatedSamples = aggregateSamples(samples);
   if (aggregatedSamples.length < 3) return rejected('fewer than three target groups');
   if (aggregatedSamples.filter(sample => sample.weight < 1).length > MAX_UNSTABLE_TARGETS) return rejected('too many unstable target groups');
+  if (axisSpan(aggregatedSamples, 'x') < MIN_CALIBRATION_AXIS_SPAN || axisSpan(aggregatedSamples, 'y') < MIN_CALIBRATION_AXIS_SPAN) return rejected('insufficient gaze range');
   const fit = fitRobustMapping(aggregatedSamples);
   if (fit === null) return rejected('singular calibration matrix');
   const targetResiduals = calculateTargetResiduals(aggregatedSamples, fit.xCoefficients, fit.yCoefficients);
@@ -122,3 +124,7 @@ function calculateRmsResidual(samples: CalibrationSample[], x: AffineCoefficient
 function calculateTargetResiduals(samples: AggregatedCalibrationSample[], x: AffineCoefficients, y: AffineCoefficients): Array<{ target: CalibrationTarget; residual: number }> { return samples.map(sample => ({ target: sample.target, residual: Math.hypot(evaluate(x, sample.gaze.x, sample.gaze.y) - sample.target.x, evaluate(y, sample.gaze.x, sample.gaze.y) - sample.target.y) })); }
 function median(values: number[]): number { const sorted = [...values].sort((left, right) => left - right); const middle = Math.floor(sorted.length / 2); return sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle]; }
 function spread(values: number[]): number { if (values.length < 3) return Math.max(...values) - Math.min(...values); const center = median(values); return median(values.map(value => Math.abs(value - center))) * 2; }
+function axisSpan(samples: AggregatedCalibrationSample[], axis: 'x' | 'y'): number {
+  const values = samples.map(sample => sample.gaze[axis]);
+  return Math.max(...values) - Math.min(...values);
+}

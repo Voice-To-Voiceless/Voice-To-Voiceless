@@ -2,6 +2,7 @@ import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
 import {
   CALIBRATION_SAMPLE_DURATION_MS,
+  CALIBRATION_MAX_RECORDING_DURATION_MS,
   CALIBRATION_SETTLE_DURATION_MS,
   CALIBRATION_TARGETS,
   useCalibration,
@@ -39,8 +40,8 @@ function CalibrationHarness({ session, onRender }: { session?: ModelTestingSessi
   return null;
 }
 
-function completeCalibration(handle: CalibrationHandle, gazeForTarget: (index: number) => NormalizedGazePoint): void {
-  let timestamp = 0;
+function completeCalibration(handle: CalibrationHandle, gazeForTarget: (index: number) => NormalizedGazePoint, initialTimestamp = 0): void {
+  let timestamp = initialTimestamp;
   handle.start();
   for (let index = 0; index < CALIBRATION_TARGETS.length; index += 1) {
     timestamp += CALIBRATION_SETTLE_DURATION_MS;
@@ -122,7 +123,7 @@ test('allows production recalibration after diagnostics passes are complete', ()
   const { handle, unmount } = renderCalibration(session);
 
   completeCalibration(handle, index => createGaze(CALIBRATION_TARGETS[index].x, CALIBRATION_TARGETS[index].y, index));
-  completeCalibration(handle, index => createGaze(CALIBRATION_TARGETS[index].x, CALIBRATION_TARGETS[index].y, index));
+  completeCalibration(handle, index => createGaze(CALIBRATION_TARGETS[index].x, CALIBRATION_TARGETS[index].y, index), CALIBRATION_TARGETS.length * (CALIBRATION_SETTLE_DURATION_MS + CALIBRATION_SAMPLE_DURATION_MS));
   expect(session.nextPassKind).toBeNull();
 
   completeCalibration(handle, index => createGaze(CALIBRATION_TARGETS[index].x, CALIBRATION_TARGETS[index].y, index));
@@ -159,11 +160,12 @@ test('resets the sample window when no samples arrive', () => {
 
   const result = handle.process(
     createGaze(0.1, 0.1, 0),
-    CALIBRATION_SETTLE_DURATION_MS + CALIBRATION_SAMPLE_DURATION_MS,
+    CALIBRATION_SETTLE_DURATION_MS + CALIBRATION_MAX_RECORDING_DURATION_MS,
   );
 
   expect(result.resetSmoother).toBe(true);
-  expect(result.complete).toBe(true);
+  expect(result.complete).toBe(false);
+  expect(result.failed).toBe(true);
   expect(handle.indexRef.current).toBe(0);
   unmount();
 });

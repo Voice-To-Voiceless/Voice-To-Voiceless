@@ -3,6 +3,7 @@ import { GazeCalibrationMapper, CalibrationSample } from '../../vision/gazeCalib
 import { NormalizedGazePoint } from '../../vision/gazeTypes';
 import { CalibrationDiagnosticPoints, CalibrationPassKind, ModelTestingSession } from '../../modelTesting/modelTestingSession';
 import { DEFAULT_CALIBRATION_QUALITY_POLICY } from '../../vision/calibrationQuality';
+import { createPoseEnvelope, extendPoseEnvelope, PoseEnvelope } from '../../vision/poseEnvelope';
 
 export const CALIBRATION_TARGETS = [
   { x: 0.1, y: 0.1 }, { x: 0.5, y: 0.1 }, { x: 0.9, y: 0.1 },
@@ -12,6 +13,7 @@ export const CALIBRATION_TARGETS = [
 
 export const CALIBRATION_SETTLE_DURATION_MS = 1800;
 export const CALIBRATION_SAMPLE_DURATION_MS = 900;
+export const CALIBRATION_MAX_RECORDING_DURATION_MS = 5000;
 export const CALIBRATION_TARGET_ORDERS = [
   CALIBRATION_TARGETS,
   [...CALIBRATION_TARGETS].reverse(),
@@ -24,6 +26,7 @@ type CalibrationResult = {
   complete: boolean;
   settleProgress: number;
   resetSmoother: boolean;
+  failed?: boolean;
 };
 
 export function useCalibration(modelTestingSession?: ModelTestingSession) {
@@ -32,15 +35,26 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
   const indexRef = useRef(0);
   const readyRef = useRef(false);
   const mapperRef = useRef<GazeCalibrationMapper | null>(null);
+  const poseEnvelopeRef = useRef<PoseEnvelope | null>(null);
   const passKindRef = useRef<CalibrationPassKind>('training');
+  const failedRef = useRef(false);
+  const failureRef = useRef<string | null>(null);
+  const pausedAtRef = useRef<number | null>(null);
   const targetsRef = useRef(CALIBRATION_TARGETS);
   const dataRef = useRef({
     started: 0,
     all: [] as CalibrationSample[],
     point: [] as CalibrationSample[],
+    rejected: 0,
+    rejectionReasons: {} as Record<string, number>,
+    poseEnvelope: null as PoseEnvelope | null,
   });
 
   const start = useCallback(() => {
+    if (activeRef.current) return;
+    failedRef.current = false;
+    failureRef.current = null;
+    pausedAtRef.current = null;
     if (!modelTestingSession) mapperRef.current = null;
     const nextPassKind = modelTestingSession?.nextPassKind;
     const pass = nextPassKind
@@ -57,25 +71,43 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
     activeRef.current = true;
     indexRef.current = 0;
     if (!isValidation) readyRef.current = false;
-    dataRef.current = { started: performance.now(), all: [], point: [] };
+    dataRef.current = { started: performance.now(), all: [], point: [], rejected: 0, rejectionReasons: {}, poseEnvelope: null };
+    if (passKindRef.current === 'training') poseEnvelopeRef.current = createPoseEnvelope();
     setState({ active: true, index: 0, ready: readyRef.current });
   }, [modelTestingSession]);
 
   const reset = useCallback(() => {
     modelTestingSession?.reset();
-    dataRef.current = { started: 0, all: [], point: [] };
+    dataRef.current = { started: 0, all: [], point: [], rejected: 0, rejectionReasons: {}, poseEnvelope: null };
+    poseEnvelopeRef.current = null;
     activeRef.current = false;
+    failedRef.current = false;
+    failureRef.current = null;
+    pausedAtRef.current = null;
     indexRef.current = 0;
     setState(value => ({ ...value, active: false }));
   }, [modelTestingSession]);
 
+  const pause = useCallback((timestamp: number) => {
+    if (activeRef.current && pausedAtRef.current === null) pausedAtRef.current = timestamp;
+  }, []);
+
   const process = useCallback((gaze: NormalizedGazePoint, timestamp: number, diagnosticPoints?: CalibrationDiagnosticPoints): CalibrationResult => {
     const index = indexRef.current;
     const target = targetsRef.current[index];
+    if (!target) {
+      activeRef.current = false;
+      setState({ active: false, index, ready: readyRef.current });
+      return { target: null, status: 'Calibration stopped. Please start again.', complete: true, settleProgress: 0, resetSmoother: true };
+    }
+    if (pausedAtRef.current !== null) {
+      dataRef.current.started += timestamp - pausedAtRef.current;
+      pausedAtRef.current = null;
+    }
     const elapsed = timestamp - dataRef.current.started;
     const settleProgress = Math.min(1, Math.max(0, elapsed / CALIBRATION_SETTLE_DURATION_MS));
     if (elapsed >= CALIBRATION_SETTLE_DURATION_MS && elapsed < CALIBRATION_SETTLE_DURATION_MS + CALIBRATION_SAMPLE_DURATION_MS) {
-      const sample = { gaze, target };
+      const sample = { gaze, target, features: diagnosticPoints?.features };
       const quality = diagnosticPoints?.quality;
       if (quality) modelTestingSession?.recordQualityDecision(index, quality);
       if (!quality || quality.accepted) {
@@ -83,6 +115,14 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
         dataRef.current.all.push(sample);
         modelTestingSession?.recordPrimarySample(sample);
         if (diagnosticPoints) modelTestingSession?.recordCalibrationSample(target, diagnosticPoints);
+        if (passKindRef.current === 'training' && diagnosticPoints?.poseSource) {
+          dataRef.current.poseEnvelope = extendPoseEnvelope(dataRef.current.poseEnvelope, diagnosticPoints.poseSource);
+        }
+      } else {
+        dataRef.current.rejected += 1;
+        quality.rejectionReasons.forEach(reason => {
+          dataRef.current.rejectionReasons[reason] = (dataRef.current.rejectionReasons[reason] ?? 0) + 1;
+        });
       }
     }
     if (elapsed < CALIBRATION_SETTLE_DURATION_MS) {
@@ -94,20 +134,58 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
         resetSmoother: false,
       };
     }
-    if (elapsed < CALIBRATION_SETTLE_DURATION_MS + CALIBRATION_SAMPLE_DURATION_MS) {
-      return { target, status: 'Hold steady. Recording your gaze.', complete: false, settleProgress: 1, resetSmoother: false };
+    const minimumSamples = DEFAULT_CALIBRATION_QUALITY_POLICY.minimumAcceptedSamplesPerTarget;
+    const recordingDeadline = CALIBRATION_SETTLE_DURATION_MS + CALIBRATION_MAX_RECORDING_DURATION_MS;
+    if (elapsed < CALIBRATION_SETTLE_DURATION_MS + CALIBRATION_SAMPLE_DURATION_MS || (dataRef.current.point.length < minimumSamples && elapsed < recordingDeadline)) {
+      return { target, status: `Hold steady. Recording your gaze (${dataRef.current.point.length}/${DEFAULT_CALIBRATION_QUALITY_POLICY.minimumAcceptedSamplesPerTarget}).`, complete: false, settleProgress: 1, resetSmoother: false };
     }
-    if (dataRef.current.point.length < DEFAULT_CALIBRATION_QUALITY_POLICY.minimumAcceptedSamplesPerTarget) {
-      dataRef.current.started = timestamp;
+    if (dataRef.current.point.length < minimumSamples) {
+      const accepted = dataRef.current.point.length;
+      const reasons = Object.entries(dataRef.current.rejectionReasons).sort((left, right) => right[1] - left[1]).slice(0, 2).map(([reason, count]) => `${reason} (${count})`).join(', ');
+      const message = `Calibration paused at point ${index + 1}. Only ${accepted}/${minimumSamples} valid samples were captured${reasons ? `; rejected: ${reasons}` : ''}. Adjust your face or eyes, then retry.`;
+      modelTestingSession?.discardCurrentPass?.();
       if (passKindRef.current === 'training' || !modelTestingSession) mapperRef.current = null;
       activeRef.current = false;
+      failedRef.current = true;
+      failureRef.current = message;
       if (passKindRef.current === 'training' || !modelTestingSession) readyRef.current = false;
       setState({ active: false, index, ready: readyRef.current });
-      return { target: null, status: 'Calibration failed. Hold your gaze steadily on each dot.', complete: true, settleProgress: 0, resetSmoother: true };
+      return { target, status: message, complete: false, settleProgress: 1, resetSmoother: true, failed: true };
     }
     if (index === targetsRef.current.length - 1) {
-      if (passKindRef.current === 'training' || !modelTestingSession) mapperRef.current = GazeCalibrationMapper.fit(dataRef.current.all);
-      modelTestingSession?.completePass();
+      if (passKindRef.current === 'training' || !modelTestingSession) {
+        try {
+          mapperRef.current = GazeCalibrationMapper.fit(dataRef.current.all);
+        } catch (error) {
+          mapperRef.current = null;
+          console.error('[gaze-calibration] mapper fit failed', error);
+        }
+      }
+      if (passKindRef.current === 'training') poseEnvelopeRef.current = dataRef.current.poseEnvelope;
+      try {
+        modelTestingSession?.completePass();
+      } catch (error) {
+        console.error('[gaze-calibration] diagnostics export failed', error);
+      }
+      if (passKindRef.current === 'training' && modelTestingSession?.nextPassKind === 'validation') {
+        const validationPass = modelTestingSession.startPass(CALIBRATION_TARGET_ORDERS[1]);
+        if (validationPass) {
+          passKindRef.current = validationPass.kind;
+          targetsRef.current = validationPass.targetOrder;
+          activeRef.current = true;
+          indexRef.current = 0;
+          dataRef.current = { started: timestamp, all: [], point: [], rejected: 0, rejectionReasons: {}, poseEnvelope: null };
+          readyRef.current = mapperRef.current !== null;
+          setState({ active: true, index: 0, ready: readyRef.current });
+          return {
+            target: targetsRef.current[0],
+            status: 'Training complete. Validation pass started. Look at the blue dot.',
+            complete: false,
+            settleProgress: 0,
+            resetSmoother: true,
+          };
+        }
+      }
       activeRef.current = false;
       readyRef.current = mapperRef.current !== null;
       console.info('[gaze-calibration] completed', {
@@ -131,6 +209,6 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
     return { target, status: null, complete: false, settleProgress: 0, resetSmoother: true };
   }, [modelTestingSession]);
 
-  return { state, activeRef, indexRef, readyRef, mapper: mapperRef, start, reset, process };
+  return { state, activeRef, indexRef, readyRef, mapper: mapperRef, poseEnvelope: poseEnvelopeRef, targetsRef, passKindRef, failedRef, failureRef, start, reset, pause, process };
 }
 
