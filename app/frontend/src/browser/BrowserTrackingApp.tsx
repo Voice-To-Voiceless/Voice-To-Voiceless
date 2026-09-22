@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import AppLayout from '../components/layout/AppLayout';
 import AccessibilityPanel, { applyStoredAccessibilitySettings } from '../components/accessibility/AccessibilityPanel';
-import Header from '../components/layout/Header';
+import SettingsPanel, { applyStoredTheme } from '../components/settings/SettingsPanel';
 import { CameraPanel } from '../components/camera/CameraPanel';
 import CameraPreview from '../components/camera/CameraPreview';
 import CommunicationBoard from '../components/communication/CommunicationBoard';
@@ -15,7 +15,6 @@ import { DebugOverlay } from './components/DebugOverlay';
 import { Bell, Camera, CheckCircle2, Eye, X } from 'lucide-react';
 import { createNotification, getNotifications, markNotificationRead, subscribeToNotifications, type PatientNotification } from '../services/notifications';
 
-const ALERT_DURATION_MS = 3000;
 const TABLET_PATIENT_ID = 'patient-001';
 
 type BrowserTrackingAppProps = {
@@ -28,11 +27,9 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   const videoRef = useRef<HTMLVideoElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const [modelTestingSession] = useState(() => createModelTestingSession({ enableDiagnostics }));
-  const [statusVisible, setStatusVisible] = useState(true);
-  const [selectedNoticeVisible, setSelectedNoticeVisible] = useState(false);
   const [nurseAlert, setNurseAlert] = useState<PatientNotification | null>(null);
   const [replying, setReplying] = useState(false);
-  const [activePage, setActivePage] = useState<'Home' | 'Accessibility'>('Home');
+  const [activePage, setActivePage] = useState<'Home' | 'Accessibility' | 'Settings'>('Home');
   const actionNotificationsInFlight = useRef(new Set<ActionId>());
   const selection = useSelectionFeedback();
   const tracking = useBrowserTracking(videoRef, boardRef, selection.selectAction, modelTestingSession);
@@ -43,6 +40,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
 
   useEffect(() => {
     applyStoredAccessibilitySettings();
+    applyStoredTheme();
   }, []);
 
   useEffect(() => {
@@ -70,19 +68,6 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   }, []);
 
   useEffect(() => {
-    setStatusVisible(true);
-    const timer = window.setTimeout(() => setStatusVisible(false), ALERT_DURATION_MS);
-    return () => window.clearTimeout(timer);
-  }, [tracking.status, tracking.error, recognition.error]);
-
-  useEffect(() => {
-    setSelectedNoticeVisible(selection.selectedAction !== null);
-    if (selection.selectedAction === null) return undefined;
-    const timer = window.setTimeout(() => setSelectedNoticeVisible(false), ALERT_DURATION_MS);
-    return () => window.clearTimeout(timer);
-  }, [selection.selectedAction]);
-
-  useEffect(() => {
     const handleCalibrationRequest = () => {
       setActivePage('Home');
       calibrate();
@@ -91,11 +76,6 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
     return () => window.removeEventListener('request-gaze-calibration', handleCalibrationRequest);
   }, [calibrate]);
 
-  const status = trackingActive
-    ? tracking.status
-    : recognitionActive
-      ? 'Face recognition is live.'
-      : 'Camera is off. Start tracking to begin.';
   const faceDetected = recognitionActive
     ? recognition.snapshot.state !== 'no_face'
     : tracking.snapshot.gazePoint !== null;
@@ -153,14 +133,10 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   return (
     <AppLayout className={`tracking-layout tracking-layout--${layout}`} activeSidebarItem={activePage} onSidebarNavigate={item => {
       if (item === 'Accessibility') setActivePage('Accessibility');
+      if (item === 'Settings') setActivePage('Settings');
       if (item === 'Home') setActivePage('Home');
-    }} sidebarNotification={
-      <section className="sidebar__notification" aria-live="polite">
-        <div className="sidebar__notification-heading"><Bell size={14} aria-hidden="true" /> Notifications</div>
-        {nurseAlert ? <><strong>Message from assistant</strong><span>{nurseAlert.message}</span></> : statusVisible ? <><strong>{status}</strong>{(tracking.error ?? recognition.error) && <span>{tracking.error ?? recognition.error}</span>}</> : selection.selectedAction && selectedNoticeVisible ? <><strong>Action selected</strong><span>{getActionLabel(selection.selectedAction)} is ready.</span></> : <span>All systems are ready.</span>}
-      </section>
-    }>
-      {activePage === 'Accessibility' ? <AccessibilityPanel /> : <>
+    }}>
+      {activePage === 'Accessibility' ? <AccessibilityPanel /> : activePage === 'Settings' ? <SettingsPanel /> : <>
       <CalibrationTarget
         gazePoint={tracking.snapshot.gazePoint}
         target={tracking.snapshot.calibrating || tracking.snapshot.calibrationFailed ? tracking.snapshot.calibrationTarget : null}
@@ -168,7 +144,6 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
         passKind={tracking.snapshot.calibrationPassKind}
       />
       {enableDebugOverlay && <DebugOverlay rawGaze={tracking.snapshot.rawGaze} calibratedGaze={tracking.snapshot.calibratedGaze} />}
-      <Header trackingActive={trackingActive} recognitionActive={recognitionActive} />
       <section
         className={`calibration-modal${tracking.snapshot.calibrating || tracking.snapshot.calibrationFailed || recognitionActive ? '' : ' calibration-modal--hidden'}`}
         role="dialog"
@@ -218,7 +193,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
       </section>
 
       <CommunicationBoard
-        actions={COMMUNICATION_ACTIONS}
+        actions={COMMUNICATION_ACTIONS.filter(action => action.id !== 'fine')}
         boardRef={boardRef}
         activeTarget={tracking.snapshot.activeTarget}
         selectedAction={selection.selectedAction}
@@ -245,9 +220,9 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
         <button type="button" className="tracking-button" onClick={trackingActive ? tracking.stop : startTracking} disabled={recognitionActive}>
           {trackingActive ? 'Stop eye tracking' : 'Start eye tracking'}
         </button>
-        <button type="button" className="face-recognition-button" onClick={toggleRecognition} disabled={trackingActive}>
+        {!trackingActive && <button type="button" className="face-recognition-button" onClick={toggleRecognition}>
           {recognitionActive ? 'Stop face recognition' : 'Test face recognition'}
-        </button>
+        </button>}
         {trackingActive && <button type="button" className="calibration-button" onClick={tracking.calibrate} disabled={tracking.snapshot.calibrating || tracking.snapshot.calibrationFailed}>
           {tracking.snapshot.calibrating ? `Calibrating ${tracking.snapshot.calibrationIndex + 1}/9` : tracking.snapshot.calibrationReady ? 'Recalibrate gaze' : 'Calibrate gaze'}
         </button>}
@@ -283,6 +258,3 @@ function StatusDetail({ label, value }: { label: string; value: string }) {
   );
 }
 
-function getActionLabel(actionId: ActionId): string {
-  return COMMUNICATION_ACTIONS.find(action => action.id === actionId)?.label ?? actionId;
-}
