@@ -73,7 +73,7 @@ class FaceInterpreter:
 			scores.get("mouthLowerDownLeft", 0.0),
 			scores.get("mouthLowerDownRight", 0.0),
 		)
-		if mouth_open > 0.15:
+		if mouth_open > 0.08:
 			indicators.append("mouth_open")
 			risk_score += min(mouth_open * 0.40, 0.40)
 

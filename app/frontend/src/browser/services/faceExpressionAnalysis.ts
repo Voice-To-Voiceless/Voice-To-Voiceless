@@ -40,7 +40,7 @@ export function analyzeFaceExpression(scores: BlendshapeScores): FaceAnalysis {
     value(scores.mouthLowerDownLeft),
     value(scores.mouthLowerDownRight),
   );
-  risk = addIndicator(indicators, risk, 'mouth_open', mouthOpen, 0.4, 0.15);
+  risk = addIndicator(indicators, risk, 'mouth_open', mouthOpen, 0.4, 0.08);
   const discomfort = Math.max(
     value(scores.mouthFrownLeft), value(scores.mouthFrownRight), value(scores.mouthPressLeft),
     value(scores.mouthPressRight), value(scores.mouthStretchLeft), value(scores.mouthStretchRight),

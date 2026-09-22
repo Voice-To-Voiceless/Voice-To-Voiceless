@@ -22,6 +22,18 @@ test('detects an open mouth while smiling', () => {
   expect(result.state).toBe('possible_discomfort');
 });
 
+test('detects a slightly open mouth while smiling', () => {
+  const result = analyzeFaceExpression({
+    mouthSmileLeft: 0.8,
+    mouthSmileRight: 0.7,
+    jawOpen: 0.1,
+  });
+
+  expect(result.expression).toBe('possible_smile');
+  expect(result.indicators).toContain('mouth_open');
+  expect(result.state).toBe('normal');
+});
+
 test('reports visible facial tension as possible discomfort', () => {
   const result = analyzeFaceExpression({ browDownLeft: 0.7, browDownRight: 0.7 });
 
