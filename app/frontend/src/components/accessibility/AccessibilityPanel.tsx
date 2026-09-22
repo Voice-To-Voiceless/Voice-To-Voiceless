@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react';
-import { Check, Eye, Headphones, Minus, Plus, RotateCcw, Sparkles, Volume2 } from 'lucide-react';
+import { Check, Eye, Headphones, RotateCcw, Sparkles, Volume2 } from 'lucide-react';
+import { useLanguage } from '../../i18n';
 
-type TextScale = 'standard' | 'large' | 'extra-large';
+type TextScale = number;
 
-const TEXT_SCALE_LABELS: Record<TextScale, string> = {
-  standard: 'Standard',
-  large: 'Large',
-  'extra-large': 'Extra large',
-};
+const DEFAULT_TEXT_SCALE = 100;
+const MIN_TEXT_SCALE = 100;
+const MAX_TEXT_SCALE = 150;
 
 export default function AccessibilityPanel() {
-  const [textScale, setTextScale] = useState<TextScale>(() => readSetting('textScale', 'standard'));
+  const { t } = useLanguage();
+  const [textScale, setTextScale] = useState<TextScale>(() => normalizeTextScale(readSetting('textScale', DEFAULT_TEXT_SCALE)));
   const [highContrast, setHighContrast] = useState(() => readSetting('highContrast', false));
   const [reducedMotion, setReducedMotion] = useState(() => readSetting('reducedMotion', false));
   const [audioFeedback, setAudioFeedback] = useState(() => readSetting('audioFeedback', true));
@@ -21,7 +21,7 @@ export default function AccessibilityPanel() {
   }, [audioFeedback, highContrast, reducedMotion, textScale]);
 
   function resetSettings() {
-    setTextScale('standard');
+    setTextScale(DEFAULT_TEXT_SCALE);
     setHighContrast(false);
     setReducedMotion(false);
     setAudioFeedback(true);
@@ -31,34 +31,47 @@ export default function AccessibilityPanel() {
     <section className="accessibility-panel" aria-labelledby="accessibility-title">
       <div className="accessibility-panel__intro">
         <div>
-          <span className="eyebrow"><Sparkles size={14} /> PERSONALIZED EXPERIENCE</span>
-          <h1 id="accessibility-title">Accessibility</h1>
-          <p>Choose how the app helps you communicate more easily.</p>
+          <span className="eyebrow"><Sparkles size={14} /> {t('personalizedExperience')}</span>
+          <h1 id="accessibility-title">{t('accessibility')}</h1>
+          <p>{t('accessibilityDescription')}</p>
         </div>
-        <button type="button" className="accessibility-reset" onClick={resetSettings}><RotateCcw size={16} /> Reset</button>
+        <button type="button" className="accessibility-reset" onClick={resetSettings}><RotateCcw size={16} /> {t('reset')}</button>
       </div>
 
       <div className="accessibility-grid">
         <section className="accessibility-card" aria-labelledby="visual-title">
-          <div className="accessibility-card__heading"><span className="accessibility-icon"><Eye size={19} /></span><div><h2 id="visual-title">Visual</h2><p>Make the interface easier to follow.</p></div></div>
+          <div className="accessibility-card__heading"><span className="accessibility-icon"><Eye size={19} /></span><div><h2 id="visual-title">{t('visual')}</h2><p>{t('visualDescription')}</p></div></div>
           <div className="accessibility-control">
-            <div className="accessibility-control__label"><span>Text size</span><strong>{TEXT_SCALE_LABELS[textScale]}</strong></div>
-            <div className="segmented-control" role="group" aria-label="Text size">
-              {(Object.keys(TEXT_SCALE_LABELS) as TextScale[]).map(scale => <button key={scale} type="button" className={textScale === scale ? 'is-selected' : ''} onClick={() => setTextScale(scale)}>{scale === 'standard' ? <Minus size={15} /> : scale === 'large' ? <Plus size={15} /> : <><Plus size={15} /><Plus size={15} /></>}</button>)}
+            <div className="accessibility-control__label"><span>{t('textSize')}</span><strong>{textScale}%</strong></div>
+            <div className="text-size-slider">
+              <span aria-hidden="true">A</span>
+              <input
+                type="range"
+                min={MIN_TEXT_SCALE}
+                max={MAX_TEXT_SCALE}
+                step="1"
+                value={textScale}
+                aria-label={t('textSize')}
+                aria-valuetext={`${textScale}%`}
+                onChange={event => setTextScale(Number(event.target.value))}
+                style={{ '--slider-progress': `${((textScale - MIN_TEXT_SCALE) / (MAX_TEXT_SCALE - MIN_TEXT_SCALE)) * 100}%` } as React.CSSProperties}
+              />
+              <span aria-hidden="true">A</span>
             </div>
+           
           </div>
-          <ToggleRow label="High contrast" description="Increase the difference between text and background." checked={highContrast} onChange={setHighContrast} />
-          <ToggleRow label="Reduce motion" description="Keep transitions simple and subtle." checked={reducedMotion} onChange={setReducedMotion} />
+          <ToggleRow label={t('highContrast')} description={t('highContrastDescription')} checked={highContrast} onChange={setHighContrast} />
+          <ToggleRow label={t('reduceMotion')} description={t('reduceMotionDescription')} checked={reducedMotion} onChange={setReducedMotion} />
         </section>
 
         <section className="accessibility-card" aria-labelledby="audio-title">
-          <div className="accessibility-card__heading"><span className="accessibility-icon"><Headphones size={19} /></span><div><h2 id="audio-title">Feedback</h2><p>Receive confirmation when you take an action.</p></div></div>
-          <ToggleRow label="Audio feedback" description="Play a sound when an option is selected." checked={audioFeedback} onChange={setAudioFeedback} />
-          <button type="button" className="accessibility-action" onClick={() => audioFeedback && window.speechSynthesis?.speak(new SpeechSynthesisUtterance('Audio feedback is active'))}><Volume2 size={17} /> Test audio feedback</button>
+          <div className="accessibility-card__heading"><span className="accessibility-icon"><Headphones size={19} /></span><div><h2 id="audio-title">{t('feedback')}</h2><p>{t('feedbackDescription')}</p></div></div>
+          <ToggleRow label={t('audioFeedback')} description={t('audioFeedbackDescription')} checked={audioFeedback} onChange={setAudioFeedback} />
+          <button type="button" className="accessibility-action" onClick={() => audioFeedback && window.speechSynthesis?.speak(new SpeechSynthesisUtterance(t('audioFeedbackActive')))}><Volume2 size={17} /> {t('testAudioFeedback')}</button>
         </section>
       </div>
 
-      <div className="accessibility-status" role="status"><Check size={16} /> Your preferences are saved automatically on this device.</div>
+      <div className="accessibility-status" role="status"><Check size={16} /> {t('preferencesSaved')}</div>
     </section>
   );
 }
@@ -78,7 +91,7 @@ function readSetting<T>(key: string, fallback: T): T {
 
 export function applyStoredAccessibilitySettings(): void {
   applyAccessibilityAttributes({
-    textScale: readSetting('textScale', 'standard'),
+    textScale: normalizeTextScale(readSetting('textScale', DEFAULT_TEXT_SCALE)),
     highContrast: readSetting('highContrast', false),
     reducedMotion: readSetting('reducedMotion', false),
   });
@@ -86,7 +99,15 @@ export function applyStoredAccessibilitySettings(): void {
 
 function applyAccessibilityAttributes(settings: Pick<{ textScale: TextScale; highContrast: boolean; reducedMotion: boolean }, 'textScale' | 'highContrast' | 'reducedMotion'>): void {
   const root = document.documentElement;
-  root.dataset.textScale = settings.textScale;
+  root.dataset.textScale = String(settings.textScale);
+  root.style.setProperty('--text-scale', String(settings.textScale / 100));
   root.dataset.highContrast = String(settings.highContrast);
   root.dataset.reducedMotion = String(settings.reducedMotion);
+}
+
+function normalizeTextScale(value: unknown): TextScale {
+  if (typeof value === 'number' && Number.isFinite(value)) return Math.min(MAX_TEXT_SCALE, Math.max(MIN_TEXT_SCALE, value));
+  if (value === 'large') return 125;
+  if (value === 'extra-large') return 150;
+  return DEFAULT_TEXT_SCALE;
 }

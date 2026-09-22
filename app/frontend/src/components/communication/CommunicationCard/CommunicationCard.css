@@ -11,7 +11,7 @@
     padding:14px 10px;
     border:none;
     border:1px solid #d2dcd6;
-    border-radius:14px;
+    border-radius:10px;
     background:#f5f7f5;
     cursor:pointer;
     overflow:hidden;
@@ -26,14 +26,22 @@
     outline:none;
 }
 
+.communication-card--empty{
+    border-color:transparent;
+    background:transparent;
+    box-shadow:none;
+    cursor:default;
+    pointer-events:none;
+}
+
 .communication-card--progress{
     border-color:var(--action-color);
 }
 
 .communication-card--selected{
     border-color:#198754;
-    background:#effaf3;
-    box-shadow:0 0 0 4px rgba(25,135,84,.16), 0 8px 20px rgba(25,135,84,.14);
+    background:#f5f7f5;
+    box-shadow:0 0 0 2px rgba(25,135,84,.18), 0 8px 20px rgba(25,42,34,.1);
 }
 
 .communication-card__selected{
@@ -96,7 +104,7 @@
 
 .communication-card__title{
     max-width:100%;
-    font-size:clamp(11px, 1.2vw, 14px);
+    font-size:clamp(calc(11px * var(--text-scale, 1)), calc(1.2vw * var(--text-scale, 1)), calc(14px * var(--text-scale, 1)));
     line-height:1.1;
     font-weight:700;
     color:#102A22;
@@ -115,7 +123,6 @@
 .communication-card[data-action-id="pain"] { border-left:4px solid #aa8125; }
 .communication-card[data-action-id="sleep"] { border-left:4px solid #60758a; }
 .communication-card[data-action-id="talk"] { border-left:4px solid #986180; }
-.communication-card[data-action-id="fine"] { border-left:4px solid #287a52; }
 
 .communication-card[data-action-id="yes"] .communication-card__icon { background:#dcebe2; }
 .communication-card[data-action-id="no"] .communication-card__icon { background:#eee0e0; }
@@ -126,4 +133,3 @@
 .communication-card[data-action-id="pain"] .communication-card__icon { background:#eee7d2; }
 .communication-card[data-action-id="sleep"] .communication-card__icon { background:#e2e8ed; }
 .communication-card[data-action-id="talk"] .communication-card__icon { background:#ebdfe7; }
-.communication-card[data-action-id="fine"] .communication-card__icon { background:#dcebe2; }

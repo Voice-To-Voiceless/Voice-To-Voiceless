@@ -55,7 +55,7 @@ export default function CommunicationCard({
                             y="1.5"
                             width="97"
                             height="97"
-                            rx="13"
+                            rx="9"
                             pathLength="1"
                             className="communication-card__progress-background"
                         />
@@ -64,7 +64,7 @@ export default function CommunicationCard({
                             y="1.5"
                             width="97"
                             height="97"
-                            rx="13"
+                            rx="9"
                             pathLength="1"
                             className="communication-card__progress-value"
                             style={{ strokeDashoffset: 1 - progress / 100 }}

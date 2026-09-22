@@ -8,7 +8,7 @@ import type {
 } from "../types";
 
 type CommunicationGridProps = {
-    actions: CommunicationAction[];
+    actions: Array<CommunicationAction | null>;
     selectedActionId?: string | null;
     hoveredActionId?: string | null;
     progress?: number;
@@ -23,8 +23,12 @@ export default function CommunicationGrid({
     onActionPress,
 }: CommunicationGridProps) {
     const getCardState = (
-        action: CommunicationAction
+        action: CommunicationAction | null
     ): CommunicationCardState => {
+        if (!action) {
+            return "idle";
+        }
+
         if (selectedActionId === action.id) {
             return "selected";
         }
@@ -38,8 +42,8 @@ export default function CommunicationGrid({
 
     return (
         <div className="communication-grid">
-            {actions.map((action) => (
-                <CommunicationCard
+            {actions.map((action, index) => (
+                action ? <CommunicationCard
                     key={action.id}
                     action={action}
                     state={getCardState(action)}
@@ -49,7 +53,7 @@ export default function CommunicationGrid({
                             : 0
                     }
                     onPress={() => onActionPress?.(action)}
-                />
+                /> : <div className="communication-card communication-card--empty" key={`empty-${index}`} aria-hidden="true" />
             ))}
         </div>
     );
