@@ -13,6 +13,7 @@ export type PatientNotification = {
   type: string;
   severity: NotificationSeverity;
   message: string;
+  recipient?: string;
   patient_metadata: PatientMetadata;
   created_at: string;
   read: boolean;
