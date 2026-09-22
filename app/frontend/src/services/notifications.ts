@@ -28,6 +28,8 @@ export async function createNotification(notification: {
   severity: NotificationSeverity;
   message: string;
   patient_metadata: PatientMetadata;
+  recipient?: string;
+  sender_metadata?: Record<string, string>;
 }): Promise<PatientNotification> {
   const response = await fetch(`${API_BASE_URL}/api/v1/notifications`, {
     method: 'POST',
@@ -56,4 +58,21 @@ export async function markNotificationRead(id: string): Promise<PatientNotificat
     throw new Error('Notification could not be marked as read.');
   }
   return response.json() as Promise<PatientNotification>;
+}
+
+export function subscribeToNotifications(
+  recipient: string,
+  onNotification: (notification: PatientNotification) => void,
+): WebSocket | null {
+  if (typeof WebSocket === 'undefined') return null;
+  const socketProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+  const socket = new WebSocket(`${socketProtocol}://${API_HOSTNAME}:8000/api/v1/notifications/ws?recipient=${encodeURIComponent(recipient)}`);
+  socket.onmessage = event => {
+    try {
+      onNotification(JSON.parse(event.data) as PatientNotification);
+    } catch {
+      // Ignore malformed messages from the notification stream.
+    }
+  };
+  return socket;
 }

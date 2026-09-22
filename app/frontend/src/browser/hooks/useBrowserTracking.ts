@@ -43,6 +43,7 @@ export function useBrowserTracking(
     smootherRef.current.reset();
     lossRef.current.reset();
     dwellRef.current.cancel();
+    dwellRef.current.resetCompletedTarget();
     joystickRef.current.reset();
     setSnapshot(value => ({ ...value, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0 }));
   }, []);
@@ -163,6 +164,7 @@ export function useBrowserTracking(
       const targetId = boardRef.current ? findVisibleTarget(boardRef.current, point.x, point.y) : null;
       if (!targetId) {
         dwellRef.current.cancel();
+        dwellRef.current.resetCompletedTarget();
         setSnapshot(value => ({ ...value, rawGaze: { x: gaze.x, y: gaze.y }, calibratedGaze, gazePoint: point, activeTarget: null, dwellProgress: 0 }));
         setStatus('Tracking ready. Look at a communication action.');
         return;

@@ -6,6 +6,7 @@ export type DwellSelection = {
 export class DwellSelector {
   private activeTargetId: string | null = null;
   private startedAt: number | null = null;
+  private completedTargetId: string | null = null;
   private readonly dwellDurationMs: number;
 
   public constructor(dwellDurationMs: number) {
@@ -24,6 +25,10 @@ export class DwellSelector {
   }
 
   public update(targetId: string, timestamp: number): DwellSelection | null {
+    if (this.completedTargetId === targetId) {
+      return null;
+    }
+
     this.begin(targetId, timestamp);
 
     if (this.startedAt === null || timestamp - this.startedAt < this.dwellDurationMs) {
@@ -34,6 +39,7 @@ export class DwellSelector {
       targetId,
       completedAt: timestamp,
     };
+    this.completedTargetId = targetId;
     this.cancel();
     return selection;
   }
@@ -49,5 +55,9 @@ export class DwellSelector {
   public cancel(): void {
     this.activeTargetId = null;
     this.startedAt = null;
+  }
+
+  public resetCompletedTarget(): void {
+    this.completedTargetId = null;
   }
 }

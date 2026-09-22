@@ -12,7 +12,7 @@ import { useSelectionFeedback } from './hooks/useSelectionFeedback';
 import { CalibrationTarget } from './components/CalibrationTarget';
 import { DebugOverlay } from './components/DebugOverlay';
 import { Bell, Camera, CheckCircle2, Eye, X } from 'lucide-react';
-import { getNotifications, type PatientNotification } from '../services/notifications';
+import { createNotification, getNotifications, markNotificationRead, subscribeToNotifications, type PatientNotification } from '../services/notifications';
 
 const ALERT_DURATION_MS = 3000;
 const TABLET_PATIENT_ID = 'patient-001';
@@ -30,6 +30,8 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   const [statusVisible, setStatusVisible] = useState(true);
   const [selectedNoticeVisible, setSelectedNoticeVisible] = useState(false);
   const [nurseAlert, setNurseAlert] = useState<PatientNotification | null>(null);
+  const [replying, setReplying] = useState(false);
+  const actionNotificationsInFlight = useRef(new Set<ActionId>());
   const selection = useSelectionFeedback();
   const tracking = useBrowserTracking(videoRef, boardRef, selection.selectAction, modelTestingSession);
   const recognition = useFaceRecognition(videoRef);
@@ -49,10 +51,14 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
     };
 
     loadNurseAlert();
-    const timer = window.setInterval(loadNurseAlert, 3000);
+    const refreshTimer = window.setInterval(loadNurseAlert, 1000);
+    const socket = subscribeToNotifications('patient', notification => {
+      if (notification.patient_metadata.patient_id === TABLET_PATIENT_ID && !notification.read) setNurseAlert(notification);
+    });
     return () => {
       active = false;
-      window.clearInterval(timer);
+      window.clearInterval(refreshTimer);
+      socket?.close();
     };
   }, []);
 
@@ -86,6 +92,46 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
     if (trackingActive) return;
     if (recognitionActive) recognition.stop();
     else recognition.start().catch(() => undefined);
+  };
+
+  const replyToNurse = async (message: string) => {
+    if (!nurseAlert || replying) return;
+    setReplying(true);
+    try {
+      await createNotification({
+        source: 'patient',
+        type: 'patient_response',
+        severity: 'info',
+        message,
+        patient_metadata: { patient_id: TABLET_PATIENT_ID },
+        recipient: 'nurse',
+      });
+      await markNotificationRead(nurseAlert.id);
+      setNurseAlert(null);
+    } finally {
+      setReplying(false);
+    }
+  };
+
+  const notifyNurseOfAction = async (actionId: ActionId) => {
+    const action = COMMUNICATION_ACTIONS.find(item => item.id === actionId);
+    if (!action || actionNotificationsInFlight.current.has(actionId)) return;
+
+    actionNotificationsInFlight.current.add(actionId);
+    try {
+      await createNotification({
+        source: 'patient',
+        type: 'patient_action',
+        severity: actionId === 'pain' ? 'critical' : 'info',
+        message: action.label,
+        patient_metadata: { patient_id: TABLET_PATIENT_ID },
+        recipient: 'nurse',
+      });
+    } catch {
+      // Allow retry when the notification request fails.
+    } finally {
+      actionNotificationsInFlight.current.delete(actionId);
+    }
   };
 
   return (
@@ -157,8 +203,23 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
         activeTarget={tracking.snapshot.activeTarget}
         selectedAction={selection.selectedAction}
         dwellProgress={tracking.snapshot.dwellProgress}
-        onActionSelect={action => selection.selectAction(action.id)}
+        onActionSelect={action => {
+          selection.selectAction(action.id);
+          notifyNurseOfAction(action.id);
+        }}
       />
+
+      {nurseAlert && <section className="patient-notification-popup" role="dialog" aria-modal="true" aria-labelledby="patient-notification-title">
+        <div className="patient-notification-popup__icon"><Bell size={22} aria-hidden="true" /></div>
+        <span className="patient-notification-popup__eyebrow">Mesaj de la asistenta</span>
+        <h2 id="patient-notification-title">{nurseAlert.message}</h2>
+        <p>Alege un raspuns pentru asistenta.</p>
+        <div className="patient-notification-popup__actions">
+          <button type="button" onClick={() => replyToNurse('Am nevoie de ajutor.')} disabled={replying}>Am nevoie de ajutor</button>
+          <button type="button" onClick={() => replyToNurse('Am inteles mesajul.')} disabled={replying}>Am inteles</button>
+          <button type="button" onClick={() => replyToNurse('Raspund mai tarziu.')} disabled={replying}>Mai tarziu</button>
+        </div>
+      </section>}
 
       <div className="camera-controls" aria-label="Camera controls">
         <button type="button" className="tracking-button" onClick={trackingActive ? tracking.stop : startTracking} disabled={recognitionActive}>
