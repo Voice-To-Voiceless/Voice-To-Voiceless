@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Bell, Check, ChevronRight, Clock3, HeartPulse, MessageSquareText, Send, UserRound, Users, Wifi } from 'lucide-react';
-import { getNotifications, markNotificationRead, type PatientNotification } from '../services/notifications';
+import { getNotifications, markNotificationRead, subscribeToNotifications, type PatientNotification } from '../services/notifications';
 
 type Patient = {
   id: string;
@@ -33,9 +33,31 @@ export function PhoneTrackingApp() {
   );
 
   useEffect(() => {
-    getNotifications()
-      .then(setNotifications)
-      .catch(() => setFeedback('Notificarile nu au putut fi incarcate.'));
+    let active = true;
+    const loadNotifications = () => {
+      getNotifications()
+        .then(items => {
+          if (!active) return;
+          setNotifications(current => {
+            const fetchedById = new Map(items.map(item => [item.id, item]));
+            const currentOnly = current.filter(item => !fetchedById.has(item.id));
+            return [...items, ...currentOnly];
+          });
+        })
+        .catch(() => setFeedback('Notificarile nu au putut fi incarcate.'));
+    };
+
+    loadNotifications();
+    const refreshTimer = window.setInterval(loadNotifications, 2000);
+    const socket = subscribeToNotifications('nurse', notification => {
+      setNotifications(current => current.some(item => item.id === notification.id) ? current : [notification, ...current]);
+    });
+
+    return () => {
+      active = false;
+      window.clearInterval(refreshTimer);
+      socket?.close();
+    };
   }, []);
 
   async function sendReminder() {

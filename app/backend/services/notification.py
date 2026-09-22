@@ -2,6 +2,8 @@
 
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
+import json
+from pathlib import Path
 from threading import Lock
 from typing import Any
 from uuid import uuid4
@@ -30,8 +32,23 @@ class NotificationService:
     """Store and coordinate notifications from all detection services."""
 
     def __init__(self) -> None:
-        self._notifications: list[Notification] = []
+        self._storage_path = Path(__file__).resolve().parents[2] / "database" / "notifications.json"
         self._lock = Lock()
+        self._notifications = self._load()
+
+    def _load(self) -> list[Notification]:
+        try:
+            records = json.loads(self._storage_path.read_text(encoding="utf-8"))
+        except (FileNotFoundError, json.JSONDecodeError):
+            return []
+        return [Notification(**record) for record in records]
+
+    def _save(self) -> None:
+        self._storage_path.parent.mkdir(parents=True, exist_ok=True)
+        self._storage_path.write_text(
+            json.dumps([notification.to_dict() for notification in self._notifications], ensure_ascii=True),
+            encoding="utf-8",
+        )
 
     def create(
         self,
@@ -44,6 +61,18 @@ class NotificationService:
         recipient: str = "nurse",
         sender_metadata: dict[str, Any] | None = None,
     ) -> Notification:
+        with self._lock:
+            for existing in self._notifications:
+                if (
+                    existing.source == source
+                    and existing.type == type
+                    and existing.message == message
+                    and existing.recipient == recipient
+                    and existing.patient_metadata.get("patient_id") == patient_metadata.get("patient_id")
+                    and existing.created_at[:19] == datetime.now(timezone.utc).isoformat()[:19]
+                ):
+                    return existing
+
         notification = Notification(
             id=str(uuid4()),
             source=source,
@@ -57,6 +86,7 @@ class NotificationService:
         )
         with self._lock:
             self._notifications.insert(0, notification)
+            self._save()
         return notification
 
     def list(self, *, include_read: bool = True) -> list[Notification]:
@@ -71,5 +101,6 @@ class NotificationService:
             for notification in self._notifications:
                 if notification.id == notification_id:
                     notification.read = True
+                    self._save()
                     return notification
         return None
