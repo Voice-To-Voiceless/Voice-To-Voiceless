@@ -7,11 +7,12 @@ import {
     Settings,
     HeartPulse,
 } from "lucide-react";
+import { useLanguage } from "../../../i18n";
 
 const items = [
-    { icon: House, label: "Home", active: true },
-    { icon: Accessibility, label: "Accessibility" },
-    { icon: Settings, label: "Settings" },
+    { icon: House, key: "home" as const, item: "Home" as const, active: true },
+    { icon: Accessibility, key: "accessibility" as const, item: "Accessibility" as const },
+    { icon: Settings, key: "settings" as const, item: "Settings" as const },
 ];
 
 type SidebarProps = {
@@ -21,6 +22,8 @@ type SidebarProps = {
 };
 
 export default function Sidebar({ notification, activeItem = "Home", onNavigate }: SidebarProps) {
+    const { t } = useLanguage();
+
     return (
         <aside className="sidebar">
 
@@ -36,22 +39,22 @@ export default function Sidebar({ notification, activeItem = "Home", onNavigate 
 
             <nav className="sidebar__menu">
 
-                {items.map(({ icon: Icon, label, active }) => (
+                {items.map(({ icon: Icon, key, item, active }) => (
                     <button
-                        key={label}
-                        className={`sidebar__item ${label === activeItem || (active && activeItem === "Home") ? "sidebar__item--active" : ""}`}
+                        key={item}
+                        className={`sidebar__item ${item === activeItem || (active && activeItem === "Home") ? "sidebar__item--active" : ""}`}
                         type="button"
-                        onClick={() => onNavigate?.(label as "Home" | "Accessibility" | "Settings")}
+                        onClick={() => onNavigate?.(item)}
                     >
                         <Icon size={22} />
-                        <span>{label}</span>
+                        <span>{t(key)}</span>
                     </button>
                 ))}
 
             </nav>
 
             <time className="sidebar__clock" dateTime={new Date().toISOString()}>
-                <span>Current time</span>
+                <span>{t("currentTime")}</span>
                 {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
             </time>
 

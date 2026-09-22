@@ -13,6 +13,7 @@ test('renders raw and calibrated markers as detachable debug output', async () =
       <DebugOverlay
         rawGaze={{ x: 0.25, y: 0.3 }}
         calibratedGaze={{ x: 0.7, y: 0.8 }}
+        showTarget={false}
       />,
     );
   });
@@ -31,7 +32,9 @@ test('shows the communication target beneath the mouse cursor', async () => {
   Object.assign(window, { addEventListener, removeEventListener: jest.fn() });
   let renderer: ReturnType<typeof ReactTestRenderer.create> | null = null;
   await ReactTestRenderer.act(() => {
-    renderer = ReactTestRenderer.create(<DebugOverlay rawGaze={null} calibratedGaze={null} />);
+    renderer = ReactTestRenderer.create(
+      <DebugOverlay rawGaze={null} calibratedGaze={null} showTarget={true} />,
+    );
   });
   const pointerMove = addEventListener.mock.calls[0][1] as (event: PointerEvent) => void;
   await ReactTestRenderer.act(() => pointerMove({ clientX: 100, clientY: 200 } as PointerEvent));

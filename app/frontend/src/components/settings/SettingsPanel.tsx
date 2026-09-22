@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Camera, Check, Languages, Moon, MessageSquare, RotateCcw, Settings as SettingsIcon } from 'lucide-react';
 import { COMMUNICATION_ACTIONS, type ActionId } from '../../types/communication';
+import { useLanguage } from '../../i18n';
 
 const SETTINGS_STORAGE_KEY = 'voice-to-voiceless-settings';
 const DEFAULT_VISIBLE_ACTIONS = COMMUNICATION_ACTIONS.map(action => action.id);
@@ -11,6 +12,7 @@ type AppSettings = {
   darkMode: boolean;
   cameraId: string;
   visibleActions: ActionId[];
+  showTargetIndicator: boolean;
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -18,6 +20,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   darkMode: false,
   cameraId: '',
   visibleActions: DEFAULT_VISIBLE_ACTIONS,
+  showTargetIndicator: true,
 };
 
 export function applyStoredTheme() {
@@ -26,17 +29,19 @@ export function applyStoredTheme() {
 }
 
 export default function SettingsPanel() {
+  const { t } = useLanguage();
   const [settings, setSettings] = useState<AppSettings>(() => readSettings());
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
-  const [cameraStatus, setCameraStatus] = useState('Camera permission has not been checked.');
+  const [cameraStatus, setCameraStatus] = useState<'cameraPermissionNotChecked' | 'cameraUnavailable' | 'cameraAvailable' | 'noCameraDetected' | 'cameraPermissionGranted' | 'cameraPermissionDenied' | 'cameraNotSupported'>('cameraPermissionNotChecked');
 
   useEffect(() => {
     localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
     document.documentElement.dataset.theme = settings.darkMode ? 'dark' : 'light';
+    window.dispatchEvent(new Event('voice-to-voiceless-settings-changed'));
   }, [settings]);
 
   useEffect(() => {
-    loadCameras().catch(() => setCameraStatus('Unable to inspect available cameras.'));
+    loadCameras().catch(() => setCameraStatus('cameraUnavailable'));
   }, []);
 
   async function loadCameras() {
@@ -44,21 +49,21 @@ export default function SettingsPanel() {
     const devices = await navigator.mediaDevices.enumerateDevices();
     const availableCameras = devices.filter(device => device.kind === 'videoinput');
     setCameras(availableCameras);
-    setCameraStatus(availableCameras.length > 0 ? 'Camera available.' : 'No camera detected.');
+    setCameraStatus(availableCameras.length > 0 ? 'cameraAvailable' : 'noCameraDetected');
   }
 
   async function checkCamera() {
     if (!navigator.mediaDevices?.getUserMedia) {
-      setCameraStatus('Camera access is not supported in this browser.');
+      setCameraStatus('cameraNotSupported');
       return;
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       stream.getTracks().forEach(track => track.stop());
-      setCameraStatus('Camera permission granted.');
+      setCameraStatus('cameraPermissionGranted');
       await loadCameras();
     } catch {
-      setCameraStatus('Camera permission was denied.');
+      setCameraStatus('cameraPermissionDenied');
     }
   }
 
@@ -79,7 +84,8 @@ export default function SettingsPanel() {
     localStorage.removeItem('voice-to-voiceless-accessibility');
     setSettings(DEFAULT_SETTINGS);
     document.documentElement.dataset.theme = 'light';
-    document.documentElement.dataset.textScale = 'standard';
+    document.documentElement.dataset.textScale = '100';
+    document.documentElement.style.setProperty('--text-scale', '1');
     document.documentElement.dataset.highContrast = 'false';
     document.documentElement.dataset.reducedMotion = 'false';
   }
@@ -88,42 +94,43 @@ export default function SettingsPanel() {
     <section className="settings-panel" aria-labelledby="settings-title">
       <div className="settings-panel__intro">
         <div>
-          <span className="eyebrow"><SettingsIcon size={14} /> APP CONFIGURATION</span>
-          <h1 id="settings-title">Settings</h1>
-            <p>Configure the language, appearance, devices, and communication board.</p>
+          <span className="eyebrow"><SettingsIcon size={14} /> {t('appConfiguration')}</span>
+          <h1 id="settings-title">{t('settings')}</h1>
+            <p>{t('settingsDescription')}</p>
         </div>
-        <button type="button" className="accessibility-reset" onClick={resetAppSettings}><RotateCcw size={16} /> Reset app settings</button>
+        <button type="button" className="accessibility-reset" onClick={resetAppSettings}><RotateCcw size={16} /> {t('resetAppSettings')}</button>
       </div>
 
       <div className="settings-grid">
-        <SettingsCard icon={<Languages size={19} />} title="Language" description="Choose the language used by the application.">
+        <SettingsCard icon={<Languages size={19} />} title={t('language')} description={t('languageDescription')}>
           <select className="settings-select" value={settings.language} onChange={event => updateSetting('language', event.target.value as AppSettings['language'])}>
             <option>English</option>
             <option>Romanian</option>
           </select>
         </SettingsCard>
 
-        <SettingsCard icon={<Moon size={19} />} title="Appearance" description="Choose the visual theme for the application.">
-          <SettingsToggle label="Dark mode" checked={settings.darkMode} onChange={value => updateSetting('darkMode', value)} />
+        <SettingsCard icon={<Moon size={19} />} title={t('appearance')} description={t('appearanceDescription')}>
+          <SettingsToggle label={t('darkMode')} checked={settings.darkMode} onChange={value => updateSetting('darkMode', value)} />
+          <SettingsToggle label={t('showTargetIndicator')} checked={settings.showTargetIndicator} onChange={value => updateSetting('showTargetIndicator', value)} />
         </SettingsCard>
 
-        <SettingsCard icon={<Camera size={19} />} title="Camera" description="Manage the camera used for tracking.">
-          <select className="settings-select" value={settings.cameraId} onChange={event => updateSetting('cameraId', event.target.value)} aria-label="Select camera">
-            <option value="">Default camera</option>
+        <SettingsCard icon={<Camera size={19} />} title={t('camera')} description={t('cameraDescription')}>
+          <select className="settings-select" value={settings.cameraId} onChange={event => updateSetting('cameraId', event.target.value)} aria-label={t('selectCamera')}>
+            <option value="">{t('defaultCamera')}</option>
             {cameras.map((camera, index) => <option key={camera.deviceId} value={camera.deviceId}>{camera.label || `Camera ${index + 1}`}</option>)}
           </select>
-          <button type="button" className="settings-action" onClick={checkCamera}><Camera size={16} /> Check camera permission</button>
-          <p className="settings-status" role="status">{cameraStatus}</p>
+          <button type="button" className="settings-action" onClick={checkCamera}><Camera size={16} /> {t('checkCameraPermission')}</button>
+          <p className="settings-status" role="status">{t(cameraStatus)}</p>
         </SettingsCard>
 
-        <SettingsCard icon={<MessageSquare size={19} />} title="Communication board" description="Choose which actions appear on the board.">
+        <SettingsCard icon={<MessageSquare size={19} />} title={t('communicationBoard')} description={t('communicationBoardDescription')}>
           <div className="settings-actions-grid">
-            {COMMUNICATION_ACTIONS.map(action => <label className="settings-check" key={action.id}><input type="checkbox" checked={settings.visibleActions.includes(action.id)} onChange={() => toggleAction(action.id)} /><span>{action.label}</span><span className="settings-toggle-track" aria-hidden="true" /></label>)}
+            {COMMUNICATION_ACTIONS.map(action => <label className="settings-check" key={action.id}><input type="checkbox" checked={settings.visibleActions.includes(action.id)} onChange={() => toggleAction(action.id)} /><span>{t(action.id)}</span><span className="settings-toggle-track" aria-hidden="true" /></label>)}
           </div>
         </SettingsCard>
       </div>
 
-      <div className="accessibility-status" role="status"><Check size={16} /> Your settings are saved automatically on this device.</div>
+      <div className="accessibility-status" role="status"><Check size={16} /> {t('settingsSaved')}</div>
     </section>
   );
 }
@@ -143,4 +150,12 @@ function readSettings(): AppSettings {
   } catch {
     return DEFAULT_SETTINGS;
   }
+}
+
+export function readStoredTargetIndicator(): boolean {
+  return readSettings().showTargetIndicator;
+}
+
+export function readStoredVisibleActions(): ActionId[] {
+  return readSettings().visibleActions;
 }

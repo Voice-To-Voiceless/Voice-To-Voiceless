@@ -1,6 +1,6 @@
 import "./CommunicationBoard.css";
 
-import { BedDouble, Check, Droplets, Frown, MessageCircle, Pill, Smile, Toilet, Utensils, X } from "lucide-react";
+import { BedDouble, Check, Droplets, Frown, MessageCircle, Pill, Toilet, Utensils, X } from "lucide-react";
 import type { ReactNode } from "react";
 
 import CommunicationGrid from "../CommunicationGrid";
@@ -18,7 +18,6 @@ const actionIcons: Record<string, ReactNode> = {
     pain: <Frown size={42} />,
     sleep: <BedDouble size={42} />,
     talk: <MessageCircle size={42} />,
-    fine: <Smile size={42} />,
 };
 
 const actionColors: Record<string, string> = {
@@ -31,7 +30,6 @@ const actionColors: Record<string, string> = {
     pain: "#D4A72C",
     sleep: "#527A9E",
     talk: "#C45A9A",
-    fine: "#198754",
 };
 
 function toCommunicationAction(action: CommunicationBoardProps["actions"][number]): CommunicationAction {
@@ -53,12 +51,13 @@ export default function CommunicationBoard({
     onActionSelect,
 }: CommunicationBoardProps) {
     const communicationActions = actions.map(toCommunicationAction);
+    const boardActions = Array.from({ length: 9 }, (_, index) => communicationActions[index] ?? null);
         const dwellProgressPercentage = dwellProgress * 100;
 
     return (
         <div ref={boardRef} className="communication-board">
             <CommunicationGrid
-                actions={communicationActions}
+                actions={boardActions}
                 hoveredActionId={activeTarget}
                 selectedActionId={selectedAction}
                     progress={dwellProgressPercentage}
