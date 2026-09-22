@@ -12,11 +12,13 @@ import { findVisibleTarget } from '../services/gazeTargetResolver';
 import { TrackingSnapshot } from '../browserTypes';
 import { MediaPipeFaceLandmarkerAdapter } from '../../vision/mediaPipeFaceLandmarker';
 import { ModelTestingSession } from '../../modelTesting/modelTestingSession';
-import { CALIBRATION_TARGETS, useCalibration } from './useCalibration';
+import { useCalibration } from './useCalibration';
 import { evaluateCalibrationSampleQuality } from '../../vision/calibrationQuality';
 import { isPoseWithinEnvelope } from '../../vision/poseEnvelope';
 import { getCalibrationFeatures } from '../../vision/calibrationFeatures';
+
 const initialSnapshot: TrackingSnapshot = { active: false, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0, calibrating: false, calibrationIndex: 0, calibrationTarget: null, calibrationProgress: 0, calibrationPassKind: null, calibrationFailed: false, calibrationFailure: null, calibrationReady: false };
+
 export function useBrowserTracking(
   videoRef: React.RefObject<HTMLVideoElement | null>,
   boardRef: React.RefObject<HTMLDivElement | null>,
