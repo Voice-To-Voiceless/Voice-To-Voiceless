@@ -5,7 +5,6 @@ import {
     House,
     Accessibility,
     Settings,
-    CircleHelp,
     HeartPulse,
 } from "lucide-react";
 
@@ -55,11 +54,6 @@ export default function Sidebar({ notification, activeItem = "Home", onNavigate 
                 <span>Current time</span>
                 {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
             </time>
-
-            <button className="sidebar__logout">
-                <CircleHelp size={20} />
-                Help
-            </button>
 
         </aside>
     );
