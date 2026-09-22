@@ -17,9 +17,11 @@ const items = [
 
 type SidebarProps = {
     notification?: ReactNode;
+    activeItem?: "Home" | "Accessibility" | "Settings";
+    onNavigate?: (item: "Home" | "Accessibility" | "Settings") => void;
 };
 
-export default function Sidebar({ notification }: SidebarProps) {
+export default function Sidebar({ notification, activeItem = "Home", onNavigate }: SidebarProps) {
     return (
         <aside className="sidebar">
 
@@ -38,7 +40,9 @@ export default function Sidebar({ notification }: SidebarProps) {
                 {items.map(({ icon: Icon, label, active }) => (
                     <button
                         key={label}
-                        className={`sidebar__item ${active ? "sidebar__item--active" : ""}`}
+                        className={`sidebar__item ${label === activeItem || (active && activeItem === "Home") ? "sidebar__item--active" : ""}`}
+                        type="button"
+                        onClick={() => onNavigate?.(label as "Home" | "Accessibility" | "Settings")}
                     >
                         <Icon size={22} />
                         <span>{label}</span>

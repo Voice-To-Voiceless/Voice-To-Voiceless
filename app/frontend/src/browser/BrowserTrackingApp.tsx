@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import AppLayout from '../components/layout/AppLayout';
+import AccessibilityPanel, { applyStoredAccessibilitySettings } from '../components/accessibility/AccessibilityPanel';
 import Header from '../components/layout/Header';
 import { CameraPanel } from '../components/camera/CameraPanel';
 import CameraPreview from '../components/camera/CameraPreview';
@@ -31,12 +32,17 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   const [selectedNoticeVisible, setSelectedNoticeVisible] = useState(false);
   const [nurseAlert, setNurseAlert] = useState<PatientNotification | null>(null);
   const [replying, setReplying] = useState(false);
+  const [activePage, setActivePage] = useState<'Home' | 'Accessibility'>('Home');
   const actionNotificationsInFlight = useRef(new Set<ActionId>());
   const selection = useSelectionFeedback();
   const tracking = useBrowserTracking(videoRef, boardRef, selection.selectAction, modelTestingSession);
   const recognition = useFaceRecognition(videoRef);
   const trackingActive = tracking.snapshot.active;
   const recognitionActive = recognition.snapshot.active;
+
+  useEffect(() => {
+    applyStoredAccessibilitySettings();
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -74,6 +80,15 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
     const timer = window.setTimeout(() => setSelectedNoticeVisible(false), ALERT_DURATION_MS);
     return () => window.clearTimeout(timer);
   }, [selection.selectedAction]);
+
+  useEffect(() => {
+    const handleCalibrationRequest = () => {
+      setActivePage('Home');
+      tracking.calibrate();
+    };
+    window.addEventListener('request-gaze-calibration', handleCalibrationRequest);
+    return () => window.removeEventListener('request-gaze-calibration', handleCalibrationRequest);
+  }, [tracking.calibrate]);
 
   const status = trackingActive
     ? tracking.status
@@ -135,12 +150,16 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   };
 
   return (
-    <AppLayout className={`tracking-layout tracking-layout--${layout}`} sidebarNotification={
+    <AppLayout className={`tracking-layout tracking-layout--${layout}`} activeSidebarItem={activePage} onSidebarNavigate={item => {
+      if (item === 'Accessibility') setActivePage('Accessibility');
+      if (item === 'Home') setActivePage('Home');
+    }} sidebarNotification={
       <section className="sidebar__notification" aria-live="polite">
         <div className="sidebar__notification-heading"><Bell size={14} aria-hidden="true" /> Notifications</div>
         {nurseAlert ? <><strong>Message from assistant</strong><span>{nurseAlert.message}</span></> : statusVisible ? <><strong>{status}</strong>{(tracking.error ?? recognition.error) && <span>{tracking.error ?? recognition.error}</span>}</> : selection.selectedAction && selectedNoticeVisible ? <><strong>Action selected</strong><span>{getActionLabel(selection.selectedAction)} is ready.</span></> : <span>All systems are ready.</span>}
       </section>
     }>
+      {activePage === 'Accessibility' ? <AccessibilityPanel /> : <>
       <CalibrationTarget
         gazePoint={tracking.snapshot.gazePoint}
         target={tracking.snapshot.calibrating || tracking.snapshot.calibrationFailed ? tracking.snapshot.calibrationTarget : null}
@@ -234,6 +253,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
       </div>
 
       <p className="footer-note">Assistive communication prototype. Touch remains available at all times.</p>
+      </>}
     </AppLayout>
   );
 }

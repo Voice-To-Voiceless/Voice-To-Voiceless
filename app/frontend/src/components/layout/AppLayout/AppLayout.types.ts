@@ -4,4 +4,6 @@ export interface AppLayoutProps{
     children:ReactNode;
     sidebarNotification?: ReactNode;
     className?: string;
+    activeSidebarItem?: "Home" | "Accessibility" | "Settings";
+    onSidebarNavigate?: (item: "Home" | "Accessibility" | "Settings") => void;
 }
