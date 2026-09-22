@@ -7,8 +7,17 @@ export function useSelectionFeedback() {
   const [selectedAction, setSelectedAction] = useState<ActionId | null>(null);
   const selectAction = (actionId: ActionId) => {
     setSelectedAction(actionId);
-    playSelectionSound(560, audioContextRef);
+    if (readAudioFeedbackSetting()) playSelectionSound(560, audioContextRef);
   };
 
   return { selectedAction, emergencyPending: false, selectAction };
+}
+
+function readAudioFeedbackSetting(): boolean {
+  try {
+    const saved = JSON.parse(localStorage.getItem('voice-to-voiceless-accessibility') ?? '{}') as { audioFeedback?: unknown };
+    return saved.audioFeedback !== false;
+  } catch {
+    return true;
+  }
 }
