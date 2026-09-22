@@ -36,6 +36,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   const actionNotificationsInFlight = useRef(new Set<ActionId>());
   const selection = useSelectionFeedback();
   const tracking = useBrowserTracking(videoRef, boardRef, selection.selectAction, modelTestingSession);
+  const { calibrate } = tracking;
   const recognition = useFaceRecognition(videoRef);
   const trackingActive = tracking.snapshot.active;
   const recognitionActive = recognition.snapshot.active;
@@ -84,11 +85,11 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   useEffect(() => {
     const handleCalibrationRequest = () => {
       setActivePage('Home');
-      tracking.calibrate();
+      calibrate();
     };
     window.addEventListener('request-gaze-calibration', handleCalibrationRequest);
     return () => window.removeEventListener('request-gaze-calibration', handleCalibrationRequest);
-  }, [tracking.calibrate]);
+  }, [calibrate]);
 
   const status = trackingActive
     ? tracking.status
