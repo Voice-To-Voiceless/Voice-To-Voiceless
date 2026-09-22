@@ -455,3 +455,14 @@ test('normalizes mapped eyes into the same screen-horizontal direction', () => {
   expect(screenLeft.directHorizontalPosition).toBeCloseTo(0.75);
   expect(screenRight.directHorizontalPosition).toBeCloseTo(0.75);
 });
+
+test('selects the nearest normalized card and rejects outside or ambiguous points', () => {
+  const targets = [
+    { id: 'left', left: 0.1, top: 0.4, right: 0.4, bottom: 0.6 },
+    { id: 'right', left: 0.6, top: 0.4, right: 0.9, bottom: 0.6 },
+  ];
+
+  expect(findGazeTarget({ x: 0.28, y: 0.5, confidence: 1, timestamp: 0 }, targets)).toBe('left');
+  expect(findGazeTarget({ x: 0.5, y: 0.5, confidence: 1, timestamp: 0 }, targets)).toBeNull();
+  expect(findGazeTarget({ x: 0.05, y: 0.5, confidence: 1, timestamp: 0 }, targets)).toBeNull();
+});

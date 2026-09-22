@@ -1,4 +1,4 @@
-import { extendPoseEnvelope, isPoseWithinEnvelope } from '../src/vision/poseEnvelope';
+import { extendPoseEnvelope, getPoseDrift, isPoseWithinEnvelope } from '../src/vision/poseEnvelope';
 import { RelativeFacePose } from '../src/vision/facePoseEstimator';
 
 function pose(overrides: Partial<RelativeFacePose> = {}): RelativeFacePose {
@@ -20,9 +20,12 @@ test('stores the observed training pose envelope', () => {
   expect(envelope).not.toBeNull();
   if (envelope === null) return;
 
-  expect(envelope.yaw).toEqual({ min: -0.1, max: 0.1 });
-  expect(envelope.faceCenterX).toEqual({ min: 0.45, max: 0.55 });
-  expect(envelope.pitch).toEqual({ min: 0, max: 0.05 });
+  expect(envelope.yaw).toMatchObject({ min: -0.1, max: 0.1, median: 0 });
+  expect(envelope.yaw.mad).toBeCloseTo(0.1);
+  expect(envelope.faceCenterX).toMatchObject({ min: 0.45, max: 0.55, median: 0.5 });
+  expect(envelope.faceCenterX.mad).toBeCloseTo(0.05);
+  expect(envelope.pitch).toMatchObject({ min: 0, max: 0.05, median: 0.025 });
+  expect(envelope.pitch.mad).toBeCloseTo(0.025);
 });
 
 test('accepts pose inside the learned envelope', () => {
@@ -32,10 +35,19 @@ test('accepts pose inside the learned envelope', () => {
   expect(isPoseWithinEnvelope(envelope, pose())).toBe(true);
 });
 
+test('reports robust drift reasons and tolerates small movement', () => {
+  let envelope = extendPoseEnvelope(null, pose({ yaw: -0.02, pitch: -0.02, faceCenterX: 0.49 }));
+  envelope = extendPoseEnvelope(envelope, pose({ yaw: 0.02, pitch: 0.02, faceCenterX: 0.51 }));
+
+  expect(isPoseWithinEnvelope(envelope, pose({ yaw: 0.04, pitch: 0.03, faceCenterX: 0.53 }))).toBe(true);
+  expect(getPoseDrift(envelope, pose({ yaw: 0.2 }))).toMatchObject({ reasons: expect.arrayContaining(['yaw']) });
+  expect(getPoseDrift(envelope, pose({ yaw: 0.2 })).score).toBeGreaterThan(1);
+});
+
 test('rejects pose outside the learned envelope or without pose', () => {
   const envelope = extendPoseEnvelope(null, pose());
 
-  expect(isPoseWithinEnvelope(envelope, pose({ yaw: 0.01 }))).toBe(false);
+  expect(isPoseWithinEnvelope(envelope, pose({ yaw: 0.1 }))).toBe(false);
   expect(isPoseWithinEnvelope(envelope, null)).toBe(false);
 });
 

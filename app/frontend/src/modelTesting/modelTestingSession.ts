@@ -153,7 +153,6 @@ export class ModelTestingSession {
       this.sessionClosed = true;
       this.currentPass = null;
     }
-    if (this.enableDiagnostics) this.exportDiagnostics();
   }
 
   public discardCurrentPass(): void {

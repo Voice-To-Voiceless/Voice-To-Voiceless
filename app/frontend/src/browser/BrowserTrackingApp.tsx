@@ -73,7 +73,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
     setStatusVisible(true);
     const timer = window.setTimeout(() => setStatusVisible(false), ALERT_DURATION_MS);
     return () => window.clearTimeout(timer);
-  }, [tracking.status, tracking.error, recognition.error]);
+  }, [tracking.error, recognition.error]);
 
   useEffect(() => {
     setSelectedNoticeVisible(selection.selectedAction !== null);
@@ -163,14 +163,14 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
       {activePage === 'Accessibility' ? <AccessibilityPanel /> : <>
       <CalibrationTarget
         gazePoint={tracking.snapshot.gazePoint}
-        target={tracking.snapshot.calibrating || tracking.snapshot.calibrationFailed ? tracking.snapshot.calibrationTarget : null}
+        target={tracking.snapshot.calibrationTarget}
         progress={tracking.snapshot.calibrationProgress}
         passKind={tracking.snapshot.calibrationPassKind}
       />
       {enableDebugOverlay && <DebugOverlay rawGaze={tracking.snapshot.rawGaze} calibratedGaze={tracking.snapshot.calibratedGaze} />}
       <Header trackingActive={trackingActive} recognitionActive={recognitionActive} />
       <section
-        className={`calibration-modal${tracking.snapshot.calibrating || tracking.snapshot.calibrationFailed || recognitionActive ? '' : ' calibration-modal--hidden'}`}
+        className={`calibration-modal${tracking.snapshot.calibrationTarget !== null || tracking.snapshot.calibrating || tracking.snapshot.calibrationFailed || recognitionActive ? '' : ' calibration-modal--hidden'}`}
         role="dialog"
         aria-modal="true"
         aria-label={tracking.snapshot.calibrating ? 'Camera calibration' : 'Face recognition'}
@@ -181,7 +181,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
             className="calibration-modal__close"
             aria-label="Close camera popup"
             title="Close"
-            onClick={tracking.snapshot.calibrating || tracking.snapshot.calibrationFailed ? tracking.cancelCalibration : recognition.stop}
+            onClick={tracking.snapshot.calibrationTarget !== null || tracking.snapshot.calibrating || tracking.snapshot.calibrationFailed ? tracking.cancelCalibration : recognition.stop}
           >
             <X size={20} aria-hidden="true" />
           </button>
