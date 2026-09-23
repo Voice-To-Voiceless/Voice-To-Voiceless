@@ -1,4 +1,4 @@
-import "./CameraPreview.css";
+import "../../../styles/components/camera/CameraPreview.css";
 
 import { Camera } from "lucide-react";
 import type { CameraPreviewProps } from "./CameraPreview.types";

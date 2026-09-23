@@ -1,5 +1,5 @@
-import { CalibrationSample, GazeCalibrationMapper, getCalibrationFitDiagnostics, MAX_VALIDATION_RMS } from '../vision/gazeCalibration';
-import { getMedianGazeByTarget, MAX_RMS_RESIDUAL } from '../vision/calibrationMath';
+import { CalibrationSample, GazeCalibrationMapper, getCalibrationFitDiagnostics, MAX_VALIDATION_RMS } from '../vision/calibration/gazeCalibration';
+import { getMedianGazeByTarget, MAX_RMS_RESIDUAL } from '../vision/calibration/calibrationMath';
 import {
   getPoseConditionedCalibrationFitDiagnostics,
   getPoseCoefficientDiagnostics,

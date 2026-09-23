@@ -1,4 +1,4 @@
-import "./CommunicationCard.css";
+import "../../../styles/components/communication/CommunicationCard.css";
 
 import { Check } from "lucide-react";
 import type { CSSProperties } from "react";

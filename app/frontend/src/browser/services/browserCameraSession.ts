@@ -1,4 +1,4 @@
-import { MediaPipeFaceLandmarkerAdapter } from '../../vision/mediaPipeFaceLandmarker';
+import { MediaPipeFaceLandmarkerAdapter } from '../../vision/mediapipe/mediaPipeFaceLandmarker';
 
 export const MODEL_PATH = '/models/face_landmarker.task';
 export const WASM_PATH = '/wasm';

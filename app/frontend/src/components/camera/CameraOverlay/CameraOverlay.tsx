@@ -1,4 +1,4 @@
-import "./CameraOverlay.css";
+import "../../../styles/components/camera/CameraOverlay.css";
 
 import {
     Camera,

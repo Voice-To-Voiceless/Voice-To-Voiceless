@@ -1,4 +1,4 @@
-import "./SelectionProgress.css";
+import "../../../styles/components/communication/SelectionProgress.css";
 
 type SelectionProgressProps = {
     title: string;

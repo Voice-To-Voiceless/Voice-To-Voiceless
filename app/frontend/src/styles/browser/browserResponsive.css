@@ -1,0 +1,112 @@
+/* Text-size and accessibility scaling. */
+.tracking-button,
+.face-recognition-button,
+.calibration-button { font-size: calc(17px * var(--text-scale, 1)); }
+.action-description { font-size: calc(13px * var(--text-scale, 1)); }
+.selected-marker { font-size: calc(11px * var(--text-scale, 1)); }
+.sidebar__brand { font-size: min(18px, calc(18px * var(--text-scale, 1))); }
+.sidebar__brand > svg { flex: 0 0 28px; height: 28px; width: 28px; }
+.sidebar__brand > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar__item > svg { flex: 0 0 22px; height: 22px; width: 22px; }
+.sidebar__notification-heading { font-size: calc(11px * var(--text-scale, 1)); }
+.sidebar__notification strong { font-size: calc(13px * var(--text-scale, 1)); }
+.sidebar__notification span { font-size: calc(11px * var(--text-scale, 1)); }
+.sidebar__clock { font-size: calc(30px * var(--text-scale, 1)); }
+.sidebar__clock span { font-size: calc(10px * var(--text-scale, 1)); }
+
+@media (max-width: 760px) {
+  .camera-controls { gap: 10px; justify-content: center; }
+  .tracking-button,
+  .face-recognition-button { flex-basis: 100%; }
+}
+
+@media (max-width: 760px) {
+  .accessibility-panel,
+  .settings-panel { padding: 8px 0 20px; }
+  .accessibility-panel__intro,
+  .settings-panel__intro { flex-direction: column; }
+  .accessibility-grid,
+  .settings-grid { grid-template-columns: 1fr; }
+  .accessibility-reset { align-self: flex-start; }
+}
+
+@media (max-width: 760px) {
+  .tracking-app { padding: 20px 16px; }
+  .action-grid { grid-template-columns: repeat(2, 1fr); }
+  .app-header { flex-direction: column; }
+  .camera-panel { aspect-ratio: 4 / 3; min-height: 320px; }
+}
+
+@media (max-width: 760px) {
+  .calibration-modal { padding: 16px; }
+  .calibration-modal__content { padding: 18px; }
+  .calibration-modal__body { grid-template-columns: 1fr; }
+  .camera-status-sidebar:not(.camera-status-sidebar--details) { display: grid; grid-template-columns: repeat(3, 1fr); }
+  .camera-status-sidebar__item { flex-direction: column; justify-content: center; text-align: center; }
+}
+
+/* The phone frontend has its own composition rather than inheriting the tablet shell. */
+.tracking-layout--phone {
+  background: #f7f8f5;
+  display: block;
+  min-height: 100vh;
+  overflow: visible;
+}
+
+.tracking-layout--phone .sidebar {
+  align-items: center;
+  flex-direction: row;
+  gap: 10px;
+  min-height: 64px;
+  overflow-x: auto;
+  padding: 10px 14px;
+}
+
+.tracking-layout--phone .sidebar__brand {
+  font-size: 16px;
+  margin: 0 auto 0 0;
+  white-space: nowrap;
+}
+
+.tracking-layout--phone .sidebar__menu,
+.tracking-layout--phone .sidebar__notification,
+.tracking-layout--phone .sidebar__clock,
+.tracking-layout--phone .sidebar__logout { display: none; }
+
+.tracking-layout--phone .app-layout__content {
+  gap: 10px;
+  padding: 14px 12px 24px;
+}
+
+.tracking-layout--phone .app-header { align-items: center; margin-bottom: 2px; }
+.tracking-layout--phone .app-header h1 { font-size: 1.7rem; }
+.tracking-layout--phone .action-grid { gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.tracking-layout--phone .action-card { min-height: 112px; padding: 14px; }
+.tracking-layout--phone .action-label { font-size: 1rem; }
+.tracking-layout--phone .action-description { font-size: 11px; }
+
+.tracking-layout--phone .camera-controls {
+  background: #ffffff;
+  bottom: 0;
+  box-shadow: 0 -6px 18px #17352b18;
+  gap: 8px;
+  margin: 12px -12px -24px;
+  padding: 10px 12px;
+  position: sticky;
+  z-index: 10;
+}
+
+.tracking-layout--phone .tracking-button,
+.tracking-layout--phone .face-recognition-button {
+  flex: 1 1 100%;
+  font-size: 14px;
+  min-height: 48px;
+  padding: 10px 12px;
+}
+
+.tracking-layout--phone .calibration-button {
+  flex: 1 1 100%;
+  font-size: 13px;
+  min-height: 42px;
+  padding: 8px 12px;
+}

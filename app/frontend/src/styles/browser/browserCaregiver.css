@@ -1,0 +1,70 @@
+.caregiver-app { background: #f5f6f2; color: #17231d; display: flex; flex-direction: column; gap: 16px; min-height: 100vh; padding: 18px 14px 30px; }
+.caregiver-header, .caregiver-welcome, .caregiver-section-label, .caregiver-panel__heading, .caregiver-patient-card__top { align-items: center; display: flex; justify-content: space-between; }
+.caregiver-brand { align-items: center; display: flex; gap: 10px; }
+.caregiver-brand__mark { align-items: center; background: #18352a; border-radius: 13px; color: #aee0b9; display: flex; height: 40px; justify-content: center; width: 40px; }
+.caregiver-brand span:not(.caregiver-brand__mark), .caregiver-welcome > div > span, .caregiver-patient-card__top > div > span, .caregiver-panel__heading span, .caregiver-section-label span { color: #718075; display: flex; font: 800 9px/1.2 Arial, sans-serif; gap: 6px; letter-spacing: .1em; text-transform: uppercase; }
+.caregiver-brand h1 { color: #18352a; font: 800 17px/1.1 Georgia, serif; margin-top: 3px; }
+.caregiver-profile { align-items: center; background: #dce9de; border: 0; border-radius: 22px; color: #315846; display: flex; gap: 5px; height: 38px; justify-content: center; width: 54px; }
+.caregiver-profile span { font: 800 11px Arial, sans-serif; }
+.caregiver-welcome { align-items: flex-end; margin-top: 4px; }
+.caregiver-welcome h2 { color: #18352a; font: 700 24px/1.1 Georgia, serif; margin-top: 5px; }
+.caregiver-sync { align-items: center; color: #42815a; display: flex; font: 10px Arial, sans-serif; gap: 5px; }
+.caregiver-section-label { margin-top: 2px; }
+.caregiver-section-label span { align-items: center; color: #18352a; }
+.caregiver-section-label strong, .caregiver-panel__heading > strong { color: #718075; font: 600 11px Arial, sans-serif; }
+.caregiver-patient-list { display: flex; flex-direction: column; gap: 7px; }
+.patient-row { align-items: center; background: #fff; border: 1px solid #e2e9e2; border-radius: 13px; color: #18352a; cursor: pointer; display: flex; gap: 9px; padding: 9px; text-align: left; width: 100%; }
+.patient-row.is-selected { border-color: #70aa7e; box-shadow: 0 0 0 2px #70aa7e26; }
+.patient-avatar { align-items: center; border-radius: 11px; display: flex; flex: 0 0 38px; font: 800 11px Arial, sans-serif; height: 38px; justify-content: center; }
+.patient-avatar--online { background: #d9efdf; color: #2d8150; }
+.patient-avatar--attention { background: #fff0d4; color: #a56b18; }
+.patient-avatar--offline { background: #e8ece8; color: #7a877d; }
+.patient-row__details { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; }
+.patient-row__details strong { font: 700 13px Arial, sans-serif; }
+.patient-row__details span { color: #829087; font: 10px Arial, sans-serif; }
+.patient-status { border-radius: 50%; height: 7px; width: 7px; }
+.patient-status--online { background: #35a45b; }
+.patient-status--attention { background: #e0a33c; }
+.patient-status--offline { background: #9ca8a0; }
+.patient-row > svg { color: #a0aca3; }
+.caregiver-patient-card, .caregiver-panel { background: #fff; border: 1px solid #e1e8e1; border-radius: 16px; box-shadow: 0 8px 24px #17352b0b; padding: 14px; }
+.caregiver-patient-card__top h2, .caregiver-panel__heading h2 { color: #18352a; font: 700 18px/1.2 Georgia, serif; margin-top: 5px; }
+.caregiver-patient-card__top p { color: #7b887e; font: 11px Arial, sans-serif; margin-top: 3px; }
+.patient-badge { border-radius: 20px; font: 700 10px Arial, sans-serif; padding: 6px 8px; }
+.patient-badge--online { background: #e1f2e4; color: #297348; }
+.patient-badge--attention { background: #fff0d2; color: #9a641c; }
+.patient-badge--offline { background: #edf0ed; color: #728078; }
+.caregiver-metrics { border-bottom: 1px solid #e6ece6; border-top: 1px solid #e6ece6; display: grid; gap: 6px; grid-template-columns: repeat(3, 1fr); margin: 13px 0 11px; padding: 11px 0; }
+.caregiver-metrics div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.caregiver-metrics svg { color: #4b9260; }
+.caregiver-metrics span { color: #8a968c; font: 9px Arial, sans-serif; }
+.caregiver-metrics strong { color: #315846; font: 700 10px Arial, sans-serif; overflow-wrap: anywhere; }
+.caregiver-note { color: #718075; font: 11px/1.4 Arial, sans-serif; }
+.caregiver-panel__heading { align-items: flex-start; }
+.notification-list { display: flex; flex-direction: column; margin-top: 11px; }
+.notification-row { align-items: center; background: transparent; border: 0; border-bottom: 1px solid #edf1ed; color: #18352a; display: flex; gap: 9px; padding: 10px 0; text-align: left; width: 100%; }
+.notification-row:last-child { border-bottom: 0; }
+.notification-row > span:nth-child(2) { display: flex; flex: 1; flex-direction: column; gap: 3px; }
+.notification-row strong { font: 600 11px/1.3 Arial, sans-serif; }
+.notification-row small { color: #8a968c; font: 10px Arial, sans-serif; }
+.notification-icon { align-items: center; border-radius: 9px; display: flex; height: 30px; justify-content: center; width: 30px; }
+.notification-icon--critical { background: #f8dddd; color: #b44c4c; }
+.notification-icon--warning { background: #fff0d3; color: #ad741d; }
+.notification-icon--info { background: #deeee2; color: #3b8653; }
+.notification-unread { background: #3ca25b; border-radius: 50%; height: 7px; width: 7px; }
+.caregiver-empty { color: #8a968c; font: 11px Arial, sans-serif; padding: 18px 0 3px; }
+.caregiver-reminder > p { color: #718075; font: 11px/1.4 Arial, sans-serif; margin: 10px 0; }
+.caregiver-reminder select { background: #f7f9f6; border: 1px solid #d7e1d8; border-radius: 10px; color: #315846; font: 11px Arial, sans-serif; padding: 11px; width: 100%; }
+.caregiver-send-button { align-items: center; background: #315846; border: 0; border-radius: 10px; color: white; display: flex; font: 700 12px Arial, sans-serif; gap: 7px; justify-content: center; margin-top: 9px; min-height: 44px; width: 100%; }
+.caregiver-send-button:disabled { opacity: .5; }
+.caregiver-feedback { align-items: center; color: #327246; display: flex; font: 11px Arial, sans-serif; gap: 5px; margin-top: 9px; }
+.patient-notification-popup { background: #fff; border: 1px solid #d8e5da; border-radius: 18px; box-shadow: 0 18px 45px #17352b2e; left: 50%; max-width: 420px; padding: 22px; position: fixed; text-align: center; top: 50%; transform: translate(-50%, -50%); width: calc(100% - 32px); z-index: 20; }
+.patient-notification-popup__icon { align-items: center; background: #dcefe1; border-radius: 50%; color: #2f7550; display: flex; height: 48px; justify-content: center; margin: 0 auto 12px; width: 48px; }
+.patient-notification-popup__eyebrow { color: #6d8274; font: 800 10px Arial, sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+.patient-notification-popup h2 { color: #18352a; font: 700 21px/1.2 Georgia, serif; margin: 9px 0 6px; }
+.patient-notification-popup p { color: #718075; font: 12px Arial, sans-serif; margin: 0 0 16px; }
+.patient-notification-popup__actions { display: grid; gap: 8px; grid-template-columns: 1fr; }
+.patient-notification-popup__actions button { background: #315846; border: 0; border-radius: 10px; color: #fff; font: 700 12px Arial, sans-serif; min-height: 42px; padding: 9px 12px; }
+.patient-notification-popup__actions button:nth-child(2) { background: #dcefe1; color: #285b3e; }
+.patient-notification-popup__actions button:nth-child(3) { background: #f1f4f1; color: #52665a; }
+.patient-notification-popup__actions button:disabled { cursor: wait; opacity: .55; }

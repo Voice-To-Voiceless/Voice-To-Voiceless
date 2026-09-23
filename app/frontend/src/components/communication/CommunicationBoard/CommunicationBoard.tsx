@@ -1,4 +1,4 @@
-import "./CommunicationBoard.css";
+import "../../../styles/components/communication/CommunicationBoard.css";
 
 import { BedDouble, Check, Droplets, Frown, MessageCircle, Pill, Toilet, Utensils, X } from "lucide-react";
 import type { ReactNode } from "react";

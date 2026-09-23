@@ -1,35 +1,12 @@
 import { useCallback, useRef, useState } from 'react';
-import { GazeCalibrationMapper, CalibrationSample } from '../../vision/gazeCalibration';
-import { NormalizedGazePoint } from '../../vision/gazeTypes';
+import { GazeCalibrationMapper, CalibrationSample } from '../../vision/calibration/gazeCalibration';
+import { NormalizedGazePoint } from '../../vision/types/gazeTypes';
 import { CalibrationDiagnosticPoints, CalibrationPassKind, ModelTestingSession } from '../../modelTesting/modelTestingSession';
-import { DEFAULT_CALIBRATION_QUALITY_POLICY } from '../../vision/calibrationQuality';
-import { createPoseEnvelope, extendPoseEnvelope, PoseEnvelope } from '../../vision/poseEnvelope';
+import { DEFAULT_CALIBRATION_QUALITY_POLICY } from '../../vision/calibration/calibrationQuality';
+import { createPoseEnvelope, extendPoseEnvelope, PoseEnvelope } from '../../vision/tracking/poseEnvelope';
+import { CALIBRATION_MAX_RECORDING_DURATION_MS, CALIBRATION_SAMPLE_DURATION_MS, CALIBRATION_SETTLE_DURATION_MS, CALIBRATION_TARGET_ORDERS, CALIBRATION_TARGETS, type CalibrationResult, type CalibrationState } from './calibrationConfig';
 
-export const CALIBRATION_TARGETS = [
-  { x: 0.1, y: 0.1 }, { x: 0.5, y: 0.1 }, { x: 0.9, y: 0.1 },
-  { x: 0.1, y: 0.5 }, { x: 0.5, y: 0.5 }, { x: 0.9, y: 0.5 },
-  { x: 0.1, y: 0.9 }, { x: 0.5, y: 0.9 }, { x: 0.9, y: 0.9 },
-];
-
-export const CALIBRATION_SETTLE_DURATION_MS = 1800;
-export const CALIBRATION_SAMPLE_DURATION_MS = 900;
-export const CALIBRATION_MAX_RECORDING_DURATION_MS = 5000;
-export const CALIBRATION_TARGET_ORDERS = [
-  CALIBRATION_TARGETS,
-  [...CALIBRATION_TARGETS].reverse(),
-] as const;
-
-type CalibrationState = { active: boolean; index: number; ready: boolean };
-type CalibrationResult = {
-  target: { x: number; y: number } | null;
-  passKind: CalibrationPassKind | null;
-  status: string | null;
-  complete: boolean;
-  settleProgress: number;
-  resetSmoother: boolean;
-  failed?: boolean;
-};
-
+export { CALIBRATION_MAX_RECORDING_DURATION_MS, CALIBRATION_SAMPLE_DURATION_MS, CALIBRATION_SETTLE_DURATION_MS, CALIBRATION_TARGET_ORDERS, CALIBRATION_TARGETS } from './calibrationConfig';
 export function useCalibration(modelTestingSession?: ModelTestingSession) {
   const [state, setState] = useState<CalibrationState>({ active: false, index: 0, ready: false });
   const activeRef = useRef(false);
@@ -42,16 +19,8 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
   const failureRef = useRef<string | null>(null);
   const pausedAtRef = useRef<number | null>(null);
   const targetsRef = useRef(CALIBRATION_TARGETS);
-  const dataRef = useRef({
-    started: 0,
-    all: [] as CalibrationSample[],
-    point: [] as CalibrationSample[],
-    rejected: 0,
-    rejectionReasons: {} as Record<string, number>,
-    poseEnvelope: null as PoseEnvelope | null,
-  });
+  const dataRef = useRef({ started: 0, all: [] as CalibrationSample[], point: [] as CalibrationSample[], rejected: 0, rejectionReasons: {} as Record<string, number>, poseEnvelope: null as PoseEnvelope | null });
   const trainingSamplesRef = useRef<CalibrationSample[]>([]);
-
   const start = useCallback(() => {
     if (activeRef.current) return;
     failedRef.current = false;
@@ -74,11 +43,9 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
     indexRef.current = 0;
     if (!isValidation) readyRef.current = false;
     dataRef.current = { started: performance.now(), all: [], point: [], rejected: 0, rejectionReasons: {}, poseEnvelope: null };
-    if (passKindRef.current === 'training') trainingSamplesRef.current = [];
-    if (passKindRef.current === 'training') poseEnvelopeRef.current = createPoseEnvelope();
+    if (passKindRef.current === 'training') { trainingSamplesRef.current = []; poseEnvelopeRef.current = createPoseEnvelope(); }
     setState({ active: true, index: 0, ready: readyRef.current });
   }, [modelTestingSession]);
-
   const reset = useCallback(() => {
     modelTestingSession?.reset();
     dataRef.current = { started: 0, all: [], point: [], rejected: 0, rejectionReasons: {}, poseEnvelope: null };
@@ -91,11 +58,9 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
     indexRef.current = 0;
     setState(value => ({ ...value, active: false }));
   }, [modelTestingSession]);
-
   const pause = useCallback((timestamp: number) => {
     if (activeRef.current && pausedAtRef.current === null) pausedAtRef.current = timestamp;
   }, []);
-
   const process = useCallback((gaze: NormalizedGazePoint, timestamp: number, diagnosticPoints?: CalibrationDiagnosticPoints): CalibrationResult => {
     const index = indexRef.current;
     const target = targetsRef.current[index];
@@ -229,7 +194,6 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
     setState(value => ({ ...value, index: indexRef.current }));
     return { target, passKind: passKindRef.current, status: null, complete: false, settleProgress: 0, resetSmoother: true };
   }, [modelTestingSession]);
-
   return { state, activeRef, indexRef, readyRef, mapper: mapperRef, poseEnvelope: poseEnvelopeRef, targetsRef, passKindRef, failedRef, failureRef, start, reset, pause, process };
 }
 

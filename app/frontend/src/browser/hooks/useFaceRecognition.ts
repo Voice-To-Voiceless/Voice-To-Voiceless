@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { MediaPipeFaceLandmarkerAdapter } from '../../vision/mediaPipeFaceLandmarker';
+import { MediaPipeFaceLandmarkerAdapter } from '../../vision/mediapipe/mediaPipeFaceLandmarker';
 import { closeCamera, createFaceAdapter, openCamera } from '../services/browserCameraSession';
 import { FaceRecognitionSnapshot } from '../browserTypes';
 import { noFaceAnalysis, analyzeFaceExpression } from '../services/faceExpressionAnalysis';

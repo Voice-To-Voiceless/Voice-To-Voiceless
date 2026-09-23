@@ -1,4 +1,4 @@
-import "./Badge.css";
+import "../../styles/components/badge/badge.css";
 
 import type { BadgeProps } from "./badge.types";
 

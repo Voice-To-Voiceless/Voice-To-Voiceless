@@ -1,4 +1,4 @@
-import "./CameraPanel.css";
+import "../../../styles/components/camera/CameraPanel.css";
 
 import type { CameraPanelProps } from "./CameraPanel.types";
 
