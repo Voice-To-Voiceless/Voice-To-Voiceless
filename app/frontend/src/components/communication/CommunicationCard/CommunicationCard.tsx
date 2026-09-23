@@ -1,6 +1,7 @@
 import "./CommunicationCard.css";
 
 import { Check } from "lucide-react";
+import type { CSSProperties } from "react";
 
 import type {
     CommunicationAction,
@@ -25,6 +26,7 @@ export default function CommunicationCard({
             type="button"
             className={`communication-card communication-card--${state}`}
             data-action-id={action.id}
+            style={{ "--action-color": action.color } as CSSProperties}
             onClick={onPress}
         >
             {state === "selected" && (
@@ -47,35 +49,27 @@ export default function CommunicationCard({
 </h2>
             {state === "progress" && (
                 <div className="communication-card__progress">
-
-                    <svg viewBox="0 0 100 100">
-
-                        <circle
-                            cx="50"
-                            cy="50"
-                            r="42"
+                    <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+                        <rect
+                            x="1.5"
+                            y="1.5"
+                            width="97"
+                            height="97"
+                            rx="9"
+                            pathLength="1"
                             className="communication-card__progress-background"
                         />
-
-                        <circle
-                            cx="50"
-                            cy="50"
-                            r="42"
+                        <rect
+                            x="1.5"
+                            y="1.5"
+                            width="97"
+                            height="97"
+                            rx="9"
+                            pathLength="1"
                             className="communication-card__progress-value"
-                            style={{
-                                strokeDashoffset:
-                                    264 - (264 * progress) / 100,
-                            }}
+                            style={{ strokeDashoffset: 1 - progress / 100 }}
                         />
-
                     </svg>
-
-                    <span>
-
-                        {progress.toFixed(0)}%
-
-                    </span>
-
                 </div>
             )}
         </button>

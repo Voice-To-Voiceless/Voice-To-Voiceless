@@ -7,8 +7,7 @@ export type ActionId =
   | 'medication'
   | 'pain'
   | 'sleep'
-  | 'talk'
-  | 'fine';
+  | 'talk';
 
 export type ActionTone = 'calm' | 'warm' | 'urgent';
 
@@ -29,5 +28,4 @@ export const COMMUNICATION_ACTIONS: ActionDefinition[] = [
   { id: 'pain', label: 'Pain', description: 'Something hurts', tone: 'warm' },
   { id: 'sleep', label: 'Sleep', description: 'I want to rest', tone: 'calm' },
   { id: 'talk', label: 'Talk to someone', description: 'I want to talk', tone: 'warm' },
-  { id: 'fine', label: "I'm fine", description: 'I am feeling okay', tone: 'calm' },
 ];

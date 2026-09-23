@@ -10,13 +10,13 @@
     min-height:0;
     padding:14px 10px;
     border:none;
-    border:1px solid #dce8e1;
-    border-radius:14px;
-    background:#ffffff;
+    border:1px solid #d2dcd6;
+    border-radius:10px;
+    background:#f5f7f5;
     cursor:pointer;
     overflow:hidden;
-    transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
-    box-shadow:0 4px 12px rgba(23,59,49,.06);
+    transition:box-shadow .18s ease, border-color .18s ease;
+    box-shadow:0 4px 12px rgba(25,42,34,.08);
 }
 
 .communication-card:hover,
@@ -24,18 +24,24 @@
     border-color:#198754;
     box-shadow:0 8px 20px rgba(25,135,84,.16);
     outline:none;
-    transform:translateY(-2px);
+}
+
+.communication-card--empty{
+    border-color:transparent;
+    background:transparent;
+    box-shadow:none;
+    cursor:default;
+    pointer-events:none;
 }
 
 .communication-card--progress{
-    border-color:#2f80ed;
-    box-shadow:0 0 0 4px rgba(47,128,237,.14), 0 8px 20px rgba(47,128,237,.12);
+    border-color:var(--action-color);
 }
 
 .communication-card--selected{
     border-color:#198754;
-    background:#effaf3;
-    box-shadow:0 0 0 4px rgba(25,135,84,.16), 0 8px 20px rgba(25,135,84,.14);
+    background:#f5f7f5;
+    box-shadow:0 0 0 2px rgba(25,135,84,.18), 0 8px 20px rgba(25,42,34,.1);
 }
 
 .communication-card__selected{
@@ -53,39 +59,32 @@
 
 .communication-card__progress{
     position:absolute;
-    inset:0;
-    display:grid;
-    place-items:center;
+    inset:2px;
     pointer-events:none;
+    z-index:2;
 }
 
 .communication-card__progress svg{
-    width:78px;
-    height:78px;
-    transform:rotate(-90deg);
+    display:block;
+    height:100%;
+    width:100%;
 }
 
 .communication-card__progress-background,
 .communication-card__progress-value{
     fill:none;
-    stroke-width:5;
+    stroke-width:2.5;
 }
 
 .communication-card__progress-background{
-    stroke:#dbeafe;
+    stroke:color-mix(in srgb, var(--action-color) 18%, transparent);
 }
 
 .communication-card__progress-value{
-    stroke:#2f80ed;
+    stroke:var(--action-color);
     stroke-linecap:round;
-    stroke-dasharray:264;
-}
-
-.communication-card__progress span{
-    position:absolute;
-    color:#1d4ed8;
-    font-size:12px;
-    font-weight:800;
+    stroke-dasharray:1;
+    transition:stroke-dashoffset .08s linear;
 }
 
 .communication-card__icon{
@@ -105,7 +104,7 @@
 
 .communication-card__title{
     max-width:100%;
-    font-size:clamp(11px, 1.2vw, 14px);
+    font-size:clamp(calc(11px * var(--text-scale, 1)), calc(1.2vw * var(--text-scale, 1)), calc(14px * var(--text-scale, 1)));
     line-height:1.1;
     font-weight:700;
     color:#102A22;
@@ -115,24 +114,22 @@
     margin:0;
 }
 
-.communication-card[data-action-id="yes"] { background:#e2f1e3; border-color:#9ac49b; }
-.communication-card[data-action-id="no"] { background:#f8dedd; border-color:#efb8b5; }
-.communication-card[data-action-id="bathroom"] { background:#dce9f7; border-color:#b5cee9; }
-.communication-card[data-action-id="food"] { background:#faead8; border-color:#ebcfac; }
-.communication-card[data-action-id="water"] { background:#e7e0f5; border-color:#c9b8e7; }
-.communication-card[data-action-id="medication"] { background:#dceef0; border-color:#add8dc; }
-.communication-card[data-action-id="pain"] { background:#f8edc9; border-color:#e8d58b; }
-.communication-card[data-action-id="sleep"] { background:#dfe6ee; border-color:#bdcbd9; }
-.communication-card[data-action-id="talk"] { background:#f4dce7; border-color:#e5b9cd; }
-.communication-card[data-action-id="fine"] { background:#dcefe4; border-color:#b2d9c0; }
+.communication-card[data-action-id="yes"] { border-left:4px solid #287a52; }
+.communication-card[data-action-id="no"] { border-left:4px solid #9b5d5d; }
+.communication-card[data-action-id="bathroom"] { border-left:4px solid #536f91; }
+.communication-card[data-action-id="food"] { border-left:4px solid #a8753d; }
+.communication-card[data-action-id="water"] { border-left:4px solid #3e79a5; }
+.communication-card[data-action-id="medication"] { border-left:4px solid #4e8490; }
+.communication-card[data-action-id="pain"] { border-left:4px solid #aa8125; }
+.communication-card[data-action-id="sleep"] { border-left:4px solid #60758a; }
+.communication-card[data-action-id="talk"] { border-left:4px solid #986180; }
 
-.communication-card[data-action-id="yes"] .communication-card__icon { background:#c7e4cb; }
-.communication-card[data-action-id="no"] .communication-card__icon { background:#f1c3c0; }
-.communication-card[data-action-id="bathroom"] .communication-card__icon { background:#c6dbef; }
-.communication-card[data-action-id="food"] .communication-card__icon { background:#f1d5b5; }
-.communication-card[data-action-id="water"] .communication-card__icon { background:#d3c6eb; }
-.communication-card[data-action-id="medication"] .communication-card__icon { background:#c2e1e4; }
-.communication-card[data-action-id="pain"] .communication-card__icon { background:#f1dfa1; }
-.communication-card[data-action-id="sleep"] .communication-card__icon { background:#cbd7e3; }
-.communication-card[data-action-id="talk"] .communication-card__icon { background:#e9c2d5; }
-.communication-card[data-action-id="fine"] .communication-card__icon { background:#c5e3d0; }
+.communication-card[data-action-id="yes"] .communication-card__icon { background:#dcebe2; }
+.communication-card[data-action-id="no"] .communication-card__icon { background:#eee0e0; }
+.communication-card[data-action-id="bathroom"] .communication-card__icon { background:#dfe7f0; }
+.communication-card[data-action-id="food"] .communication-card__icon { background:#eee5d8; }
+.communication-card[data-action-id="water"] .communication-card__icon { background:#dfe9f0; }
+.communication-card[data-action-id="medication"] .communication-card__icon { background:#deeaec; }
+.communication-card[data-action-id="pain"] .communication-card__icon { background:#eee7d2; }
+.communication-card[data-action-id="sleep"] .communication-card__icon { background:#e2e8ed; }
+.communication-card[data-action-id="talk"] .communication-card__icon { background:#ebdfe7; }

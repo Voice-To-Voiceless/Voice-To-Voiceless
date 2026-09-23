@@ -4,11 +4,12 @@ import { GazePoint } from '../browserTypes';
 type Props = {
   rawGaze: GazePoint | null;
   calibratedGaze: GazePoint | null;
+  showTarget: boolean;
 };
 
 type PointerState = { point: GazePoint; target: string | null } | null;
 
-export function DebugOverlay({ rawGaze, calibratedGaze }: Props) {
+export function DebugOverlay({ rawGaze, calibratedGaze, showTarget }: Props) {
   const [pointer, setPointer] = useState<PointerState>(null);
 
   useEffect(() => {
@@ -29,7 +30,7 @@ export function DebugOverlay({ rawGaze, calibratedGaze }: Props) {
       <DebugMarker point={mirrorHorizontal(rawGaze)} label="Raw gaze" className="debug-marker--raw" />
       <DebugMarker point={calibratedGaze} label="Calibrated gaze" className="debug-marker--calibrated" />
       <DebugMarker point={pointer?.point ?? null} label="Mouse cursor" className="debug-marker--mouse" />
-      <div className="debug-overlay__target">Target: {pointer?.target ?? 'None'}</div>
+      {showTarget && <div className="debug-overlay__target">Target: {pointer?.target ?? 'None'}</div>}
     </aside>
   );
 }
