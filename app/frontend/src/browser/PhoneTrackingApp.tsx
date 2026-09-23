@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Bell, Check, ChevronRight, Clock3, HeartPulse, MessageSquareText, Send, UserRound, Users, Wifi } from 'lucide-react';
-import { getNotifications, markNotificationRead, subscribeToNotifications, type PatientNotification } from '../services/notifications';
+import { deleteNotification, getNotifications, subscribeToNotifications, type PatientNotification } from '../services/notifications';
 
 type Patient = {
   id: string;
@@ -28,7 +28,9 @@ export function PhoneTrackingApp() {
   const [feedback, setFeedback] = useState('');
   const selectedPatient = patients.find(patient => patient.id === selectedPatientId) ?? patients[0];
   const patientNotifications = useMemo(
-    () => notifications.filter(item => item.patient_metadata.patient_id === selectedPatient.id),
+    () => notifications
+      .filter(item => item.patient_metadata.patient_id === selectedPatient.id)
+      .sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime()),
     [notifications, selectedPatient.id],
   );
 
@@ -38,11 +40,7 @@ export function PhoneTrackingApp() {
       getNotifications()
         .then(items => {
           if (!active) return;
-          setNotifications(current => {
-            const fetchedById = new Map(items.map(item => [item.id, item]));
-            const currentOnly = current.filter(item => !fetchedById.has(item.id));
-            return [...items, ...currentOnly];
-          });
+          setNotifications(items);
         })
         .catch(() => setFeedback('Notificarile nu au putut fi incarcate.'));
     };
@@ -84,9 +82,23 @@ export function PhoneTrackingApp() {
   }
 
   async function readNotification(notification: PatientNotification) {
-    if (notification.read) return;
-    const updated = await markNotificationRead(notification.id);
-    setNotifications(current => current.map(item => item.id === updated.id ? updated : item));
+    try {
+      await deleteNotification(notification.id);
+      setNotifications(current => current.filter(item => item.id !== notification.id));
+    } catch {
+      setFeedback('Mesajul nu a putut fi sters.');
+    }
+  }
+
+  async function dismissAllNotifications() {
+    const notificationIds = patientNotifications.map(notification => notification.id);
+    setFeedback('');
+    const results = await Promise.allSettled(notificationIds.map(notificationId => deleteNotification(notificationId)));
+    const deletedIds = new Set(notificationIds.filter((_, index) => results[index].status === 'fulfilled'));
+    setNotifications(current => current.filter(notification => !deletedIds.has(notification.id)));
+    if (results.some(result => result.status === 'rejected')) {
+      setFeedback('Unele mesaje nu au putut fi sterse.');
+    }
   }
 
   return (
@@ -105,7 +117,7 @@ export function PhoneTrackingApp() {
 
       <section className="caregiver-patient-card"><div className="caregiver-patient-card__top"><div><span>PROFIL PACIENT</span><h2>{selectedPatient.name}</h2><p>{selectedPatient.age} ani · {selectedPatient.room}</p></div><span className={`patient-badge patient-badge--${selectedPatient.status}`}>{selectedPatient.status === 'online' ? 'Online' : selectedPatient.status === 'attention' ? 'Needs attention' : 'Offline'}</span></div><div className="caregiver-metrics"><div><HeartPulse size={16} /><span>Stare</span><strong>{selectedPatient.status === 'attention' ? 'Atentie' : 'Stabil'}</strong></div><div><Clock3 size={16} /><span>Ultimul contact</span><strong>{selectedPatient.lastSeen}</strong></div><div><MessageSquareText size={16} /><span>Comunicare</span><strong>Tableta activa</strong></div></div><p className="caregiver-note">{selectedPatient.note}</p></section>
 
-      <section className="caregiver-panel"><div className="caregiver-panel__heading"><div><span><Bell size={15} /> NOTIFICARI</span><h2>Activitate recenta</h2></div><strong>{patientNotifications.filter(item => !item.read).length} necitite</strong></div>{patientNotifications.length === 0 ? <div className="caregiver-empty">Nu exista notificari pentru acest pacient.</div> : <div className="notification-list">{patientNotifications.map(notification => <button type="button" key={notification.id} className={`notification-row${notification.read ? '' : ' is-unread'}`} onClick={() => readNotification(notification)}><span className={`notification-icon notification-icon--${notification.severity}`}><Bell size={15} /></span><span><strong>{notification.message}</strong><small>{formatNotificationTime(notification.created_at)}</small></span>{!notification.read && <span className="notification-unread" />}</button>)}</div>}</section>
+      <section className="caregiver-panel"><div className="caregiver-panel__heading"><div><span><Bell size={15} /> NOTIFICARI</span><h2>Activitate recenta</h2></div><div className="caregiver-notification-actions"><strong>{patientNotifications.filter(item => !item.read).length} necitite</strong>{patientNotifications.length > 0 && <button type="button" className="notification-clear-button" onClick={dismissAllNotifications}>Sterge toate</button>}</div></div>{patientNotifications.length === 0 ? <div className="caregiver-empty">Nu exista notificari pentru acest pacient.</div> : <div className="notification-list">{patientNotifications.map(notification => <button type="button" key={notification.id} className={`notification-row${notification.read ? '' : ' is-unread'}`} onClick={() => readNotification(notification)} aria-label={`Marcheaza mesajul ca citit: ${notification.message}`}><span className={`notification-icon notification-icon--${notification.severity}`}><Bell size={15} /></span><span><strong>{notification.message}</strong><small>{formatNotificationTime(notification.created_at)}</small></span>{!notification.read && <span className="notification-unread" />}</button>)}</div>}</section>
 
       <section className="caregiver-panel caregiver-reminder"><div className="caregiver-panel__heading"><div><span><Send size={15} /> CATRE TABLETA</span><h2>Trimite un reminder</h2></div></div><p>Mesajul va aparea imediat pe tableta lui {selectedPatient.name.split(' ')[0]}.</p><select value={message} onChange={event => setMessage(event.target.value)} aria-label="Mesaj reminder">{reminderOptions.map(option => <option key={option}>{option}</option>)}</select><button className="caregiver-send-button" type="button" onClick={sendReminder} disabled={sending || selectedPatient.status === 'offline'}><Send size={17} /> {sending ? 'Se trimite...' : 'Trimite catre tableta'}</button>{feedback && <div className="caregiver-feedback" role="status"><Check size={15} /> {feedback}</div>}</section>
     </main>

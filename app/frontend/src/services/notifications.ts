@@ -60,6 +60,15 @@ export async function markNotificationRead(id: string): Promise<PatientNotificat
   return response.json() as Promise<PatientNotification>;
 }
 
+export async function deleteNotification(id: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/notifications/${id}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    throw new Error('Notification could not be deleted.');
+  }
+}
+
 export function subscribeToNotifications(
   recipient: string,
   onNotification: (notification: PatientNotification) => void,
