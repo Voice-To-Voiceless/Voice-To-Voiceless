@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import AppLayout from '../components/layout/AppLayout';
 import AccessibilityPanel, { applyStoredAccessibilitySettings } from '../components/accessibility/AccessibilityPanel';
-import SettingsPanel, { applyStoredTheme, readStoredTargetIndicator, readStoredVisibleActions } from '../components/settings/SettingsPanel';
+import SettingsPanel, { applyStoredTheme, readStoredDebugOverlay, readStoredTargetIndicator, readStoredVisibleActions } from '../components/settings/SettingsPanel';
 import { CameraPanel } from '../components/camera/CameraPanel';
 import CameraPreview from '../components/camera/CameraPreview';
 import CommunicationBoard from '../components/communication/CommunicationBoard';
@@ -12,12 +12,11 @@ import { useFaceRecognition } from './hooks/useFaceRecognition';
 import { useSelectionFeedback } from './hooks/useSelectionFeedback';
 import { CalibrationTarget } from './components/CalibrationTarget';
 import { DebugOverlay } from './components/DebugOverlay';
-import { Bell, Camera, CheckCircle2, Eye, X } from 'lucide-react';
+import { Bell, Camera, CheckCircle2, Eye, EyeOff, ScanFace, X } from 'lucide-react';
 import { createNotification, getNotifications, markNotificationRead, subscribeToNotifications, type PatientNotification } from '../services/notifications';
 import { useLanguage } from '../i18n';
 
 const TABLET_PATIENT_ID = 'patient-001';
-const ALERT_DURATION_MS = 5000;
 
 type BrowserTrackingAppProps = {
   enableDiagnostics?: boolean;
@@ -31,10 +30,10 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   const [modelTestingSession] = useState(() => createModelTestingSession({ enableDiagnostics }));
   const [nurseAlert, setNurseAlert] = useState<PatientNotification | null>(null);
   const [showTargetIndicator, setShowTargetIndicator] = useState(readStoredTargetIndicator);
+  const [showDebugOverlay, setShowDebugOverlay] = useState(() => enableDebugOverlay && readStoredDebugOverlay());
   const [visibleActionIds, setVisibleActionIds] = useState<ActionId[]>(readStoredVisibleActions);
   const [replying, setReplying] = useState(false);
-  const [statusVisible, setStatusVisible] = useState(false);
-  const [selectedNoticeVisible, setSelectedNoticeVisible] = useState(false);
+  const [showTrackingGuide, setShowTrackingGuide] = useState(false);
   const [activePage, setActivePage] = useState<'Home' | 'Accessibility' | 'Settings'>('Home');
   const { t } = useLanguage();
   const actionNotificationsInFlight = useRef(new Set<ActionId>());
@@ -51,11 +50,12 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
     applyStoredTheme();
     const updateStoredSettings = () => {
       setShowTargetIndicator(readStoredTargetIndicator());
+      setShowDebugOverlay(enableDebugOverlay && readStoredDebugOverlay());
       setVisibleActionIds(readStoredVisibleActions());
     };
     window.addEventListener('voice-to-voiceless-settings-changed', updateStoredSettings);
     return () => window.removeEventListener('voice-to-voiceless-settings-changed', updateStoredSettings);
-  }, []);
+  }, [enableDebugOverlay]);
 
   useEffect(() => {
     let active = true;
@@ -82,19 +82,6 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   }, []);
 
   useEffect(() => {
-    setStatusVisible(true);
-    const timer = window.setTimeout(() => setStatusVisible(false), ALERT_DURATION_MS);
-    return () => window.clearTimeout(timer);
-  }, [tracking.error, recognition.error]);
-
-  useEffect(() => {
-    setSelectedNoticeVisible(selection.selectedAction !== null);
-    if (selection.selectedAction === null) return undefined;
-    const timer = window.setTimeout(() => setSelectedNoticeVisible(false), ALERT_DURATION_MS);
-    return () => window.clearTimeout(timer);
-  }, [selection.selectedAction]);
-
-  useEffect(() => {
     const handleCalibrationRequest = () => {
       setActivePage('Home');
       calibrate();
@@ -108,7 +95,12 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
     : tracking.snapshot.gazePoint !== null;
 
   const startTracking = () => {
-    if (!recognitionActive) tracking.start().catch(() => undefined);
+    if (!recognitionActive) setShowTrackingGuide(true);
+  };
+
+  const beginTracking = () => {
+    setShowTrackingGuide(false);
+    tracking.start().catch(() => undefined);
   };
 
   const toggleRecognition = () => {
@@ -163,6 +155,27 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
       if (item === 'Settings') setActivePage('Settings');
       if (item === 'Home') setActivePage('Home');
     }}>
+      {showTrackingGuide && !trackingActive && <section className="tracking-guide-modal" role="dialog" aria-modal="true" aria-labelledby="tracking-guide-title">
+        <div className="tracking-guide-modal__content">
+          <button type="button" className="tracking-guide-modal__close" aria-label={t('close')} title={t('close')} onClick={() => setShowTrackingGuide(false)}>
+            <X size={20} aria-hidden="true" />
+          </button>
+          <div className="tracking-guide-modal__icon" aria-hidden="true"><ScanFace size={28} /></div>
+          <p className="eyebrow">{t('startEyeTracking')}</p>
+          <h2 id="tracking-guide-title">{t('eyeTrackingGuideTitle')}</h2>
+          <p className="tracking-guide-modal__description">{t('eyeTrackingGuideDescription')}</p>
+          <div className="tracking-guide-modal__rules">
+            <GuideRule icon={<ScanFace size={18} />} text={t('eyeTrackingGuideCentered')} />
+            <GuideRule icon={<Eye size={18} />} text={t('eyeTrackingGuideEyesVisible')} />
+            <GuideRule icon={<EyeOff size={18} />} text={t('eyeTrackingGuideFollowTarget')} />
+            <GuideRule icon={<CheckCircle2 size={18} />} text={t('eyeTrackingGuideHoldStill')} />
+          </div>
+          <div className="tracking-guide-modal__actions">
+            <button type="button" className="tracking-guide-modal__cancel" onClick={() => setShowTrackingGuide(false)}>{t('cancel')}</button>
+            <button type="button" className="tracking-guide-modal__start" onClick={beginTracking}>{t('beginCalibration')}</button>
+          </div>
+        </div>
+      </section>}
       {activePage === 'Accessibility' ? <AccessibilityPanel /> : activePage === 'Settings' ? <SettingsPanel /> : <>
       <CalibrationTarget
         gazePoint={tracking.snapshot.gazePoint}
@@ -170,7 +183,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
         progress={tracking.snapshot.calibrationProgress}
         passKind={tracking.snapshot.calibrationPassKind}
       />
-      {enableDebugOverlay && <DebugOverlay rawGaze={tracking.snapshot.rawGaze} calibratedGaze={tracking.snapshot.calibratedGaze} showTarget={showTargetIndicator} />}
+      {showDebugOverlay && <DebugOverlay rawGaze={tracking.snapshot.rawGaze} calibratedGaze={tracking.snapshot.calibratedGaze} showTarget={showTargetIndicator} />}
       <section
         className={`calibration-modal${tracking.snapshot.calibrationTarget !== null || tracking.snapshot.calibrating || tracking.snapshot.calibrationFailed || recognitionActive ? '' : ' calibration-modal--hidden'}`}
         role="dialog"
@@ -283,5 +296,9 @@ function StatusDetail({ label, value }: { label: string; value: string }) {
       <strong>{value}</strong>
     </div>
   );
+}
+
+function GuideRule({ icon, text }: { icon: React.ReactNode; text: string }) {
+  return <div className="tracking-guide-modal__rule">{icon}<span>{text}</span></div>;
 }
 
