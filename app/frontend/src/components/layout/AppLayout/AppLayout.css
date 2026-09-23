@@ -1,0 +1,48 @@
+.app-layout{
+    background:
+        radial-gradient(circle at 72% 0%, rgba(218, 235, 225, .85), transparent 34%),
+        linear-gradient(135deg, #f4f7f2 0%, #e9f0eb 100%);
+    display:grid;
+    grid-template-columns:220px minmax(0, 1fr);
+    gap:0;
+    height:100vh;
+    overflow:hidden;
+    padding:0;
+}
+
+.app-layout__content{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:12px;
+    min-height:0;
+    overflow-y:auto;
+    overflow-x:hidden;
+
+    min-width:0;
+    padding:16px 18px;
+}
+
+@media (max-width:760px){
+
+    .app-layout{
+
+        grid-template-columns:1fr;
+        height:auto;
+        min-height:100vh;
+        overflow:visible;
+        padding:16px;
+    }
+
+    .sidebar{
+
+        width:100%;
+    }
+
+    .app-layout__content {
+        overflow:visible;
+    }
+
+}

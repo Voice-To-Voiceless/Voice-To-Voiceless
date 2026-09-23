@@ -93,6 +93,12 @@ def create_app(services: ApplicationServices | None = None) -> FastAPI:
 		await broadcast_notification(notification)
 		return notification.to_dict()
 
+	@app.delete("/api/v1/notifications/{notification_id}", status_code=204)
+	async def delete_notification(notification_id: str) -> None:
+		notification = dependencies.notification_service.delete(notification_id)
+		if notification is None:
+			raise HTTPException(status_code=404, detail="Notification not found")
+
 	@app.websocket("/api/v1/notifications/ws")
 	async def notifications_websocket(websocket: WebSocket, recipient: str | None = None) -> None:
 		await websocket.accept()
