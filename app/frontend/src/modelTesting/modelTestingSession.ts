@@ -1,8 +1,6 @@
-import { CalibrationSample, RidgeCalibrationFeatures } from '../vision/gazeCalibration';
-import { NormalizedGazePoint } from '../vision/gazeTypes';
-import { CalibrationSampleQuality, CalibrationQualityRejectionReason } from '../vision/calibrationQuality';
-import type { RelativeFacePose } from '../vision/facePoseEstimator';
-import { getPoseFeatureRanges, PoseSample } from './poseCalibrationDiagnostics';
+import { CalibrationSample } from '../vision/calibration/gazeCalibration';
+import { CalibrationSampleQuality } from '../vision/calibration/calibrationQuality';
+import { getPoseFeatureRanges } from './poseCalibrationDiagnostics';
 import {
   downloadJson,
   getAcceptedPoseValidationDiagnostics,
@@ -12,34 +10,15 @@ import {
   getPoseDistributionShift,
   hasCompleteTargetCoverage,
 } from './modelTestingDiagnostics';
+import type {
+  CalibrationDiagnosticPoints,
+  CalibrationPass,
+  CalibrationPassKind,
+  ModelTestingSessionOptions,
+  PassData,
+} from './modelTestingTypes';
 
-export type CalibrationPassKind = 'training' | 'validation';
-export type ModelTestingSessionOptions = {
-  enableDiagnostics?: boolean;
-};
-
-export type CalibrationPass = {
-  id: number;
-  kind: CalibrationPassKind;
-  targetOrder: CalibrationSample['target'][];
-};
-
-export type CalibrationDiagnosticPoints = {
-  raw: NormalizedGazePoint;
-  compensated: NormalizedGazePoint;
-  pose: { yaw: number; pitch: number; eyeScale: number; interEyeDistance: number } | null;
-  poseSource?: RelativeFacePose | null;
-  features?: RidgeCalibrationFeatures;
-  quality: CalibrationSampleQuality;
-};
-
-export type CalibrationQualitySummary = {
-  accepted: number;
-  rejected: number;
-  rejectionReasons: Partial<Record<CalibrationQualityRejectionReason, number>>;
-};
-
-export type CalibrationDiagnosticsSnapshot = {
+type CalibrationDiagnosticsSnapshot = {
   calibrationFitComparison: {
     passOrder: Array<{ pass: CalibrationPassKind; targetOrder: CalibrationSample['target'][] }>;
     training: ReturnType<typeof getPassDiagnostics>;
@@ -53,17 +32,14 @@ export type CalibrationDiagnosticsSnapshot = {
   eyeDiagnostics: { targets: Array<Record<string, unknown>>; passCount: number };
 };
 
-type CalibrationSessionData = {
-  all: CalibrationSample[];
-  raw: CalibrationSample[];
-  compensated: CalibrationSample[];
-  poseConditioned: PoseSample[];
-};
-
-export type PassData = CalibrationSessionData & {
-  qualityByTarget: Record<number, CalibrationQualitySummary>;
-  targetOrder: CalibrationSample['target'][];
-};
+export type {
+  CalibrationDiagnosticPoints,
+  CalibrationPass,
+  CalibrationPassKind,
+  ModelTestingSessionOptions,
+  PassData,
+} from './modelTestingTypes';
+export type { CalibrationDiagnosticsSnapshot };
 
 export class ModelTestingSession {
   private readonly enableDiagnostics: boolean;

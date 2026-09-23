@@ -1,4 +1,4 @@
-import "./CommunicationGrid.css";
+import "../../../styles/components/communication/CommunicationGrid.css";
 
 import CommunicationCard from "../CommunicationCard";
 

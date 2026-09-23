@@ -1,4 +1,4 @@
-import "./SelectionAnimation.css";
+import "../../../styles/components/communication/SelectionAnimation.css";
 
 type SelectionAnimationProps = {
     visible: boolean;

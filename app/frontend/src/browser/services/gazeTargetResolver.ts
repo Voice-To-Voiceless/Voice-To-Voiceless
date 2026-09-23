@@ -1,6 +1,6 @@
 import { ActionId } from '../../types/communication';
-import { findGazeTarget } from '../../vision/gazeTarget';
-import { GazeTargetBounds } from '../../vision/gazeTypes';
+import { findGazeTarget } from '../../vision/estimation/gazeTarget';
+import { GazeTargetBounds } from '../../vision/types/gazeTypes';
 
 export function findVisibleTarget(
   board: HTMLDivElement,

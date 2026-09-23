@@ -1,4 +1,4 @@
-import "./Header.css";
+import "../../../styles/components/layout/Header.css";
 
 import { Camera, ChevronDown, Eye, UserRound } from "lucide-react";
 import { useLanguage } from "../../../i18n";

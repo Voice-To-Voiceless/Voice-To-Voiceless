@@ -1,4 +1,4 @@
-import "./Sidebar.css";
+import "../../../styles/components/layout/Sidebar.css";
 import type { ReactNode } from "react";
 
 import {

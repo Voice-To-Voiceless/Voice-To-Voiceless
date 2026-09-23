@@ -1,4 +1,4 @@
-import "./AppLayout.css";
+import "../../../styles/components/layout/AppLayout.css";
 
 import Sidebar from "../Sidebar";
 
