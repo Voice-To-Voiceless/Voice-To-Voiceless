@@ -31,7 +31,7 @@ function renderCalibration(session?: ModelTestingSession): { handle: Calibration
   if (handle === null) {
     throw new Error('Calibration hook did not render');
   }
-  return { handle, unmount: () => renderer.unmount() };
+  return { handle, unmount: () => ReactTestRenderer.act(() => renderer.unmount()) };
 }
 
 function CalibrationHarness({ session, onRender }: { session?: ModelTestingSession; onRender: (value: CalibrationHandle) => void }) {
@@ -42,15 +42,21 @@ function CalibrationHarness({ session, onRender }: { session?: ModelTestingSessi
 
 function completeCalibration(handle: CalibrationHandle, gazeForTarget: (index: number) => NormalizedGazePoint, initialTimestamp = 0): void {
   let timestamp = initialTimestamp;
-  handle.start();
-  for (let index = 0; index < CALIBRATION_TARGETS.length; index += 1) {
-    timestamp += CALIBRATION_SETTLE_DURATION_MS;
-    for (let sampleIndex = 0; sampleIndex < 20; sampleIndex += 1) {
-      handle.process(gazeForTarget(index), timestamp + sampleIndex);
+  ReactTestRenderer.act(() => {
+    handle.start();
+    for (let index = 0; index < CALIBRATION_TARGETS.length; index += 1) {
+      timestamp += CALIBRATION_SETTLE_DURATION_MS;
+      for (let sampleIndex = 0; sampleIndex < 20; sampleIndex += 1) {
+        handle.process(gazeForTarget(index), timestamp + sampleIndex);
+      }
+      timestamp += CALIBRATION_SAMPLE_DURATION_MS;
+      handle.process(gazeForTarget(index), timestamp);
     }
-    timestamp += CALIBRATION_SAMPLE_DURATION_MS;
-    handle.process(gazeForTarget(index), timestamp);
-  }
+  });
+}
+
+function runCalibration(handle: CalibrationHandle, action: () => void): void {
+  ReactTestRenderer.act(action);
 }
 
 beforeEach(() => {
@@ -73,21 +79,21 @@ test('ignores settle samples and resets the point buffer between targets', () =>
     completePass: jest.fn(),
   } as unknown as ModelTestingSession;
   const { handle, unmount } = renderCalibration(session);
-  handle.start();
+  runCalibration(handle, () => handle.start());
 
-  handle.process(createGaze(0.1, 0.1, 100), CALIBRATION_SETTLE_DURATION_MS - 1);
+  runCalibration(handle, () => handle.process(createGaze(0.1, 0.1, 100), CALIBRATION_SETTLE_DURATION_MS - 1));
   expect(recordPrimarySample).not.toHaveBeenCalled();
 
-  handle.process(createGaze(0.1, 0.1, 101), CALIBRATION_SETTLE_DURATION_MS);
+  runCalibration(handle, () => handle.process(createGaze(0.1, 0.1, 101), CALIBRATION_SETTLE_DURATION_MS));
   expect(recordPrimarySample).toHaveBeenCalledTimes(1);
 
   for (let sampleIndex = 1; sampleIndex < 20; sampleIndex += 1) {
-    handle.process(createGaze(0.1, 0.1, 102), CALIBRATION_SETTLE_DURATION_MS + sampleIndex);
+    runCalibration(handle, () => handle.process(createGaze(0.1, 0.1, 102), CALIBRATION_SETTLE_DURATION_MS + sampleIndex));
   }
-  handle.process(createGaze(0.1, 0.1, 102), CALIBRATION_SETTLE_DURATION_MS + CALIBRATION_SAMPLE_DURATION_MS);
-  handle.process(createGaze(0.5, 0.1, 103), CALIBRATION_SETTLE_DURATION_MS * 2 + CALIBRATION_SAMPLE_DURATION_MS);
+  runCalibration(handle, () => handle.process(createGaze(0.1, 0.1, 102), CALIBRATION_SETTLE_DURATION_MS + CALIBRATION_SAMPLE_DURATION_MS));
+  runCalibration(handle, () => handle.process(createGaze(0.5, 0.1, 103), CALIBRATION_SETTLE_DURATION_MS * 2 + CALIBRATION_SAMPLE_DURATION_MS));
   for (let sampleIndex = 1; sampleIndex < 20; sampleIndex += 1) {
-    handle.process(createGaze(0.5, 0.1, 103), CALIBRATION_SETTLE_DURATION_MS * 2 + CALIBRATION_SAMPLE_DURATION_MS + sampleIndex);
+    runCalibration(handle, () => handle.process(createGaze(0.5, 0.1, 103), CALIBRATION_SETTLE_DURATION_MS * 2 + CALIBRATION_SAMPLE_DURATION_MS + sampleIndex));
   }
   expect(recordPrimarySample).toHaveBeenCalledTimes(40);
 
@@ -113,7 +119,7 @@ test('uses reversed target order for validation and preserves the training mappe
   expect(trainingMapper).not.toBeNull();
 
   expect(session.nextPassKind).toBe('validation');
-  handle.start();
+  runCalibration(handle, () => handle.start());
   expect(handle.mapper.current).toBe(trainingMapper);
   unmount();
 });
@@ -156,16 +162,19 @@ test('leaves calibrated mode unavailable when the fit is rejected', () => {
 
 test('resets the sample window when no samples arrive', () => {
   const { handle, unmount } = renderCalibration();
-  handle.start();
+  runCalibration(handle, () => handle.start());
 
-  const result = handle.process(
-    createGaze(0.1, 0.1, 0),
-    CALIBRATION_SETTLE_DURATION_MS + CALIBRATION_MAX_RECORDING_DURATION_MS,
-  );
+  let result: ReturnType<CalibrationHandle['process']> | undefined;
+  runCalibration(handle, () => {
+    result = handle.process(
+      createGaze(0.1, 0.1, 0),
+      CALIBRATION_SETTLE_DURATION_MS + CALIBRATION_MAX_RECORDING_DURATION_MS,
+    );
+  });
 
-  expect(result.resetSmoother).toBe(true);
-  expect(result.complete).toBe(false);
-  expect(result.failed).toBe(true);
+  expect(result?.resetSmoother).toBe(true);
+  expect(result?.complete).toBe(false);
+  expect(result?.failed).toBe(true);
   expect(handle.indexRef.current).toBe(0);
   unmount();
 });
