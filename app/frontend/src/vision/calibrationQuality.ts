@@ -14,6 +14,7 @@ export type CalibrationQualityRejectionReason =
   | 'invalid eye geometry'
   | 'insufficient aperture'
   | 'binocular disagreement'
+  | 'temporal filter rejection'
   | 'non-finite value';
 
 export type CalibrationQualityInput = {

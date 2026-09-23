@@ -1,4 +1,4 @@
-import { CalibrationSample, GazeCalibrationMapper, getCalibrationFitDiagnostics } from '../vision/gazeCalibration';
+import { CalibrationSample, GazeCalibrationMapper, getCalibrationFitDiagnostics, MAX_VALIDATION_RMS } from '../vision/gazeCalibration';
 import { getMedianGazeByTarget, MAX_RMS_RESIDUAL } from '../vision/calibrationMath';
 import {
   getPoseConditionedCalibrationFitDiagnostics,
@@ -23,13 +23,20 @@ export function getOrdinaryValidationDiagnostics(training: CalibrationSample[], 
   const residuals = validation.map(sample => getMapperResidual(mapper, sample));
   return {
     rmsResidual: Math.sqrt(residuals.reduce((sum, residual) => sum + residual ** 2, 0) / residuals.length),
+    p95Residual: percentile(residuals, 0.95),
     maxResidual: Math.max(...residuals),
+    rejectionReason: Math.sqrt(residuals.reduce((sum, residual) => sum + residual ** 2, 0) / residuals.length) > MAX_VALIDATION_RMS ? 'validation residual exceeds threshold' : null,
     targetResiduals: [...new Set(validation.map(sample => `${sample.target.x}:${sample.target.y}`))].map(key => {
       const group = validation.filter(sample => `${sample.target.x}:${sample.target.y}` === key);
       const groupResiduals = group.map(sample => getMapperResidual(mapper, sample));
       return { target: group[0].target, residual: Math.sqrt(groupResiduals.reduce((sum, residual) => sum + residual ** 2, 0) / groupResiduals.length) };
     }),
   };
+}
+
+function percentile(values: number[], percentileValue: number): number {
+  const sorted = [...values].sort((left, right) => left - right);
+  return sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * percentileValue) - 1)];
 }
 
 function getMapperResidual(mapper: GazeCalibrationMapper, sample: CalibrationSample): number {

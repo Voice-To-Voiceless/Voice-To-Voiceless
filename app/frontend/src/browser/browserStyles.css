@@ -61,6 +61,22 @@ h2 { font-size: 1.4rem; margin: 0; }
 .camera-preview { height: 100%; object-fit: cover; transform: scaleX(-1); width: 100%; }
 .calibration-modal { align-items: center; background: #10251c99; display: flex; inset: 0; justify-content: center; padding: 16px; position: fixed; z-index: 30; }
 .calibration-modal--hidden { display: none; }
+.tracking-guide-modal { align-items: center; background: #10251ccc; display: flex; inset: 0; justify-content: center; padding: 20px; position: fixed; z-index: 50; }
+.tracking-guide-modal__content { background: #fff; border: 1px solid #d5e1d6; border-radius: 18px; box-shadow: 0 20px 60px #10251c4d; max-width: 520px; padding: 30px; position: relative; width: 100%; }
+.tracking-guide-modal__close { align-items: center; background: transparent; border: 0; border-radius: 50%; color: #718075; cursor: pointer; display: flex; height: 34px; justify-content: center; position: absolute; right: 12px; top: 12px; width: 34px; }
+.tracking-guide-modal__close:hover { background: #eef3ed; color: #18352a; }
+.tracking-guide-modal__icon { align-items: center; background: #dcefe2; border-radius: 12px; color: #1f6b3a; display: flex; height: 52px; justify-content: center; margin-bottom: 18px; width: 52px; }
+.tracking-guide-modal__content .eyebrow { margin-bottom: 6px; }
+.tracking-guide-modal__content h2 { color: #18352a; font-size: 1.8rem; margin-bottom: 8px; }
+.tracking-guide-modal__description { color: #68766c; font: 14px/1.45 Arial, sans-serif; margin-bottom: 20px; max-width: 420px; }
+.tracking-guide-modal__rules { border-top: 1px solid #e1e9e1; display: grid; gap: 10px; padding: 16px 0; }
+.tracking-guide-modal__rule { align-items: center; color: #315846; display: flex; font: 600 14px/1.35 Arial, sans-serif; gap: 10px; }
+.tracking-guide-modal__rule svg { color: #1f6b3a; flex: 0 0 auto; }
+.tracking-guide-modal__actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
+.tracking-guide-modal__actions button { border-radius: 8px; cursor: pointer; font: 700 14px Arial, sans-serif; min-height: 44px; padding: 10px 16px; }
+.tracking-guide-modal__cancel { background: #fff; border: 1px solid #cbd9cf; color: #52665a; }
+.tracking-guide-modal__start { background: #315846; border: 1px solid #315846; color: #fff; }
+.tracking-guide-modal__start:hover { background: #426d56; }
 .calibration-modal__content { background: #fff; border-radius: 16px; box-shadow: 0 18px 48px #10251c40; max-width: 680px; padding: 12px; position: relative; text-align: center; width: 100%; }
 .calibration-modal__close { align-items: center; background: transparent; border: 0; border-radius: 50%; color: #718075; cursor: pointer; display: flex; height: 32px; justify-content: center; position: absolute; right: 8px; top: 8px; width: 32px; z-index: 2; }
 .calibration-modal__close:hover { background: #eef3ed; color: #18352a; }

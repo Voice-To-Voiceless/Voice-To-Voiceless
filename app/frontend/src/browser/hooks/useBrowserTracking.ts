@@ -16,8 +16,11 @@ import { useCalibration } from './useCalibration';
 import { evaluateCalibrationSampleQuality } from '../../vision/calibrationQuality';
 import { isPoseWithinEnvelope } from '../../vision/poseEnvelope';
 import { getCalibrationFeatures } from '../../vision/calibrationFeatures';
+import { GazeTargetVoting } from '../../vision/gazeTargetVoting';
+import { GazeTemporalFilter } from '../../vision/gazeTemporalFilter';
 
-const initialSnapshot: TrackingSnapshot = { active: false, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0, calibrating: false, calibrationIndex: 0, calibrationTarget: null, calibrationProgress: 0, calibrationPassKind: null, calibrationFailed: false, calibrationFailure: null, calibrationReady: false };
+const POSE_RETURN_STABILITY_MS = 300;
+const initialSnapshot: TrackingSnapshot = { active: false, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0, calibrating: false, calibrationIndex: 0, calibrationTarget: null, calibrationProgress: 0, calibrationPassKind: null, calibrationFailed: false, calibrationFailure: null, calibrationReady: false, trackingPauseReason: null };
 
 export function useBrowserTracking(
   videoRef: React.RefObject<HTMLVideoElement | null>,
@@ -35,6 +38,9 @@ export function useBrowserTracking(
   const fallbackLoggedRef = useRef(false);
   const dwellRef = useRef(new DwellSelector(1200));
   const lossRef = useRef(new FaceTrackingLossTracker());
+  const targetVotingRef = useRef(new GazeTargetVoting<ActionId>());
+  const temporalFilterRef = useRef(new GazeTemporalFilter());
+  const poseReturnStableSinceRef = useRef<number | null>(null);
   const { activeRef: calibrationActiveRef, indexRef: calibrationIndexRef, readyRef: calibrationReadyRef, mapper: calibrationMapperRef, poseEnvelope: calibrationPoseEnvelopeRef, targetsRef: calibrationTargetsRef, passKindRef: calibrationPassKindRef, failedRef: calibrationFailedRef, failureRef: calibrationFailureRef, start: startCalibration, reset: resetCalibration, pause: pauseCalibration, process: processCalibration } = useCalibration(modelTestingSession);
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [status, setStatus] = useState('Camera is off. Start tracking to begin.');
@@ -44,7 +50,10 @@ export function useBrowserTracking(
     lossRef.current.reset();
     dwellRef.current.cancel();
     dwellRef.current.resetCompletedTarget();
+    targetVotingRef.current.reset();
+    temporalFilterRef.current.reset();
     joystickRef.current.reset();
+    poseReturnStableSinceRef.current = null;
     setSnapshot(value => ({ ...value, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0 }));
   }, []);
   const stop = useCallback(() => {
@@ -77,7 +86,9 @@ export function useBrowserTracking(
         const sustainedLoss = lossRef.current.markLost();
         joystickRef.current.resetVelocity();
         dwellRef.current.cancel();
-        setSnapshot(value => ({ ...value, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0 }));
+        targetVotingRef.current.reset();
+        poseReturnStableSinceRef.current = null;
+        setSnapshot(value => ({ ...value, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0, trackingPauseReason: 'face-lost' }));
         if (sustainedLoss) resetInteraction();
         setStatus('Face not detected. Keep your face in view.');
         return;
@@ -88,22 +99,53 @@ export function useBrowserTracking(
         pauseCalibration(timestamp);
         joystickRef.current.resetVelocity();
         dwellRef.current.cancel();
-        setSnapshot(value => ({ ...value, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0 }));
+        targetVotingRef.current.reset();
+        poseReturnStableSinceRef.current = null;
+        setSnapshot(value => ({ ...value, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0, trackingPauseReason: 'invalid-pose' }));
         setStatus('Gaze confidence is low. Keep your eyes visible.');
         return;
       }
+      const rawGazeDiagnostics = getGazeDiagnostics(observation);
+      const filtered = temporalFilterRef.current.update({
+        gaze,
+        diagnostics: rawGazeDiagnostics,
+        leftConfidence: observation.leftEye.confidence,
+        rightConfidence: observation.rightEye.confidence,
+      });
+      if (!filtered.accepted || filtered.gaze === null || filtered.diagnostics === null) {
+        pauseCalibration(timestamp);
+        dwellRef.current.cancel();
+        if (calibrationActiveRef.current && modelTestingSession) {
+          modelTestingSession.recordQualityDecision(calibrationIndexRef.current, { accepted: false, rejectionReasons: ['temporal filter rejection'] });
+        }
+        setSnapshot(value => ({ ...value, rawGaze: { x: gaze.x, y: gaze.y }, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0, trackingPauseReason: 'invalid-gaze' }));
+        setStatus(`Gaze paused: ${filtered.rejectionReason ?? 'temporal filter rejection'}.`);
+        return;
+      }
+      const filteredGaze = filtered.gaze;
       const pose = estimateRelativeFacePose(observation);
       if (!calibrationActiveRef.current && calibrationReadyRef.current && !isPoseWithinEnvelope(calibrationPoseEnvelopeRef.current, pose)) {
+        poseReturnStableSinceRef.current = null;
         joystickRef.current.resetVelocity();
         dwellRef.current.cancel();
-        setSnapshot(value => ({ ...value, rawGaze: { x: gaze.x, y: gaze.y }, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0 }));
+        targetVotingRef.current.reset();
+        setSnapshot(value => ({ ...value, rawGaze: { x: gaze.x, y: gaze.y }, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0, trackingPauseReason: 'face-drift' }));
         setStatus('Head position changed. Reposition your face inside the calibrated area.');
         return;
       }
+      if (!calibrationActiveRef.current && calibrationReadyRef.current) {
+        if (poseReturnStableSinceRef.current === null) poseReturnStableSinceRef.current = timestamp;
+        if (timestamp - poseReturnStableSinceRef.current < POSE_RETURN_STABILITY_MS) {
+          dwellRef.current.cancel();
+          setSnapshot(value => ({ ...value, rawGaze: { x: gaze.x, y: gaze.y }, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0, trackingPauseReason: 'face-drift' }));
+          setStatus('Head position stabilizing. Hold still.');
+          return;
+        }
+      }
       const poseSample = getPoseSample(pose);
-      const gazeDiagnostics = getGazeDiagnostics(observation);
+      const gazeDiagnostics = filtered.diagnostics;
       const calibrationFeatures = getCalibrationFeatures(gazeDiagnostics, pose);
-      const smoothed = smootherRef.current.update(gaze);
+      const smoothed = smootherRef.current.update(filteredGaze);
       if (calibrationActiveRef.current) {
         const targetIndex = calibrationIndexRef.current;
         const quality = evaluateCalibrationSampleQuality({
@@ -141,10 +183,11 @@ export function useBrowserTracking(
           calibrationIndex: calibrationIndexRef.current,
           calibrationTarget: result.target,
           calibrationProgress: result.settleProgress,
-          calibrationPassKind: result.complete ? null : calibrationPassKindRef.current,
+          calibrationPassKind: result.complete ? null : result.passKind,
           calibrationFailed: result.failed ?? false,
           calibrationFailure: result.failed ? result.status : null,
           calibrationReady: calibrationReadyRef.current,
+          trackingPauseReason: null,
         }));
         if (result.resetSmoother) smootherRef.current.reset();
         if (result.status) setStatus(result.status);
@@ -161,24 +204,27 @@ export function useBrowserTracking(
         });
       }
       const point = calibratedGaze ?? joystickRef.current.update(smoothed);
-      const targetId = boardRef.current ? findVisibleTarget(boardRef.current, point.x, point.y) : null;
+      const candidateTargetId = boardRef.current ? findVisibleTarget(boardRef.current, point.x, point.y) : null;
+      const targetId = targetVotingRef.current.update(candidateTargetId, timestamp);
       if (!targetId) {
-        dwellRef.current.cancel();
-        dwellRef.current.resetCompletedTarget();
-        setSnapshot(value => ({ ...value, rawGaze: { x: gaze.x, y: gaze.y }, calibratedGaze, gazePoint: point, activeTarget: null, dwellProgress: 0 }));
+        dwellRef.current.update(null, timestamp);
+        const retainedTarget = dwellRef.current.getActiveTargetId();
+        const retainedProgress = retainedTarget === null ? 0 : dwellRef.current.progress(retainedTarget, timestamp);
+        if (candidateTargetId === null && retainedTarget === null) dwellRef.current.resetCompletedTarget();
+        setSnapshot(value => ({ ...value, rawGaze: { x: gaze.x, y: gaze.y }, calibratedGaze, gazePoint: point, activeTarget: retainedTarget as ActionId | null, dwellProgress: retainedProgress, trackingPauseReason: null }));
         setStatus('Tracking ready. Look at a communication action.');
         return;
       }
       const selection = dwellRef.current.update(targetId, timestamp);
       const dwellProgress = selection ? 1 : dwellRef.current.progress(targetId, timestamp);
-      setSnapshot(value => ({ ...value, rawGaze: { x: gaze.x, y: gaze.y }, calibratedGaze, gazePoint: point, activeTarget: targetId, dwellProgress }));
+      setSnapshot(value => ({ ...value, rawGaze: { x: gaze.x, y: gaze.y }, calibratedGaze, gazePoint: point, activeTarget: targetId, dwellProgress, trackingPauseReason: null }));
       setStatus(`Looking at ${targetId}. Hold to select.`);
       if (selection) onSelect(targetId);
     } finally {
       processingRef.current = false;
       if (activeRef.current) frameRef.current = requestAnimationFrame(processFrame);
     }
-  }, [boardRef, calibrationActiveRef, calibrationFailedRef, calibrationFailureRef, calibrationIndexRef, calibrationMapperRef, calibrationPassKindRef, calibrationPoseEnvelopeRef, calibrationReadyRef, calibrationTargetsRef, modelTestingSession, onSelect, pauseCalibration, processCalibration, resetInteraction, videoRef]);
+  }, [boardRef, calibrationActiveRef, calibrationFailedRef, calibrationFailureRef, calibrationIndexRef, calibrationMapperRef, calibrationPoseEnvelopeRef, calibrationReadyRef, calibrationTargetsRef, modelTestingSession, onSelect, pauseCalibration, processCalibration, resetInteraction, videoRef]);
   const calibrate = useCallback(() => {
     if (!activeRef.current) return;
     startCalibration();
