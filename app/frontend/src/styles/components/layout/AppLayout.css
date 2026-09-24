@@ -46,3 +46,9 @@
     }
 
 }
+
+html[data-theme="dark"] .app-layout {
+    background:
+    radial-gradient(circle at 78% 0%, rgba(74, 117, 151, .18), transparent 34%),
+    linear-gradient(135deg, #111922 0%, #0e141b 100%);
+}

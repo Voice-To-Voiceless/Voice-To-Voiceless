@@ -22,7 +22,7 @@ const actionIcons: Record<string, ReactNode> = {
 
 const actionColors: Record<string, string> = {
     yes: "#27AE60",
-    no: "#94A3B8",
+    no: "#f3a6b2",
     bathroom: "#9B51E0",
     food: "#F2994A",
     water: "#2F80ED",

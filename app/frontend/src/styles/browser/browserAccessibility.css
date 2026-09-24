@@ -63,4 +63,37 @@ html[data-high-contrast="true"] .action-description, html[data-high-contrast="tr
 html[data-high-contrast="true"] .camera-controls, html[data-high-contrast="true"] .accessibility-control, html[data-high-contrast="true"] .accessibility-toggle { border-color: #000; }
 html[data-high-contrast="true"] .tracking-button, html[data-high-contrast="true"] .face-recognition-button { background: #000; color: #fff; }
 html[data-high-contrast="true"] .calibration-button, html[data-high-contrast="true"] .accessibility-action, html[data-high-contrast="true"] .accessibility-reset { border-color: #000; color: #000; }
+
+html[data-theme="dark"][data-high-contrast="true"] body,
+html[data-theme="dark"][data-high-contrast="true"] .app-layout { background: #0b1117; color: #f7fbff; }
+html[data-theme="dark"][data-high-contrast="true"] .accessibility-panel__intro h1,
+html[data-theme="dark"][data-high-contrast="true"] .settings-panel__intro h1,
+html[data-theme="dark"][data-high-contrast="true"] .accessibility-card__heading h2,
+html[data-theme="dark"][data-high-contrast="true"] .action-label { color: #f7fbff; }
+html[data-theme="dark"][data-high-contrast="true"] .accessibility-panel__intro p,
+html[data-theme="dark"][data-high-contrast="true"] .settings-panel__intro p,
+html[data-theme="dark"][data-high-contrast="true"] .accessibility-card__heading p,
+html[data-theme="dark"][data-high-contrast="true"] .action-description,
+html[data-theme="dark"][data-high-contrast="true"] .accessibility-toggle small { color: #d8e4ee; }
+html[data-theme="dark"][data-high-contrast="true"] .accessibility-card,
+html[data-theme="dark"][data-high-contrast="true"] .action-card { background: #15202a; border: 2px solid #ffffff; box-shadow: none; }
+html[data-theme="dark"][data-high-contrast="true"] .accessibility-control,
+html[data-theme="dark"][data-high-contrast="true"] .accessibility-toggle { border-color: #8eaabd; }
+html[data-theme="dark"][data-high-contrast="true"] .accessibility-reset,
+html[data-theme="dark"][data-high-contrast="true"] .accessibility-action,
+html[data-theme="dark"][data-high-contrast="true"] .settings-select,
+html[data-theme="dark"][data-high-contrast="true"] .settings-action { background: #253746; border: 2px solid #ffffff; color: #ffffff; }
+html[data-theme="dark"][data-high-contrast="true"] .accessibility-action:hover,
+html[data-theme="dark"][data-high-contrast="true"] .accessibility-reset:hover,
+html[data-theme="dark"][data-high-contrast="true"] .settings-action:hover { background: #324b60; border-color: #ffffff; }
+html[data-theme="dark"][data-high-contrast="true"] .accessibility-toggle strong,
+html[data-theme="dark"][data-high-contrast="true"] .accessibility-control__label strong,
+html[data-theme="dark"][data-high-contrast="true"] .accessibility-status,
+html[data-theme="dark"][data-high-contrast="true"] .settings-check { color: #b9ddff; }
+html[data-theme="dark"][data-high-contrast="true"] .toggle-track,
+html[data-theme="dark"][data-high-contrast="true"] .settings-toggle-track { background: #61798b; }
+html[data-theme="dark"][data-high-contrast="true"] .accessibility-toggle input:checked + .toggle-track,
+html[data-theme="dark"][data-high-contrast="true"] .settings-check input:checked + span + .settings-toggle-track { background: #63b3ed; }
+html[data-theme="dark"][data-high-contrast="true"] .tracking-button,
+html[data-theme="dark"][data-high-contrast="true"] .face-recognition-button { background: #253746; border: 2px solid #ffffff; color: #ffffff; }
 html[data-reduced-motion="true"] *, html[data-reduced-motion="true"] *::before, html[data-reduced-motion="true"] *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
