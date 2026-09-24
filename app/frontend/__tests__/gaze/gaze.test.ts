@@ -1,5 +1,5 @@
 import { findGazeTarget } from '../../src/vision/estimation/gazeTarget';
-import { estimateGaze, getGazeDiagnostics } from '../../src/vision/estimation/gazeEstimator';
+import { BinocularVerticalOffsetEstimator, estimateGaze, getGazeDiagnostics } from '../../src/vision/estimation/gazeEstimator';
 import { GazeSmoother } from '../../src/vision/temporal/gazeSmoother';
 import { getEyeAperture } from '../../src/vision/estimation/eyePosition';
 import { mapMediaPipeLandmarks } from '../../src/vision/mediapipe/mediaPipeLandmarkMapper';
@@ -25,10 +25,26 @@ test('preserves horizontal and vertical direction through the raw landmark pipel
   expect(estimateDirectionalGaze(0.5, 0.5, Math.PI / 18)?.y).toBeCloseTo(0.5, 2);
 });
 
+test('estimates and applies the median left-right vertical eye offset', () => {
+  const estimator = new BinocularVerticalOffsetEstimator();
+  estimator.update({ leftPosition: { x: 0.4, y: 0.58 }, rightPosition: { x: 0.6, y: 0.5 }, leftAperture: 0.4, rightAperture: 0.4, eyeDisagreement: 0.2 });
+  estimator.update({ leftPosition: { x: 0.4, y: 0.56 }, rightPosition: { x: 0.6, y: 0.5 }, leftAperture: 0.4, rightAperture: 0.4, eyeDisagreement: 0.2 });
+  estimator.update({ leftPosition: { x: 0.4, y: 0.59 }, rightPosition: { x: 0.6, y: 0.5 }, leftAperture: 0.4, rightAperture: 0.4, eyeDisagreement: 0.2 });
+
+  expect(estimator.current).toBeCloseTo(0.08);
+  expect(getGazeDiagnostics({
+    leftEye: { innerCorner: { x: 0.2, y: 0.4 }, outerCorner: { x: 0.4, y: 0.4 }, upperLid: { x: 0.3, y: 0.3 }, lowerLid: { x: 0.3, y: 0.5 }, irisCenter: { x: 0.3, y: 0.4 }, confidence: 0.9 },
+    rightEye: { innerCorner: { x: 0.6, y: 0.4 }, outerCorner: { x: 0.8, y: 0.4 }, upperLid: { x: 0.7, y: 0.3 }, lowerLid: { x: 0.7, y: 0.5 }, irisCenter: { x: 0.7, y: 0.4 }, confidence: 0.9 },
+    timestamp: 0,
+  }, estimator.current).leftPosition?.y).toBeCloseTo(0.42);
+});
+
 test('rejects the raw pipeline when one mapped eye is closed', () => {
   const landmarks = createDirectionalLandmarks(0.5, 0.5);
   landmarks[159] = { x: 0.3, y: 0.4 };
   landmarks[145] = { x: 0.3, y: 0.41 };
+  [160, 158, 157].forEach(index => { landmarks[index] = { x: 0.3, y: 0.4 }; });
+  [144, 153, 154, 155].forEach(index => { landmarks[index] = { x: 0.3, y: 0.41 }; });
 
   const observation = mapMediaPipeLandmarks(landmarks, 101, 0.9);
 

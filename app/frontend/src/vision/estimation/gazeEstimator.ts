@@ -10,12 +10,36 @@ export type GazeDiagnostics = {
   eyeDisagreement: number | null;
 };
 
+export class BinocularVerticalOffsetEstimator {
+  private readonly offsets: number[] = [];
+
+  public reset(): void {
+    this.offsets.length = 0;
+  }
+
+  public update(diagnostics: GazeDiagnostics): number {
+    if (diagnostics.leftPosition !== null && diagnostics.rightPosition !== null) {
+      const offset = diagnostics.leftPosition.y - diagnostics.rightPosition.y;
+      if (Number.isFinite(offset)) this.offsets.push(offset);
+    }
+    return this.current;
+  }
+
+  public get current(): number {
+    if (this.offsets.length === 0) return 0;
+    const sorted = [...this.offsets].sort((left, right) => left - right);
+    const middle = Math.floor(sorted.length / 2);
+    return sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle];
+  }
+}
+
 export function estimateGaze(
   observation: FaceLandmarkObservation,
   minimumConfidence = 0.5,
   minimumAperture = 0.15,
+  verticalOffset = 0,
 ): NormalizedGazePoint | null {
-  const diagnostics = getGazeDiagnostics(observation);
+  const diagnostics = getGazeDiagnostics(observation, verticalOffset);
 
   if (
     diagnostics.leftPosition === null ||
@@ -40,8 +64,8 @@ export function estimateGaze(
   };
 }
 
-export function getGazeDiagnostics(observation: FaceLandmarkObservation): GazeDiagnostics {
-  const leftPosition = estimateEyePosition(observation.leftEye);
+export function getGazeDiagnostics(observation: FaceLandmarkObservation, verticalOffset = 0): GazeDiagnostics {
+  const leftPosition = alignVerticalPosition(estimateEyePosition(observation.leftEye), -verticalOffset);
   const rightPosition = estimateEyePosition(observation.rightEye);
 
   return {
@@ -53,4 +77,8 @@ export function getGazeDiagnostics(observation: FaceLandmarkObservation): GazeDi
       ? Math.hypot(leftPosition.x - rightPosition.x, leftPosition.y - rightPosition.y)
       : null,
   };
+}
+
+function alignVerticalPosition(position: { x: number; y: number } | null, yOffset: number): { x: number; y: number } | null {
+  return position === null ? null : { x: position.x, y: position.y + yOffset };
 }

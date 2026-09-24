@@ -14,6 +14,8 @@ function createLandmarks(): Array<{ x: number; y: number }> {
   landmarks[133] = { x: 0.4, y: 0.4 };
   landmarks[159] = { x: 0.3, y: 0.3 };
   landmarks[145] = { x: 0.3, y: 0.5 };
+  [160, 158, 157].forEach(index => { landmarks[index] = { x: 0.3, y: 0.3 }; });
+  [144, 153, 154, 155].forEach(index => { landmarks[index] = { x: 0.3, y: 0.5 }; });
   landmarks[468] = { x: 0.35, y: 0.4 };
   landmarks[469] = { x: 0.34, y: 0.39 };
   landmarks[470] = { x: 0.36, y: 0.39 };
@@ -23,6 +25,8 @@ function createLandmarks(): Array<{ x: number; y: number }> {
   landmarks[263] = { x: 0.8, y: 0.4 };
   landmarks[386] = { x: 0.7, y: 0.3 };
   landmarks[374] = { x: 0.7, y: 0.5 };
+  [387, 385, 384].forEach(index => { landmarks[index] = { x: 0.7, y: 0.3 }; });
+  [373, 380, 381, 382].forEach(index => { landmarks[index] = { x: 0.7, y: 0.5 }; });
   landmarks[473] = { x: 0.75, y: 0.4 };
   landmarks[474] = { x: 0.74, y: 0.39 };
   landmarks[475] = { x: 0.76, y: 0.39 };
@@ -40,10 +44,15 @@ test('maps canonical MediaPipe eye landmarks into left-to-right eye coordinates'
     outerCorner: { x: 0.2, y: 0.4 },
     upperLid: { x: 0.3, y: 0.3 },
     lowerLid: { x: 0.3, y: 0.5 },
+    upperLidContour: [
+      { x: 0.3, y: 0.3 }, { x: 0.3, y: 0.3 }, { x: 0.3, y: 0.3 }, { x: 0.3, y: 0.3 },
+    ],
+    lowerLidContour: [
+      { x: 0.3, y: 0.5 }, { x: 0.3, y: 0.5 }, { x: 0.3, y: 0.5 }, { x: 0.3, y: 0.5 }, { x: 0.3, y: 0.5 },
+    ],
     irisCenter: { x: 0.35, y: 0.4 },
     irisRing: [
-      { x: 0.35, y: 0.4 }, { x: 0.34, y: 0.39 }, { x: 0.36, y: 0.39 },
-      { x: 0.36, y: 0.41 }, { x: 0.34, y: 0.41 },
+      { x: 0.34, y: 0.39 }, { x: 0.36, y: 0.39 }, { x: 0.36, y: 0.41 }, { x: 0.34, y: 0.41 },
     ],
     screenSide: 'left',
     confidence: 0.9,
@@ -53,10 +62,15 @@ test('maps canonical MediaPipe eye landmarks into left-to-right eye coordinates'
     outerCorner: { x: 0.8, y: 0.4 },
     upperLid: { x: 0.7, y: 0.3 },
     lowerLid: { x: 0.7, y: 0.5 },
+    upperLidContour: [
+      { x: 0.7, y: 0.3 }, { x: 0.7, y: 0.3 }, { x: 0.7, y: 0.3 }, { x: 0.7, y: 0.3 },
+    ],
+    lowerLidContour: [
+      { x: 0.7, y: 0.5 }, { x: 0.7, y: 0.5 }, { x: 0.7, y: 0.5 }, { x: 0.7, y: 0.5 }, { x: 0.7, y: 0.5 },
+    ],
     irisCenter: { x: 0.75, y: 0.4 },
     irisRing: [
-      { x: 0.75, y: 0.4 }, { x: 0.74, y: 0.39 }, { x: 0.76, y: 0.39 },
-      { x: 0.76, y: 0.41 }, { x: 0.74, y: 0.41 },
+      { x: 0.74, y: 0.39 }, { x: 0.76, y: 0.39 }, { x: 0.76, y: 0.41 }, { x: 0.74, y: 0.41 },
     ],
     screenSide: 'right',
     confidence: 0.9,

@@ -8,7 +8,7 @@ export function mapMediaPipeLandmarks(
   confidence: number,
 ): FaceLandmarkObservation | null {
   const requiredLandmarkIndices = [
-    1, 6, 10, 33, 133, 145, 152, 159, 234, 263, 362, 374, 386, 454,
+    1, 6, 10, 33, 133, 144, 145, 152, 153, 154, 155, 157, 158, 159, 160, 234, 263, 362, 373, 374, 380, 381, 382, 384, 385, 386, 387, 454,
     468, 469, 470, 471, 472, 473, 474, 475, 476, 477,
   ];
   if (requiredLandmarkIndices.some(index => landmarks[index] === undefined)) {
@@ -21,8 +21,10 @@ export function mapMediaPipeLandmarks(
       outerCorner: landmarks[33],
       upperLid: landmarks[159],
       lowerLid: landmarks[145],
+      upperLidContour: [landmarks[160], landmarks[159], landmarks[158], landmarks[157]],
+      lowerLidContour: [landmarks[144], landmarks[145], landmarks[153], landmarks[154], landmarks[155]],
       irisCenter: landmarks[468],
-      irisRing: landmarks.slice(468, 473),
+        irisRing: landmarks.slice(469, 473),
       screenSide: 'left',
       confidence,
     },
@@ -31,8 +33,10 @@ export function mapMediaPipeLandmarks(
       outerCorner: landmarks[263],
       upperLid: landmarks[386],
       lowerLid: landmarks[374],
+      upperLidContour: [landmarks[387], landmarks[386], landmarks[385], landmarks[384]],
+      lowerLidContour: [landmarks[373], landmarks[374], landmarks[380], landmarks[381], landmarks[382]],
       irisCenter: landmarks[473],
-      irisRing: landmarks.slice(473, 478),
+        irisRing: landmarks.slice(474, 478),
       screenSide: 'right',
       confidence,
     },

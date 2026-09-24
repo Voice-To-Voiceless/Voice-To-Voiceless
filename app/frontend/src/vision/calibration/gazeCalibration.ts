@@ -1,6 +1,6 @@
 export type { RidgeCalibrationFeatures } from './ridgeCalibration';
 import { NormalizedGazePoint } from '../types/gazeTypes';
-import { aggregateSamples, clamp, evaluate, fitRobustMapping, getCalibrationFitDiagnostics, MAX_RMS_RESIDUAL, MIN_CALIBRATION_AXIS_SPAN } from './calibrationMath';
+import { aggregateSamples, clamp, evaluate, fitRobustMapping, getCalibrationFitDiagnostics, MIN_CALIBRATION_AXIS_SPAN } from './calibrationMath';
 import { fitRidgeCalibration, mapRidgeCalibration } from './ridgeCalibration';
 import type { RidgeCalibrationFeatures } from './ridgeCalibration';
 
@@ -35,10 +35,11 @@ export class GazeCalibrationMapper {
     return GazeCalibrationMapper.fitFallback(samples);
   }
 
-  private static fitFallback(samples: CalibrationSample[]): GazeCalibrationMapper | null {
+  private static fitFallback(samples: CalibrationSample[], allowUnstableTargets = false, allowResidual = false): GazeCalibrationMapper | null {
     const aggregatedSamples = aggregateSamples(samples);
-    const diagnostics = getCalibrationFitDiagnostics(samples);
-    if (!hasValidTargets(samples) || diagnostics.rejectionReason !== null || diagnostics.rmsResidual === null || diagnostics.rmsResidual > MAX_RMS_RESIDUAL) {
+    const diagnostics = getCalibrationFitDiagnostics(samples, allowUnstableTargets);
+    const fitRejected = diagnostics.rejectionReason !== null && !(allowResidual && diagnostics.rejectionReason === 'residual exceeds threshold');
+    if (!hasValidTargets(samples) || fitRejected || diagnostics.rmsResidual === null) {
       console.warn('[gaze-calibration] fit rejected', {
         reason: diagnostics.rejectionReason ?? 'residual exceeds threshold',
         sampleCount: samples.length,
@@ -54,12 +55,19 @@ export class GazeCalibrationMapper {
   }
 
   public static fitWithValidation(training: CalibrationSample[], validation: CalibrationSample[]): { mapper: GazeCalibrationMapper; diagnostics: ValidationFitDiagnostics } | null {
-    const candidates = [GazeCalibrationMapper.fit(training), GazeCalibrationMapper.fitFallback(training)]
+    const candidates = [GazeCalibrationMapper.fit(training), GazeCalibrationMapper.fitFallback(training, true, true)]
       .filter((mapper, index, mappers): mapper is GazeCalibrationMapper => mapper !== null && mappers.indexOf(mapper) === index);
     const evaluated = candidates
       .map(mapper => ({ mapper, trainingDiagnostics: evaluateValidation(mapper, training), diagnostics: evaluateValidation(mapper, validation) }))
       .filter(result => result.trainingDiagnostics.rejectionReason === null && result.diagnostics.rejectionReason === null)
       .sort((left, right) => (left.diagnostics.rmsResidual ?? Infinity) - (right.diagnostics.rmsResidual ?? Infinity));
+    if (evaluated.length === 0) {
+      console.warn('[gaze-calibration] validation rejected', candidates.map((mapper, index) => ({
+        candidate: index === 0 ? 'ridge-or-best-fit' : 'fallback',
+        trainingRms: evaluateValidation(mapper, training).rmsResidual,
+        validationRms: evaluateValidation(mapper, validation).rmsResidual,
+      })));
+    }
     return evaluated[0] ?? null;
   }
 
@@ -84,15 +92,32 @@ function hasCompleteFeatures(samples: CalibrationSample[]): samples is Required<
 
 function evaluateValidation(mapper: GazeCalibrationMapper, samples: CalibrationSample[]): ValidationFitDiagnostics {
   if (samples.length === 0) return { rmsResidual: null, p95Residual: null, maxResidual: null, targetResiduals: [], rejectionReason: 'no validation samples' };
-  const residuals = samples.map(sample => Math.hypot(mapper.map({ ...sample.gaze, confidence: 1, timestamp: 0 }, sample.features).x - sample.target.x, mapper.map({ ...sample.gaze, confidence: 1, timestamp: 0 }, sample.features).y - sample.target.y));
-  const sorted = [...residuals].sort((left, right) => left - right);
-  const targetResiduals = [...new Set(samples.map(sample => `${sample.target.x}:${sample.target.y}`))].map(key => {
-    const group = samples.filter(sample => `${sample.target.x}:${sample.target.y}` === key);
-    const groupResiduals = group.map(sample => Math.hypot(mapper.map({ ...sample.gaze, confidence: 1, timestamp: 0 }, sample.features).x - sample.target.x, mapper.map({ ...sample.gaze, confidence: 1, timestamp: 0 }, sample.features).y - sample.target.y));
-    return { target: group[0].target, residual: Math.sqrt(groupResiduals.reduce((sum, residual) => sum + residual ** 2, 0) / groupResiduals.length) };
+  const predictionsByTarget = new Map<string, Array<{ target: CalibrationTarget; x: number; y: number }>>();
+  samples.forEach(sample => {
+    const mapped = mapper.map({ ...sample.gaze, confidence: 1, timestamp: 0 }, sample.features);
+    const key = `${sample.target.x}:${sample.target.y}`;
+    const predictions = predictionsByTarget.get(key) ?? [];
+    predictions.push({ target: sample.target, x: mapped.x, y: mapped.y });
+    predictionsByTarget.set(key, predictions);
   });
+  const targetResiduals = [...predictionsByTarget.values()].map(predictions => {
+    const predictedX = median(predictions.map(prediction => prediction.x));
+    const predictedY = median(predictions.map(prediction => prediction.y));
+    return {
+      target: predictions[0].target,
+      residual: Math.hypot(predictedX - predictions[0].target.x, predictedY - predictions[0].target.y),
+    };
+  });
+  const residuals = targetResiduals.map(result => result.residual);
+  const sorted = [...residuals].sort((left, right) => left - right);
   const rmsResidual = Math.sqrt(residuals.reduce((sum, residual) => sum + residual ** 2, 0) / residuals.length);
   return { rmsResidual, p95Residual: sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * 0.95) - 1)], maxResidual: sorted[sorted.length - 1], targetResiduals, rejectionReason: rmsResidual > MAX_VALIDATION_RMS ? 'validation residual exceeds threshold' : null };
+}
+
+function median(values: number[]): number {
+  const sorted = [...values].sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle];
 }
 
 function createGrid(samples: ReturnType<typeof aggregateSamples>): GridNode[][] | null {

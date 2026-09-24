@@ -6,7 +6,7 @@ import { DEFAULT_CALIBRATION_QUALITY_POLICY } from '../../vision/calibration/cal
 import { createPoseEnvelope, extendPoseEnvelope, PoseEnvelope } from '../../vision/tracking/poseEnvelope';
 import { CALIBRATION_MAX_RECORDING_DURATION_MS, CALIBRATION_SAMPLE_DURATION_MS, CALIBRATION_SETTLE_DURATION_MS, CALIBRATION_TARGET_ORDERS, CALIBRATION_TARGETS, type CalibrationResult, type CalibrationState } from './calibrationConfig';
 
-export { CALIBRATION_MAX_RECORDING_DURATION_MS, CALIBRATION_SAMPLE_DURATION_MS, CALIBRATION_SETTLE_DURATION_MS, CALIBRATION_TARGET_ORDERS, CALIBRATION_TARGETS } from './calibrationConfig';
+export { CALIBRATION_INTERLEAVED_TARGETS, CALIBRATION_MAX_RECORDING_DURATION_MS, CALIBRATION_SAMPLE_DURATION_MS, CALIBRATION_SETTLE_DURATION_MS, CALIBRATION_TARGET_ORDERS, CALIBRATION_TARGETS } from './calibrationConfig';
 export function useCalibration(modelTestingSession?: ModelTestingSession) {
   const [state, setState] = useState<CalibrationState>({ active: false, index: 0, ready: false });
   const activeRef = useRef(false);
@@ -21,6 +21,7 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
   const targetsRef = useRef(CALIBRATION_TARGETS);
   const dataRef = useRef({ started: 0, all: [] as CalibrationSample[], point: [] as CalibrationSample[], rejected: 0, rejectionReasons: {} as Record<string, number>, poseEnvelope: null as PoseEnvelope | null });
   const trainingSamplesRef = useRef<CalibrationSample[]>([]);
+    const windowPoseRef = useRef<{ pitch: number; faceCenterY: number } | null>(null);
   const start = useCallback(() => {
     if (activeRef.current) return;
     failedRef.current = false;
@@ -29,7 +30,7 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
     if (!modelTestingSession) mapperRef.current = null;
     const nextPassKind = modelTestingSession?.nextPassKind;
     const pass = nextPassKind
-      ? modelTestingSession?.startPass(nextPassKind === 'training' ? CALIBRATION_TARGET_ORDERS[0] : CALIBRATION_TARGET_ORDERS[1])
+      ? modelTestingSession?.startPass(nextPassKind === 'training' ? [...CALIBRATION_TARGET_ORDERS[0]] : [...CALIBRATION_TARGET_ORDERS[1]])
       : null;
     if (pass) {
       passKindRef.current = pass.kind;
@@ -43,6 +44,7 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
     indexRef.current = 0;
     if (!isValidation) readyRef.current = false;
     dataRef.current = { started: performance.now(), all: [], point: [], rejected: 0, rejectionReasons: {}, poseEnvelope: null };
+    windowPoseRef.current = null;
     if (passKindRef.current === 'training') { trainingSamplesRef.current = []; poseEnvelopeRef.current = createPoseEnvelope(); }
     setState({ active: true, index: 0, ready: readyRef.current });
   }, [modelTestingSession]);
@@ -55,6 +57,7 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
     failedRef.current = false;
     failureRef.current = null;
     pausedAtRef.current = null;
+    windowPoseRef.current = null;
     indexRef.current = 0;
     setState(value => ({ ...value, active: false }));
   }, [modelTestingSession]);
@@ -78,6 +81,27 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
     if (elapsed >= CALIBRATION_SETTLE_DURATION_MS && elapsed < CALIBRATION_SETTLE_DURATION_MS + CALIBRATION_SAMPLE_DURATION_MS) {
       const sample = { gaze, target, features: diagnosticPoints?.features };
       const quality = diagnosticPoints?.quality;
+      const poseSource = diagnosticPoints?.poseSource ?? null;
+      const poseIsStable = poseSource !== null
+        && poseSource.pitch !== null
+        && poseSource.faceCenterY !== undefined
+        && Number.isFinite(poseSource.pitch)
+        && Number.isFinite(poseSource.faceCenterY)
+        && (windowPoseRef.current === null
+          || (Math.abs(poseSource.pitch - windowPoseRef.current.pitch) <= 0.05
+            && Math.abs(poseSource.faceCenterY - windowPoseRef.current.faceCenterY) <= 0.04));
+      if (diagnosticPoints !== undefined && (poseSource === null || !poseIsStable)) {
+        dataRef.current.point = [];
+        dataRef.current.rejected += 1;
+        const reasons = poseSource === null || poseSource.pitch === null || !Number.isFinite(poseSource.pitch) ? ['unstable pitch'] : [];
+        if (poseSource === null || poseSource.faceCenterY === undefined || !Number.isFinite(poseSource.faceCenterY)) reasons.push('unstable face center y');
+        if (poseSource !== null && poseSource.pitch !== null && Number.isFinite(poseSource.pitch) && windowPoseRef.current !== null && Math.abs(poseSource.pitch - windowPoseRef.current.pitch) > 0.05) reasons.push('unstable pitch');
+        if (poseSource !== null && poseSource.faceCenterY !== undefined && Number.isFinite(poseSource.faceCenterY) && windowPoseRef.current !== null && Math.abs(poseSource.faceCenterY - windowPoseRef.current.faceCenterY) > 0.04) reasons.push('unstable face center y');
+        reasons.forEach(reason => { dataRef.current.rejectionReasons[reason] = (dataRef.current.rejectionReasons[reason] ?? 0) + 1; });
+        windowPoseRef.current = null;
+        return { target, passKind: passKindRef.current, status: 'Hold still. Stabilizing your head position before recording.', complete: false, settleProgress: 1, resetSmoother: false };
+      }
+      if (diagnosticPoints !== undefined && poseSource !== null && windowPoseRef.current === null) windowPoseRef.current = { pitch: poseSource.pitch!, faceCenterY: poseSource.faceCenterY! };
       if (quality) modelTestingSession?.recordQualityDecision(index, quality);
       if (!quality || quality.accepted) {
         dataRef.current.point.push(sample);
@@ -113,6 +137,11 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
       const accepted = dataRef.current.point.length;
       const reasons = Object.entries(dataRef.current.rejectionReasons).sort((left, right) => right[1] - left[1]).slice(0, 2).map(([reason, count]) => `${reason} (${count})`).join(', ');
       const message = `Calibration paused at point ${index + 1}. Only ${accepted}/${minimumSamples} valid samples were captured${reasons ? `; rejected: ${reasons}` : ''}. Adjust your face or eyes, then retry.`;
+      try {
+        modelTestingSession?.exportDiagnostics();
+      } catch (error) {
+        console.error('[gaze-calibration] failed to export diagnostics after rejection', error);
+      }
       modelTestingSession?.discardCurrentPass?.();
       if (passKindRef.current === 'training' || !modelTestingSession) mapperRef.current = null;
       activeRef.current = false;
@@ -146,6 +175,7 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
           activeRef.current = true;
           indexRef.current = 0;
           dataRef.current = { started: timestamp, all: [], point: [], rejected: 0, rejectionReasons: {}, poseEnvelope: null };
+          windowPoseRef.current = null;
           readyRef.current = false;
           setState({ active: true, index: 0, ready: readyRef.current });
           return {
@@ -162,6 +192,11 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
         const validated = GazeCalibrationMapper.fitWithValidation(trainingSamplesRef.current, dataRef.current.all);
         mapperRef.current = validated?.mapper ?? null;
         readyRef.current = mapperRef.current !== null;
+        try {
+          modelTestingSession?.exportDiagnostics();
+        } catch (error) {
+          console.error('[gaze-calibration] failed to export diagnostics after validation', error);
+        }
         if (!validated) {
           activeRef.current = false;
           failedRef.current = true;
@@ -169,7 +204,6 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
           setState({ active: false, index, ready: false });
           return { target: null, passKind: null, status: failureRef.current, complete: false, settleProgress: 1, resetSmoother: true, failed: true };
         }
-        modelTestingSession?.exportDiagnostics();
       }
       activeRef.current = false;
       readyRef.current = mapperRef.current !== null;
@@ -190,6 +224,7 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
     }
     dataRef.current.started = timestamp;
     dataRef.current.point = [];
+    windowPoseRef.current = null;
     indexRef.current += 1;
     setState(value => ({ ...value, index: indexRef.current }));
     return { target, passKind: passKindRef.current, status: null, complete: false, settleProgress: 0, resetSmoother: true };

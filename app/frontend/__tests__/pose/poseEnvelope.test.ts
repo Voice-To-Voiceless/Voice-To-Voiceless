@@ -1,4 +1,4 @@
-import { extendPoseEnvelope, getPoseDrift, isPoseWithinEnvelope } from '../../src/vision/tracking/poseEnvelope';
+import { extendPoseEnvelope, getPoseDrift, isPitchWithinEnvelope, isPoseWithinEnvelope } from '../../src/vision/tracking/poseEnvelope';
 import { RelativeFacePose } from '../../src/vision/estimation/facePoseEstimator';
 
 function pose(overrides: Partial<RelativeFacePose> = {}): RelativeFacePose {
@@ -26,6 +26,15 @@ test('stores the observed training pose envelope', () => {
   expect(envelope.faceCenterX.mad).toBeCloseTo(0.05);
   expect(envelope.pitch).toMatchObject({ min: 0, max: 0.05, median: 0.025 });
   expect(envelope.pitch.mad).toBeCloseTo(0.025);
+});
+
+test('checks pitch against the training envelope independently of other pose axes', () => {
+  let envelope = extendPoseEnvelope(null, pose({ yaw: 0, pitch: 0 }));
+  envelope = extendPoseEnvelope(envelope, pose({ yaw: 0.2, pitch: 0.04 }));
+
+  expect(isPitchWithinEnvelope(envelope, pose({ yaw: 0.8, pitch: 0.02 }))).toBe(true);
+  expect(isPitchWithinEnvelope(envelope, pose({ yaw: 0, pitch: 0.2 }))).toBe(false);
+  expect(isPitchWithinEnvelope(envelope, pose({ yaw: 0, pitch: null }))).toBe(false);
 });
 
 test('accepts pose inside the learned envelope', () => {
