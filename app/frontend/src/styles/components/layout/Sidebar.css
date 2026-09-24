@@ -153,3 +153,75 @@ html[data-theme="dark"] .sidebar__item:hover { background:#27354a; }
 html[data-theme="dark"] .sidebar__item--active { background:#34445d; }
 html[data-theme="dark"] .sidebar__clock { border-top-color:#344256; color:#f4f8f6; }
 html[data-theme="dark"] .sidebar__clock span { color:#a9bbc0; }
+
+.sidebar__patient-code-button { margin-top: auto; }
+
+.patient-code-modal {
+    align-items: center;
+    background: rgba(7, 14, 20, .72);
+    display: flex;
+    inset: 0;
+    justify-content: center;
+    padding: 20px;
+    position: fixed;
+    z-index: 60;
+}
+
+.patient-code-modal__content {
+    background: #f7fafc;
+    border: 1px solid #c7d5df;
+    border-radius: 16px;
+    box-shadow: 0 20px 55px rgba(0, 0, 0, .28);
+    color: #17232d;
+    max-width: 390px;
+    padding: 28px;
+    position: relative;
+    width: 100%;
+}
+
+.patient-code-modal__close {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: 50%;
+    color: #5f7180;
+    cursor: pointer;
+    display: flex;
+    height: 34px;
+    justify-content: center;
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    width: 34px;
+}
+
+.patient-code-modal__close:hover { background: #e5edf3; color: #17232d; }
+.patient-code-modal__icon { align-items: center; background: #dce8f5; border-radius: 10px; color: #34658e; display: flex; height: 42px; justify-content: center; margin-bottom: 18px; width: 42px; }
+.patient-code-modal__eyebrow { color: #60788a; font: 700 11px Arial, sans-serif; letter-spacing: .12em; margin: 0 0 5px; text-transform: uppercase; }
+.patient-code-modal h2 { color: #17232d; font-size: 1.55rem; margin: 0 0 20px; }
+.patient-code-modal__label { color: #415563; display: block; font: 700 13px Arial, sans-serif; margin-bottom: 7px; }
+.patient-code-modal__input { background: #fff; border: 1px solid #aebfca; border-radius: 8px; color: #17232d; font: 16px Arial, sans-serif; min-height: 44px; padding: 8px 10px; width: 100%; }
+.patient-code-modal__input:focus { border-color: #4e91c6; outline: 3px solid #4e91c633; }
+.patient-code-modal__error { color: #b44458; font: 12px Arial, sans-serif; margin: 7px 0 0; }
+.patient-code-modal__submit { background: #233b4d; border: 1px solid #233b4d; border-radius: 8px; color: #fff; cursor: pointer; font: 700 13px Arial, sans-serif; margin-top: 18px; min-height: 42px; padding: 9px 14px; width: 100%; }
+.patient-code-modal__submit:hover { background: #31566e; border-color: #31566e; }
+.patient-code-modal__result { display: flex; flex-direction: column; }
+.patient-code-modal__result > span { color: #60788a; font: 13px Arial, sans-serif; }
+.patient-code-modal__result strong { background: #e5edf3; border: 1px dashed #6f91a7; border-radius: 9px; color: #1f628e; font: 800 24px Arial, sans-serif; letter-spacing: .08em; margin-top: 8px; padding: 15px 12px; text-align: center; }
+
+html[data-theme="dark"] .patient-code-modal__content { background: #18232d; border-color: #526c80; color: #edf3f7; }
+html[data-theme="dark"] .patient-code-modal__close { color: #b5c3cf; }
+html[data-theme="dark"] .patient-code-modal__close:hover { background: #2b4052; color: #fff; }
+html[data-theme="dark"] .patient-code-modal__eyebrow,
+html[data-theme="dark"] .patient-code-modal__result > span { color: #a8bfd0; }
+html[data-theme="dark"] .patient-code-modal h2,
+html[data-theme="dark"] .patient-code-modal__label { color: #edf3f7; }
+html[data-theme="dark"] .patient-code-modal__input { background: #22303d; border-color: #61798b; color: #fff; }
+html[data-theme="dark"] .patient-code-modal__result strong { background: #22303d; border-color: #82b4df; color: #b9ddff; }
+
+html[data-high-contrast="true"] .patient-code-modal__content { border: 2px solid #000; box-shadow: none; }
+html[data-theme="dark"][data-high-contrast="true"] .patient-code-modal__content { background: #15202a; border-color: #fff; color: #fff; }
+html[data-theme="dark"][data-high-contrast="true"] .patient-code-modal h2,
+html[data-theme="dark"][data-high-contrast="true"] .patient-code-modal__label { color: #fff; }
+html[data-theme="dark"][data-high-contrast="true"] .patient-code-modal__input,
+html[data-theme="dark"][data-high-contrast="true"] .patient-code-modal__result strong { background: #000; border-color: #fff; color: #fff; }
