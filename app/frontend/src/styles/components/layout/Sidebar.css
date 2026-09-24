@@ -143,3 +143,13 @@
     letter-spacing: .1em;
     text-transform: uppercase;
 }
+
+html[data-theme="dark"] .sidebar {
+    background:#151d2c;
+    color:#f1f6f4;
+}
+
+html[data-theme="dark"] .sidebar__item:hover { background:#27354a; }
+html[data-theme="dark"] .sidebar__item--active { background:#34445d; }
+html[data-theme="dark"] .sidebar__clock { border-top-color:#344256; color:#f4f8f6; }
+html[data-theme="dark"] .sidebar__clock span { color:#a9bbc0; }
