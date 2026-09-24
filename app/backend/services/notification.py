@@ -104,3 +104,12 @@ class NotificationService:
                     self._save()
                     return notification
         return None
+
+    def delete(self, notification_id: str) -> Notification | None:
+        with self._lock:
+            for index, notification in enumerate(self._notifications):
+                if notification.id == notification_id:
+                    deleted = self._notifications.pop(index)
+                    self._save()
+                    return deleted
+        return None

@@ -41,7 +41,9 @@
 .caregiver-metrics strong { color: #315846; font: 700 10px Arial, sans-serif; overflow-wrap: anywhere; }
 .caregiver-note { color: #718075; font: 11px/1.4 Arial, sans-serif; }
 .caregiver-panel__heading { align-items: flex-start; }
-.notification-list { display: flex; flex-direction: column; margin-top: 11px; }
+.caregiver-notification-actions { align-items: flex-end; display: flex; flex-direction: column; gap: 7px; }
+.notification-clear-button { background: transparent; border: 0; color: #3b8653; cursor: pointer; font: 700 10px Arial, sans-serif; padding: 0; }
+.notification-list { display: flex; flex-direction: column; margin-top: 11px; max-height: 270px; overflow-y: auto; padding-right: 5px; }
 .notification-row { align-items: center; background: transparent; border: 0; border-bottom: 1px solid #edf1ed; color: #18352a; display: flex; gap: 9px; padding: 10px 0; text-align: left; width: 100%; }
 .notification-row:last-child { border-bottom: 0; }
 .notification-row > span:nth-child(2) { display: flex; flex: 1; flex-direction: column; gap: 3px; }

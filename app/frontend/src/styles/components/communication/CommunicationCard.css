@@ -114,15 +114,7 @@
     margin:0;
 }
 
-.communication-card[data-action-id="yes"] { border-left:4px solid #287a52; }
-.communication-card[data-action-id="no"] { border-left:4px solid #9b5d5d; }
-.communication-card[data-action-id="bathroom"] { border-left:4px solid #536f91; }
-.communication-card[data-action-id="food"] { border-left:4px solid #a8753d; }
-.communication-card[data-action-id="water"] { border-left:4px solid #3e79a5; }
-.communication-card[data-action-id="medication"] { border-left:4px solid #4e8490; }
-.communication-card[data-action-id="pain"] { border-left:4px solid #aa8125; }
-.communication-card[data-action-id="sleep"] { border-left:4px solid #60758a; }
-.communication-card[data-action-id="talk"] { border-left:4px solid #986180; }
+.communication-card[data-action-id] { border-left:4px solid #78909c; }
 
 .communication-card[data-action-id="yes"] .communication-card__icon { background:#dcebe2; }
 .communication-card[data-action-id="no"] .communication-card__icon { background:#eee0e0; }
@@ -133,3 +125,29 @@
 .communication-card[data-action-id="pain"] .communication-card__icon { background:#eee7d2; }
 .communication-card[data-action-id="sleep"] .communication-card__icon { background:#e2e8ed; }
 .communication-card[data-action-id="talk"] .communication-card__icon { background:#ebdfe7; }
+
+html[data-theme="dark"] .communication-card[data-action-id] { border-left-color:#587276; }
+
+html[data-theme="dark"] .communication-card[data-action-id="yes"] .communication-card__icon { background:#214a39; }
+html[data-theme="dark"] .communication-card[data-action-id="no"] .communication-card__icon { background:#784350; }
+html[data-theme="dark"] .communication-card[data-action-id="bathroom"] .communication-card__icon { background:#3b3158; }
+html[data-theme="dark"] .communication-card[data-action-id="food"] .communication-card__icon { background:#51402b; }
+html[data-theme="dark"] .communication-card[data-action-id="water"] .communication-card__icon { background:#233f5c; }
+html[data-theme="dark"] .communication-card[data-action-id="medication"] .communication-card__icon { background:#21464d; }
+html[data-theme="dark"] .communication-card[data-action-id="pain"] .communication-card__icon { background:#504222; }
+html[data-theme="dark"] .communication-card[data-action-id="sleep"] .communication-card__icon { background:#304154; }
+html[data-theme="dark"] .communication-card[data-action-id="talk"] .communication-card__icon { background:#4b3045; }
+
+html[data-theme="dark"] .communication-card {
+    background:#1b282c;
+    border-color:#3b5057;
+    box-shadow:0 8px 20px rgba(0, 0, 0, .2);
+}
+html[data-theme="dark"] .communication-card:hover,
+html[data-theme="dark"] .communication-card:focus-visible {
+    border-color:#70d9a0;
+    box-shadow:0 0 0 3px rgba(112, 217, 160, .18), 0 10px 24px rgba(0, 0, 0, .3);
+}
+html[data-theme="dark"] .communication-card__title { color:#edf5f1; }
+html[data-theme="dark"] .communication-card__selected { background:#3bb875; }
+html[data-theme="dark"] .communication-card--selected { background:#214635; border-color:#70d9a0; }
