@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Bell, Check, ChevronRight, Clock3, HeartPulse, MessageSquareText, Send, UserRound, Users, Wifi } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, Bell, Check, ChevronRight, Clock3, HeartPulse, Keyboard, MessageSquareText, ScanLine, Send, UserRound, Users, Wifi } from 'lucide-react';
 import { deleteNotification, getNotifications, subscribeToNotifications, type PatientNotification } from '../services/notifications';
 
 type Patient = {
@@ -20,7 +20,115 @@ const patients: Patient[] = [
 
 const reminderOptions = ['Este timpul pentru medicatie.', 'Ai nevoie de ajutor?', 'Asistenta vine in curand.', 'Te rog raspunde cand vezi mesajul.'];
 
+type BarcodeDetectorLike = {
+  detect: (source: HTMLVideoElement) => Promise<Array<{ rawValue?: string }>>;
+};
+
+type BarcodeDetectorConstructor = new (options?: { formats?: string[] }) => BarcodeDetectorLike;
+
+declare global {
+  interface Window {
+    BarcodeDetector?: BarcodeDetectorConstructor;
+  }
+}
+
+function PatientCodeScreen({ onBack }: { onBack: () => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [manualCode, setManualCode] = useState('');
+  const [scannerMessage, setScannerMessage] = useState('Aliniaza codul QR in chenar');
+  const [cameraReady, setCameraReady] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    let detectorTimer: number | undefined;
+
+    async function startCamera() {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setScannerMessage('Camera nu este disponibila. Introdu codul manual mai jos.');
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+        if (!active) {
+          stream.getTracks().forEach(track => track.stop());
+          return;
+        }
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+        }
+        setCameraReady(true);
+        const Detector = window.BarcodeDetector;
+        if (!Detector || !videoRef.current) return;
+        const detector = new Detector({ formats: ['qr_code'] });
+        const detect = async () => {
+          if (!active || !videoRef.current) return;
+          try {
+            const result = await detector.detect(videoRef.current);
+            const code = result[0]?.rawValue?.trim();
+            if (code) {
+              setManualCode(code);
+              setScannerMessage('Cod detectat. Verifica-l si confirma.');
+              return;
+            }
+          } catch {
+            setScannerMessage('Nu am putut citi codul. Incearca din nou sau foloseste codul manual.');
+          }
+          detectorTimer = window.setTimeout(detect, 350);
+        };
+        detectorTimer = window.setTimeout(detect, 500);
+      } catch {
+        setScannerMessage('Permisiunea pentru camera nu a fost acordata. Introdu codul manual mai jos.');
+      }
+    }
+
+    startCamera();
+    return () => {
+      active = false;
+      if (detectorTimer) window.clearTimeout(detectorTimer);
+      streamRef.current?.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    };
+  }, []);
+
+  function confirmCode() {
+    const code = manualCode.trim();
+    setScannerMessage(code ? `Cod pregatit: ${code}` : 'Introdu un cod valid pentru a continua.');
+  }
+
+  return (
+    <main className="caregiver-app caregiver-app--scanner">
+      <header className="caregiver-header">
+        <button type="button" className="scanner-back-button" onClick={onBack} aria-label="Inapoi la pacienti"><ArrowLeft size={19} /></button>
+        <div className="caregiver-brand"><span className="caregiver-brand__mark"><HeartPulse size={20} /></span><div><span>CARE TEAM</span><h1>VoiceToVoiceless</h1></div></div>
+        <span className="scanner-header-spacer" aria-hidden="true" />
+      </header>
+
+      <section className="scanner-intro"><span>ADAUGA UN PACIENT</span><h2>Scaneaza codul pacientului</h2><p>Apropie camera de codul QR de pe tableta pacientului.</p></section>
+
+      <section className="qr-scanner" aria-label="Scanner cod QR">
+        <video ref={videoRef} className="qr-scanner__video" muted playsInline aria-label="Previzualizare camera" />
+        {!cameraReady && <div className="qr-scanner__placeholder"><ScanLine size={27} /><span>Pregatim camera...</span></div>}
+        <div className="qr-scanner__frame" aria-hidden="true"><i /><i /><i /><i /><span /></div>
+        <div className="qr-scanner__hint"><ScanLine size={16} /> {scannerMessage}</div>
+      </section>
+
+      <div className="scanner-divider"><span>sau</span></div>
+
+      <section className="manual-code-panel">
+        <div className="manual-code-panel__heading"><Keyboard size={18} /><div><strong>Introdu codul manual</strong><span>Codul se gaseste sub codul QR.</span></div></div>
+        <label htmlFor="patient-code">Cod pacient</label>
+        <input id="patient-code" value={manualCode} onChange={event => setManualCode(event.target.value)} placeholder="Ex: PT-1024-5678" autoComplete="off" />
+        <button type="button" className="caregiver-send-button" onClick={confirmCode} disabled={!manualCode.trim()}><Check size={17} /> Confirma codul</button>
+      </section>
+    </main>
+  );
+}
+
 export function PhoneTrackingApp() {
+  const [showCodeScanner, setShowCodeScanner] = useState(false);
   const [selectedPatientId, setSelectedPatientId] = useState(patients[0].id);
   const [notifications, setNotifications] = useState<PatientNotification[]>([]);
   const [message, setMessage] = useState(reminderOptions[0]);
@@ -101,6 +209,8 @@ export function PhoneTrackingApp() {
     }
   }
 
+  if (showCodeScanner) return <PatientCodeScreen onBack={() => setShowCodeScanner(false)} />;
+
   return (
     <main className="caregiver-app">
       <header className="caregiver-header">
@@ -109,6 +219,8 @@ export function PhoneTrackingApp() {
       </header>
 
       <section className="caregiver-welcome"><div><span>Buna dimineata</span><h2>Panoul pacientilor</h2></div><div className="caregiver-sync"><Wifi size={15} /> Sincronizat acum</div></section>
+
+      <button type="button" className="patient-code-button" onClick={() => setShowCodeScanner(true)}><span className="patient-code-button__icon"><ScanLine size={21} /></span><span><strong>Scaneaza pacient nou</strong><small>Citeste codul QR de pe tableta</small></span><ChevronRight size={18} /></button>
 
       <section className="caregiver-patient-list" aria-label="Pacienti">
         <div className="caregiver-section-label"><span><Users size={15} /> PACIENTII MEI</span><strong>{patients.length} activi</strong></div>
