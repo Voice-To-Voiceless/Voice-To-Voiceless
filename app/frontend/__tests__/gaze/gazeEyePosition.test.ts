@@ -33,6 +33,43 @@ test('normalizes vertical iris position from the eye-corner midpoint and eye wid
   expect(diagnostics.position?.y).toBeCloseTo(1);
 });
 
+test('uses the eyelid contour center instead of one noisy lid landmark', () => {
+  const diagnostics = getEyePositionDiagnostics({
+    innerCorner: { x: 0.2, y: 0.4 },
+    outerCorner: { x: 0.4, y: 0.4 },
+    upperLid: { x: 0.3, y: 0.1 },
+    lowerLid: { x: 0.3, y: 0.5 },
+    upperLidContour: [{ x: 0.3, y: 0.3 }, { x: 0.3, y: 0.31 }, { x: 0.3, y: 0.29 }],
+    lowerLidContour: [{ x: 0.3, y: 0.5 }, { x: 0.3, y: 0.49 }, { x: 0.3, y: 0.51 }],
+    irisCenter: { x: 0.3, y: 0.4 },
+    confidence: 0.9,
+  });
+
+  expect(diagnostics.position?.y).toBeCloseTo(0.5);
+  expect(diagnostics.projectedEyeHeight).toBeCloseTo(0.2);
+});
+
+test('keeps eyelid-relative scale anchored to eye width when aperture changes', () => {
+  const baseEye = {
+    innerCorner: { x: 0.2, y: 0.4 },
+    outerCorner: { x: 0.4, y: 0.4 },
+    upperLid: { x: 0.3, y: 0.35 },
+    lowerLid: { x: 0.3, y: 0.45 },
+    irisCenter: { x: 0.3, y: 0.4 },
+    confidence: 0.9,
+  };
+  const squintingEye = {
+    ...baseEye,
+    lowerLid: { x: 0.3, y: 0.38 },
+  };
+
+  const base = getEyePositionDiagnostics(baseEye);
+  const squinting = getEyePositionDiagnostics(squintingEye);
+
+  expect(base.verticalFeatureCandidates.eyelidRelative).toBeCloseTo(squinting.verticalFeatureCandidates.eyelidRelative!);
+  expect(squinting.projectedEyeHeight).toBeLessThan(base.projectedEyeHeight);
+});
+
 test('reports iris-ring and depth vertical feature candidates', () => {
   const diagnostics = getEyePositionDiagnostics({
     innerCorner: { x: 0.2, y: 0.4, z: 0.1 },
@@ -84,4 +121,26 @@ test('selects the nearest normalized card and rejects outside or ambiguous point
   expect(findGazeTarget({ x: 0.28, y: 0.5, confidence: 1, timestamp: 0 }, targets)).toBe('left');
   expect(findGazeTarget({ x: 0.5, y: 0.5, confidence: 1, timestamp: 0 }, targets)).toBeNull();
   expect(findGazeTarget({ x: 0.05, y: 0.5, confidence: 1, timestamp: 0 }, targets)).toBeNull();
+});
+
+test('uses the iris-ring centroid and rejects a dispersed ring', () => {
+  const centered = getEyePositionDiagnostics({
+    innerCorner: { x: 0.2, y: 0.4 }, outerCorner: { x: 0.4, y: 0.4 },
+    upperLid: { x: 0.3, y: 0.3 }, lowerLid: { x: 0.3, y: 0.5 },
+    irisCenter: { x: 0.9, y: 0.9 },
+    irisRing: [{ x: 0.29, y: 0.39 }, { x: 0.31, y: 0.39 }, { x: 0.31, y: 0.41 }, { x: 0.29, y: 0.41 }],
+    confidence: 0.9,
+  });
+  expect(centered.position?.x).toBeCloseTo(0.5);
+  expect(centered.position?.y).toBeCloseTo(0.5);
+
+  const dispersed = getEyePositionDiagnostics({
+    innerCorner: { x: 0.2, y: 0.4 }, outerCorner: { x: 0.4, y: 0.4 },
+    upperLid: { x: 0.3, y: 0.3 }, lowerLid: { x: 0.3, y: 0.5 },
+    irisCenter: { x: 0.3, y: 0.4 },
+    irisRing: [{ x: -0.3, y: -0.2 }, { x: 0.9, y: -0.2 }, { x: 0.9, y: 1 }, { x: -0.3, y: 1 }],
+    confidence: 0.9,
+  });
+  expect(dispersed.position).toBeNull();
+  expect(dispersed.failureReason).toBe('iris ring is too dispersed');
 });

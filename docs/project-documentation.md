@@ -24,7 +24,7 @@ Funcționalitățile principale implementate în cod sunt:
 - compensarea mișcării capului și filtrarea/smoothing-ul privirii;
 - selecție prin dwell, cu feedback vizual și audio;
 - mod de testare a recunoașterii expresiilor faciale;
-- notificări pacient-asistent, stocate în memorie;
+- notificări pacient-asistent, persistate în PostgreSQL;
 - teste Jest pentru calibrare, gaze, MediaPipe, tracking și sesiunea de model testing;
 - endpoint-uri backend pentru notificări și interpretarea imaginilor.
 
@@ -70,7 +70,7 @@ Backend-ul este compus astfel:
 - `app/backend/main.py`: punctul de intrare Uvicorn;
 - `app/backend/api/api.py`: aplicația FastAPI, rutele REST și WebSocket;
 - `app/backend/core/core.py`: composition root și injectarea serviciilor;
-- `app/backend/services/notification.py`: modelul notificării și serviciul thread-safe in-memory;
+- `app/backend/services/notification.py`: DTO-ul notificării și serviciul persistent PostgreSQL;
 - `app/backend/services/face_recognition`: detecție MediaPipe, interpretare temporală și notificări;
 - `app/backend/services/eye_tracking`: serviciile backend aferente eye tracking-ului;
 - `app/backend/services/language_interpreter`: contractele pentru modelul de semne și traducătorul în engleză.
@@ -110,7 +110,9 @@ tools/                  utilitare de dezvoltare
 - dependențele backend instalate în mediul proiectului;
 - modelul MediaPipe și/sau implementarea modelului de semne, dacă sunt necesare aceste servicii.
 
-Repository-ul nu conține în prezent un `requirements.txt` sau `pyproject.toml`; instalarea dependențelor Python trebuie menținută împreună cu configurația mediului de dezvoltare.
+Dependențele backend sunt gestionate cu `uv` în `app/pyproject.toml`, iar versiunile sunt blocate în `app/uv.lock`.
+
+Configurarea mediului local Docker, PostgreSQL, DBeaver, migrațiile și seeder-ul sunt descrise în [docker-local-development.md](docker-local-development.md).
 
 ## 6. Instalare și rulare
 
@@ -176,11 +178,21 @@ npm run ios
 
 ### Rulare backend
 
-Din rădăcina repository-ului, cu mediul virtual activ:
+Din rădăcina repository-ului:
 
 ```powershell
-python -m uvicorn app.backend.main:app --reload --host 0.0.0.0 --port 8000
+uv sync --project app
+uv run --project app python -m uvicorn app.backend.main:app --reload --host 0.0.0.0 --port 8000
 ```
+
+Pentru PostgreSQL și date de dezvoltare, copiază `app/.env.example` în `app/.env`, apoi aplică migrațiile și rulează seeder-ul:
+
+```powershell
+uv run --project app alembic -c app/database/alembic.ini upgrade head
+uv run --project app python -m app.database.seed --count 10
+```
+
+Detaliile schemei, importul notificărilor legacy și codurile de conectare sunt documentate în [database/README.md](../app/database/README.md).
 
 Backend-ul răspunde la `http://localhost:8000`. Documentația OpenAPI generată automat este disponibilă la `http://localhost:8000/docs`.
 
@@ -297,7 +309,7 @@ Nu porni simultan Vite și Metro pentru același flux de aplicație decât dacă
 
 - Vite, Metro și Uvicorn se opresc cu `Ctrl+C` în terminalul lor;
 - aplicația Android/iOS se poate închide din emulator, dispozitiv sau IDE;
-- oprirea backend-ului șterge notificările deoarece `NotificationService` este in-memory;
+- notificările rămân disponibile după oprirea backend-ului deoarece sunt persistate în PostgreSQL;
 - procesele native Gradle/Xcode lansate de build se închid după finalizarea instalării.
 
 ## 7. Utilizarea aplicației
@@ -436,12 +448,12 @@ Lungimea implicită a secvenței este `64`, iar stride-ul ferestrei este aproxim
 
 - `UnconfiguredSignLanguageModel`: model placeholder;
 - `GlossaryEnglishTranslator`: traducător bazat pe glosar;
-- `NotificationService`: stocare in-memory;
+- `NotificationService`: stocare persistentă în PostgreSQL;
 - `sequence_length=64`.
 
 Pentru teste sau integrarea unui model real, se poate apela `create_app(services=...)` cu o instanță `ApplicationServices` construită de test sau de procesul de startup.
 
-`NotificationService` nu persistă datele pe disc și nu oferă sincronizare între procese. Repornirea backend-ului golește notificările.
+`NotificationService` persistă notificările în PostgreSQL, astfel încât datele supraviețuiesc repornirii backend-ului și pot fi accesate de mai multe procese.
 
 ## 11. Testare și verificări de calitate
 
@@ -505,7 +517,7 @@ Păstrează serverul Metro existent sau oprește procesul vechi. Alternativ, por
 - backend-ul trebuie să ruleze pe portul `8000`;
 - verifică `patient_id`, deoarece aplicația tabletă caută `patient-001`;
 - verifică dacă notificarea este necitită și are `recipient: "patient"`;
-- serviciul este in-memory, deci datele dispar la restart.
+- verifică `DATABASE_URL`, migrațiile aplicate și conexiunea PostgreSQL dacă datele nu apar după restart.
 
 ## 13. Convenții de dezvoltare
 

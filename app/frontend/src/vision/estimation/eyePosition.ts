@@ -30,14 +30,18 @@ export function getEyePositionDiagnostics(eye: EyeObservation): EyePositionDiagn
     x: (eye.innerCorner.x + eye.outerCorner.x) / 2,
     y: (eye.innerCorner.y + eye.outerCorner.y) / 2,
   };
+  const irisCenter = getIrisRingCenter(eye, horizontalLength);
   const irisFromInner = {
-    x: eye.irisCenter.x - eye.innerCorner.x,
-    y: eye.irisCenter.y - eye.innerCorner.y,
+    x: (irisCenter?.x ?? eye.irisCenter.x) - eye.innerCorner.x,
+    y: (irisCenter?.y ?? eye.irisCenter.y) - eye.innerCorner.y,
   };
   const irisFromUpper = {
-    x: eye.irisCenter.x - eye.upperLid.x,
-    y: eye.irisCenter.y - eye.upperLid.y,
+    x: (irisCenter?.x ?? eye.irisCenter.x) - eye.upperLid.x,
+    y: (irisCenter?.y ?? eye.irisCenter.y) - eye.upperLid.y,
   };
+  const upperLidCenter = getContourCenter(eye.upperLidContour) ?? eye.upperLid;
+  const lowerLidCenter = getContourCenter(eye.lowerLidContour) ?? eye.lowerLid;
+  const eyelidContourCenter = midpoint(upperLidCenter, lowerLidCenter);
   const verticalFeatureCandidates = {
     eyelidRelative: null as number | null,
     cornerMidpoint: null as number | null,
@@ -61,6 +65,23 @@ export function getEyePositionDiagnostics(eye: EyeObservation): EyePositionDiagn
     };
   }
 
+  if (eye.irisRing && !irisCenter) {
+    return {
+      eyeWidth: horizontalLength,
+      horizontalLength,
+      horizontalAxis: null,
+      verticalAxis: null,
+      projectedEyeHeight: 0,
+      eyeMidpoint,
+      directHorizontalPosition: null,
+      irisFromInner,
+      irisFromUpper,
+      verticalFeatureCandidates,
+      position: null,
+      failureReason: 'iris ring is too dispersed',
+    };
+  }
+
   const horizontalAxis = {
     x: (eye.outerCorner.x - eye.innerCorner.x) / horizontalLength,
     y: (eye.outerCorner.y - eye.innerCorner.y) / horizontalLength,
@@ -75,15 +96,14 @@ export function getEyePositionDiagnostics(eye: EyeObservation): EyePositionDiagn
   }
 
   const projectedEyeHeight = Math.abs(dot(
-    { x: eye.lowerLid.x - eye.upperLid.x, y: eye.lowerLid.y - eye.upperLid.y },
+    { x: lowerLidCenter.x - upperLidCenter.x, y: lowerLidCenter.y - upperLidCenter.y },
     verticalAxis,
   ));
   const anatomicalHorizontalPosition = Math.min(1, Math.max(0, dot(irisFromInner, horizontalAxis) / horizontalLength));
-  const directHorizontalPosition = getDirectHorizontalPosition(eye, eyeMidpoint, horizontalAxis, horizontalLength);
-  const eyelidRelativePosition = projectedEyeHeight > 0
-    ? dot(irisFromUpper, verticalAxis) / projectedEyeHeight
-    : 0.5;
-  const cornerMidpointPosition = 0.5 + dot({ x: eye.irisCenter.x - eyeMidpoint.x, y: eye.irisCenter.y - eyeMidpoint.y }, verticalAxis) / horizontalLength;
+  const directHorizontalPosition = getDirectHorizontalPosition(irisCenter ?? eye.irisCenter, eyeMidpoint, horizontalAxis, horizontalLength);
+  const eyelidRelativePosition = dot(irisFromUpper, verticalAxis) / horizontalLength;
+  const effectiveIrisCenter = irisCenter ?? eye.irisCenter;
+  const cornerMidpointPosition = 0.5 + dot({ x: effectiveIrisCenter.x - eyelidContourCenter.x, y: effectiveIrisCenter.y - eyelidContourCenter.y }, verticalAxis) / horizontalLength;
   const irisRingPosition = getIrisRingVerticalPosition(eye, eyeMidpoint, verticalAxis, horizontalLength);
   verticalFeatureCandidates.eyelidRelative = eyelidRelativePosition;
   verticalFeatureCandidates.cornerMidpoint = cornerMidpointPosition;
@@ -114,7 +134,21 @@ export function getEyeAperture(eye: EyeObservation): number {
     return 0;
   }
 
-  return Math.max(0, Math.hypot(eye.lowerLid.x - eye.upperLid.x, eye.lowerLid.y - eye.upperLid.y) / eyeWidth);
+  const upperLidCenter = getContourCenter(eye.upperLidContour) ?? eye.upperLid;
+  const lowerLidCenter = getContourCenter(eye.lowerLidContour) ?? eye.lowerLid;
+  return Math.max(0, Math.abs(dot(
+    { x: lowerLidCenter.x - upperLidCenter.x, y: lowerLidCenter.y - upperLidCenter.y },
+    { x: -(eye.outerCorner.y - eye.innerCorner.y) / eyeWidth, y: (eye.outerCorner.x - eye.innerCorner.x) / eyeWidth },
+  )) / eyeWidth);
+}
+
+function midpoint(first: { x: number; y: number }, second: { x: number; y: number }): { x: number; y: number } {
+  return { x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 };
+}
+
+function getContourCenter(points: { x: number; y: number }[] | undefined): { x: number; y: number } | null {
+  if (!points || points.length === 0) return null;
+  return points.reduce((center, point) => ({ x: center.x + point.x / points.length, y: center.y + point.y / points.length }), { x: 0, y: 0 });
 }
 
 function dot(left: { x: number; y: number }, right: { x: number; y: number }): number {
@@ -122,16 +156,37 @@ function dot(left: { x: number; y: number }, right: { x: number; y: number }): n
 }
 
 function getDirectHorizontalPosition(
-  eye: EyeObservation,
+  irisCenter: { x: number; y: number },
   eyeMidpoint: { x: number; y: number },
   horizontalAxis: { x: number; y: number },
   horizontalLength: number,
 ): number {
   const irisFromMidpoint = {
-    x: eye.irisCenter.x - eyeMidpoint.x,
-    y: eye.irisCenter.y - eyeMidpoint.y,
-  };
+    x: irisCenter.x - eyeMidpoint.x,
+    y: irisCenter.y - eyeMidpoint.y,
+  }
   return Math.min(1, Math.max(0, 0.5 + dot(irisFromMidpoint, horizontalAxis) / horizontalLength));
+}
+
+function getIrisRingCenter(eye: EyeObservation, eyeWidth: number): { x: number; y: number; z?: number } | null {
+  const maximumRingRadius = eyeWidth * 0.5;
+  if (!eye.irisRing || eye.irisRing.length === 0) return null;
+  if (eye.irisRing.some(point => !Number.isFinite(point.x) || !Number.isFinite(point.y))) return null;
+
+  const center = getContourCenter(eye.irisRing);
+  if (!center || eyeWidth <= 0) return null;
+
+  const meanSquaredRadius = eye.irisRing.reduce((sum, point) => {
+    const dx = point.x - center.x;
+    const dy = point.y - center.y;
+    return sum + dx * dx + dy * dy;
+  }, 0) / eye.irisRing.length;
+  if (Math.sqrt(meanSquaredRadius) > maximumRingRadius) return null;
+
+  const depths = eye.irisRing.map(point => point.z).filter((z): z is number => z !== undefined && Number.isFinite(z));
+  return depths.length === eye.irisRing.length
+    ? { ...center, z: depths.reduce((sum, depth) => sum + depth, 0) / depths.length }
+    : center;
 }
 
 function toScreenHorizontalPosition(position: number, screenSide: EyeObservation['screenSide']): number {
@@ -153,7 +208,8 @@ function getIrisRingVerticalPosition(
 }
 
 function getNormalizedIrisDepth(eye: EyeObservation, _eyeMidpoint: { x: number; y: number }): number | null {
-  if (eye.irisCenter.z === undefined || eye.innerCorner.z === undefined || eye.outerCorner.z === undefined) return null;
+  const irisCenter = getIrisRingCenter(eye, Math.hypot(eye.outerCorner.x - eye.innerCorner.x, eye.outerCorner.y - eye.innerCorner.y)) ?? eye.irisCenter;
+  if (irisCenter.z === undefined || eye.innerCorner.z === undefined || eye.outerCorner.z === undefined) return null;
   const cornerDepth = ((eye.innerCorner.z ?? 0) + (eye.outerCorner.z ?? 0)) / 2;
-  return eye.irisCenter.z - cornerDepth;
+  return irisCenter.z - cornerDepth;
 }

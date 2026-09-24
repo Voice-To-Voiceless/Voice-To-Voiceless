@@ -15,6 +15,8 @@ export function createDirectionalLandmarks(screenX: number, screenY: number, rol
   landmarks[133] = leftInner;
   landmarks[159] = { x: 0.3, y: 0.3 };
   landmarks[145] = { x: 0.3, y: 0.5 };
+  [160, 158, 157].forEach(index => { landmarks[index] = { x: 0.3, y: 0.3 }; });
+  [144, 153, 154, 155].forEach(index => { landmarks[index] = { x: 0.3, y: 0.5 }; });
   landmarks[468] = { x: leftIrisX, y: irisY };
   landmarks[469] = { x: leftIrisX - 0.01, y: irisY - 0.01 };
   landmarks[470] = { x: leftIrisX + 0.01, y: irisY - 0.01 };
@@ -24,6 +26,8 @@ export function createDirectionalLandmarks(screenX: number, screenY: number, rol
   landmarks[263] = rightOuter;
   landmarks[386] = { x: 0.7, y: 0.3 };
   landmarks[374] = { x: 0.7, y: 0.5 };
+  [387, 385, 384].forEach(index => { landmarks[index] = { x: 0.7, y: 0.3 }; });
+  [373, 380, 381, 382].forEach(index => { landmarks[index] = { x: 0.7, y: 0.5 }; });
   landmarks[473] = { x: rightIrisX, y: irisY };
   landmarks[474] = { x: rightIrisX - 0.01, y: irisY - 0.01 };
   landmarks[475] = { x: rightIrisX + 0.01, y: irisY - 0.01 };

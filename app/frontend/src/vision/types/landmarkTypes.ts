@@ -11,6 +11,8 @@ export type EyeObservation = {
   outerCorner: LandmarkPoint;
   upperLid: LandmarkPoint;
   lowerLid: LandmarkPoint;
+  upperLidContour?: LandmarkPoint[];
+  lowerLidContour?: LandmarkPoint[];
   irisCenter: LandmarkPoint;
   irisRing?: LandmarkPoint[];
   screenSide?: 'left' | 'right';

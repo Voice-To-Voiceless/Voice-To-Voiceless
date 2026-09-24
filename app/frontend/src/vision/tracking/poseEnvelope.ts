@@ -50,6 +50,12 @@ export function isPoseWithinEnvelope(envelope: PoseEnvelope | null, pose: Relati
   return getPoseDrift(envelope, pose).reasons.length === 0;
 }
 
+export function isPitchWithinEnvelope(envelope: PoseEnvelope | null, pose: RelativeFacePose | null): boolean {
+  if (envelope === null || pose === null || pose.pitch === null || !Number.isFinite(pose.pitch)) return false;
+  const range = envelope.pitch;
+  return Math.abs(pose.pitch - range.median) <= Math.max(POSE_ENVELOPE_MARGIN.pitch, range.mad * 3);
+}
+
 export function getPoseDrift(envelope: PoseEnvelope | null, pose: RelativeFacePose | null): PoseDrift {
   if (envelope === null || pose === null || pose.yaw === null || pose.pitch === null) {
     return { score: Number.POSITIVE_INFINITY, reasons: ['yaw', 'pitch'] };

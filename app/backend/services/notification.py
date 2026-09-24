@@ -1,12 +1,12 @@
-"""Shared notification model and in-memory notification service."""
+"""Notification DTO and PostgreSQL-backed notification service."""
 
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
-import json
-from pathlib import Path
-from threading import Lock
 from typing import Any
-from uuid import uuid4
+from uuid import UUID
+
+from app.database.repositories import NotificationRepository
+from app.database.session import session_scope
 
 
 @dataclass
@@ -28,27 +28,31 @@ class Notification:
         return asdict(self)
 
 
+def _to_dto(record: Any) -> Notification:
+    created_at = record.created_at
+    if isinstance(created_at, datetime):
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+        created_at_value = created_at.isoformat()
+    else:
+        created_at_value = str(created_at)
+
+    return Notification(
+        id=str(record.id),
+        source=record.source,
+        type=record.type,
+        severity=record.severity,
+        message=record.message,
+        patient_metadata=dict(record.patient_metadata or {}),
+        created_at=created_at_value,
+        read=record.read,
+        recipient=record.recipient,
+        sender_metadata=dict(record.sender_metadata or {}),
+    )
+
+
 class NotificationService:
-    """Store and coordinate notifications from all detection services."""
-
-    def __init__(self) -> None:
-        self._storage_path = Path(__file__).resolve().parents[2] / "database" / "notifications.json"
-        self._lock = Lock()
-        self._notifications = self._load()
-
-    def _load(self) -> list[Notification]:
-        try:
-            records = json.loads(self._storage_path.read_text(encoding="utf-8"))
-        except (FileNotFoundError, json.JSONDecodeError):
-            return []
-        return [Notification(**record) for record in records]
-
-    def _save(self) -> None:
-        self._storage_path.parent.mkdir(parents=True, exist_ok=True)
-        self._storage_path.write_text(
-            json.dumps([notification.to_dict() for notification in self._notifications], ensure_ascii=True),
-            encoding="utf-8",
-        )
+    """Store and coordinate notifications in PostgreSQL."""
 
     def create(
         self,
@@ -61,55 +65,42 @@ class NotificationService:
         recipient: str = "nurse",
         sender_metadata: dict[str, Any] | None = None,
     ) -> Notification:
-        with self._lock:
-            for existing in self._notifications:
-                if (
-                    existing.source == source
-                    and existing.type == type
-                    and existing.message == message
-                    and existing.recipient == recipient
-                    and existing.patient_metadata.get("patient_id") == patient_metadata.get("patient_id")
-                    and existing.created_at[:19] == datetime.now(timezone.utc).isoformat()[:19]
-                ):
-                    return existing
+        with session_scope() as session:
+            record = NotificationRepository(session).create(
+                source=source,
+                type=type,
+                severity=severity,
+                message=message,
+                patient_metadata=patient_metadata,
+                recipient=recipient,
+                sender_metadata=sender_metadata or {},
+            )
+            return _to_dto(record)
 
-        notification = Notification(
-            id=str(uuid4()),
-            source=source,
-            type=type,
-            severity=severity,
-            message=message,
-            patient_metadata=patient_metadata,
-            created_at=datetime.now(timezone.utc).isoformat(),
-            recipient=recipient,
-            sender_metadata=sender_metadata or {},
-        )
-        with self._lock:
-            self._notifications.insert(0, notification)
-            self._save()
-        return notification
-
-    def list(self, *, include_read: bool = True) -> list[Notification]:
-        with self._lock:
-            notifications = list(self._notifications)
-        if include_read:
-            return notifications
-        return [notification for notification in notifications if not notification.read]
+    def list(self, *, include_read: bool = True, recipient: str | None = None) -> list[Notification]:
+        with session_scope() as session:
+            records = NotificationRepository(session).list(
+                include_read=include_read,
+                recipient=recipient,
+            )
+            return [_to_dto(record) for record in records]
 
     def mark_read(self, notification_id: str) -> Notification | None:
-        with self._lock:
-            for notification in self._notifications:
-                if notification.id == notification_id:
-                    notification.read = True
-                    self._save()
-                    return notification
-        return None
+        try:
+            parsed_id = UUID(notification_id)
+        except ValueError:
+            return None
+
+        with session_scope() as session:
+            record = NotificationRepository(session).mark_read(parsed_id)
+            return _to_dto(record) if record is not None else None
 
     def delete(self, notification_id: str) -> Notification | None:
-        with self._lock:
-            for index, notification in enumerate(self._notifications):
-                if notification.id == notification_id:
-                    deleted = self._notifications.pop(index)
-                    self._save()
-                    return deleted
-        return None
+        try:
+            parsed_id = UUID(notification_id)
+        except ValueError:
+            return None
+
+        with session_scope() as session:
+            record = NotificationRepository(session).delete(parsed_id)
+            return _to_dto(record) if record is not None else None

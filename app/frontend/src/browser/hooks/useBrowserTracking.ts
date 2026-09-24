@@ -3,7 +3,7 @@ import { ActionId } from '../../types/communication';
 import { DwellSelector } from '../../interaction/dwellSelector';
 import { GazeJoystickController } from '../../vision/tracking/gazeJoystickController';
 import { GazeSmoother } from '../../vision/temporal/gazeSmoother';
-import { estimateGaze, getGazeDiagnostics } from '../../vision/estimation/gazeEstimator';
+import { BinocularVerticalOffsetEstimator, estimateGaze, getGazeDiagnostics } from '../../vision/estimation/gazeEstimator';
 import { getEyePositionDiagnostics } from '../../vision/estimation/eyePosition';
 import { estimateRelativeFacePose } from '../../vision/estimation/facePoseEstimator';
 import { FaceTrackingLossTracker } from '../../vision/tracking/trackingReliability';
@@ -14,7 +14,7 @@ import { MediaPipeFaceLandmarkerAdapter } from '../../vision/mediapipe/mediaPipe
 import { ModelTestingSession } from '../../modelTesting/modelTestingSession';
 import { useCalibration } from './useCalibration';
 import { evaluateCalibrationSampleQuality } from '../../vision/calibration/calibrationQuality';
-import { isPoseWithinEnvelope } from '../../vision/tracking/poseEnvelope';
+import { isPitchWithinEnvelope, isPoseWithinEnvelope } from '../../vision/tracking/poseEnvelope';
 import { getCalibrationFeatures } from '../../vision/calibration/calibrationFeatures';
 import { GazeTargetVoting } from '../../vision/estimation/gazeTargetVoting';
 import { GazeTemporalFilter } from '../../vision/temporal/gazeTemporalFilter';
@@ -39,6 +39,7 @@ export function useBrowserTracking(
   const lossRef = useRef(new FaceTrackingLossTracker());
   const targetVotingRef = useRef(new GazeTargetVoting<ActionId>());
   const temporalFilterRef = useRef(new GazeTemporalFilter());
+  const verticalOffsetEstimatorRef = useRef(new BinocularVerticalOffsetEstimator());
   const poseReturnStableSinceRef = useRef<number | null>(null);
   const { activeRef: calibrationActiveRef, indexRef: calibrationIndexRef, readyRef: calibrationReadyRef, mapper: calibrationMapperRef, poseEnvelope: calibrationPoseEnvelopeRef, targetsRef: calibrationTargetsRef, passKindRef: calibrationPassKindRef, failedRef: calibrationFailedRef, failureRef: calibrationFailureRef, start: startCalibration, reset: resetCalibration, pause: pauseCalibration, process: processCalibration } = useCalibration(modelTestingSession);
   const [snapshot, setSnapshot] = useState(initialSnapshot);
@@ -80,14 +81,19 @@ export function useBrowserTracking(
         return;
       }
       lossRef.current.markDetected();
-      const gaze = estimateGaze(observation);
+      const unalignedDiagnostics = getGazeDiagnostics(observation);
+      if (calibrationActiveRef.current && calibrationPassKindRef.current === 'training') {
+        verticalOffsetEstimatorRef.current.update(unalignedDiagnostics);
+      }
+      const verticalOffset = verticalOffsetEstimatorRef.current.current;
+      const gaze = estimateGaze(observation, 0.5, 0.15, verticalOffset);
       if (!gaze) {
         pauseCalibration(timestamp); joystickRef.current.resetVelocity(); dwellRef.current.cancel(); targetVotingRef.current.reset(); poseReturnStableSinceRef.current = null;
         setSnapshot(value => ({ ...value, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0, trackingPauseReason: 'invalid-pose' }));
         setStatus('Gaze confidence is low. Keep your eyes visible.');
         return;
       }
-      const rawGazeDiagnostics = getGazeDiagnostics(observation);
+      const rawGazeDiagnostics = getGazeDiagnostics(observation, verticalOffset);
       const filtered = temporalFilterRef.current.update({ gaze, diagnostics: rawGazeDiagnostics, leftConfidence: observation.leftEye.confidence, rightConfidence: observation.rightEye.confidence });
       if (!filtered.accepted || filtered.gaze === null || filtered.diagnostics === null) {
         pauseCalibration(timestamp);
@@ -101,6 +107,13 @@ export function useBrowserTracking(
       }
       const filteredGaze = filtered.gaze;
       const pose = estimateRelativeFacePose(observation);
+      if (calibrationActiveRef.current && calibrationPassKindRef.current === 'validation' && !isPitchWithinEnvelope(calibrationPoseEnvelopeRef.current, pose)) {
+        pauseCalibration(timestamp);
+        dwellRef.current.cancel();
+        setSnapshot(value => ({ ...value, rawGaze: { x: gaze.x, y: gaze.y }, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0, trackingPauseReason: 'face-drift' }));
+        setStatus('Calibration paused. Keep your head level and return to the calibrated position.');
+        return;
+      }
       if (!calibrationActiveRef.current && calibrationReadyRef.current && !isPoseWithinEnvelope(calibrationPoseEnvelopeRef.current, pose)) {
         poseReturnStableSinceRef.current = null; joystickRef.current.resetVelocity(); dwellRef.current.cancel(); targetVotingRef.current.reset();
         setSnapshot(value => ({ ...value, rawGaze: { x: gaze.x, y: gaze.y }, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0, trackingPauseReason: 'face-drift' }));
@@ -162,10 +175,11 @@ export function useBrowserTracking(
       processingRef.current = false;
       if (activeRef.current) frameRef.current = requestAnimationFrame(processFrame);
     }
-  }, [boardRef, calibrationActiveRef, calibrationFailedRef, calibrationFailureRef, calibrationIndexRef, calibrationMapperRef, calibrationPoseEnvelopeRef, calibrationReadyRef, calibrationTargetsRef, modelTestingSession, onSelect, pauseCalibration, processCalibration, resetInteraction, videoRef]);
+  }, [boardRef, calibrationActiveRef, calibrationFailedRef, calibrationFailureRef, calibrationIndexRef, calibrationMapperRef, calibrationPassKindRef, calibrationPoseEnvelopeRef, calibrationReadyRef, calibrationTargetsRef, modelTestingSession, onSelect, pauseCalibration, processCalibration, resetInteraction, videoRef]);
   const calibrate = useCallback(() => {
     if (!activeRef.current) return;
     startCalibration();
+    if (calibrationPassKindRef.current === 'training') verticalOffsetEstimatorRef.current.reset();
     fallbackLoggedRef.current = false;
     resetInteraction();
     joystickRef.current.reset();

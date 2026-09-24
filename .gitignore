@@ -26,3 +26,6 @@ build/
 *.egg-info/
 datasets/*
 .idea/*
+
+# Virtual environment
+app/.venv/

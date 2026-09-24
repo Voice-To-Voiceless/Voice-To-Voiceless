@@ -80,9 +80,10 @@ def create_app(services: ApplicationServices | None = None) -> FastAPI:
 		include_read: bool = True,
 		recipient: str | None = None,
 	) -> list[dict[str, object]]:
-		notifications = dependencies.notification_service.list(include_read=include_read)
-		if recipient is not None:
-			notifications = [notification for notification in notifications if notification.recipient == recipient]
+		notifications = dependencies.notification_service.list(
+			include_read=include_read,
+			recipient=recipient,
+		)
 		return [notification.to_dict() for notification in notifications]
 
 	@app.post("/api/v1/notifications/{notification_id}/read")

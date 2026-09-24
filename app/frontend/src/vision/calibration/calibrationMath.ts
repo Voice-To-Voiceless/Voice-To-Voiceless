@@ -75,10 +75,10 @@ export function fitRobustMapping(samples: AggregatedCalibrationSample[]): { xCoe
 
 export type AffineFitCoefficients = { xCoefficients: AffineCoefficients; yCoefficients: AffineCoefficients };
 
-export function getCalibrationFitDiagnostics(samples: CalibrationSample[]): CalibrationFitDiagnostics {
+export function getCalibrationFitDiagnostics(samples: CalibrationSample[], allowUnstableTargets = false): CalibrationFitDiagnostics {
   const aggregatedSamples = aggregateSamples(samples);
   if (aggregatedSamples.length < 3) return rejected('fewer than three target groups');
-  if (aggregatedSamples.filter(sample => sample.weight < 1).length > MAX_UNSTABLE_TARGETS) return rejected('too many unstable target groups');
+  if (!allowUnstableTargets && aggregatedSamples.filter(sample => sample.weight < 1).length > MAX_UNSTABLE_TARGETS) return rejected('too many unstable target groups');
   if (axisSpan(aggregatedSamples, 'x') < MIN_CALIBRATION_AXIS_SPAN || axisSpan(aggregatedSamples, 'y') < MIN_CALIBRATION_AXIS_SPAN) return rejected('insufficient gaze range');
   const fit = fitRobustMapping(aggregatedSamples);
   if (fit === null) return rejected('singular calibration matrix');
