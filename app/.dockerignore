@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+backend/.venv/
+tools/l2cs/.venv/
+frontend/node_modules/
+frontend/dist-web/
+frontend/android/.gradle/
+frontend/android/app/build/
+frontend/ios/Pods/
+.env
+.git/

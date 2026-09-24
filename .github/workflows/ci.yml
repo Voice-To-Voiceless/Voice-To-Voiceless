@@ -10,6 +10,20 @@ jobs:
   backend:
     name: Python validation
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: v2vl
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d v2vl"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     steps:
       - name: Checkout repository
@@ -20,8 +34,26 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: latest
+
+      - name: Install backend dependencies
+        run: uv sync --project app
+
+      - name: Apply database migrations
+        env:
+          DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/v2vl
+        run: uv run --project app alembic -c app/database/alembic.ini upgrade head
+
+      - name: Run backend tests
+        env:
+          DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/v2vl
+        run: uv run --project app pytest -q
+
       - name: Validate Python syntax
-        run: python -m compileall app/backend
+        run: uv run --project app python -m compileall app/backend app/database
 
   frontend:
     name: Frontend validation
