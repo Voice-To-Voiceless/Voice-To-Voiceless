@@ -26,6 +26,10 @@ class NurseAlertRequest(BaseModel):
 	nurse_metadata: dict[str, object] = Field(default_factory=dict)
 
 
+class PatientLinkRequest(BaseModel):
+	code: str = Field(min_length=1, max_length=80)
+
+
 def create_app(services: ApplicationServices | None = None) -> FastAPI:
 	"""Create the notification API with injectable services."""
 	dependencies = services or create_services()
@@ -57,6 +61,13 @@ def create_app(services: ApplicationServices | None = None) -> FastAPI:
 	@app.get("/api/v1/patients")
 	async def list_patients() -> list[dict[str, str]]:
 		return [patient.to_dict() for patient in dependencies.patient_service.list()]
+
+	@app.post("/api/v1/patients/link")
+	async def link_patient(request: PatientLinkRequest) -> dict[str, str]:
+		patient = dependencies.patient_service.link_by_code(request.code)
+		if patient is None:
+			raise HTTPException(status_code=404, detail="Invalid patient code")
+		return patient.to_dict()
 
 	@app.post("/api/v1/notifications", status_code=201)
 	async def create_notification(request: NotificationCreateRequest) -> dict[str, object]:
