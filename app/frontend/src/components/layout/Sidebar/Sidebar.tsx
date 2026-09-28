@@ -118,25 +118,25 @@ export default function Sidebar({ notification, activeItem = "Home", onNavigate 
                     </button>
 
                     <div className="patient-code-modal__icon"><QrCode size={22} /></div>
-                    <p className="patient-code-modal__eyebrow">Patient access</p>
-                    <h2 id="patient-code-title">Patient code</h2>
+                    <p className="patient-code-modal__eyebrow">{t("patientAccess")}</p>
+                    <h2 id="patient-code-title">{t("patientCode")}</h2>
 
                     {!showManualCode ? (
                         <div className="patient-code-modal__qr-result">
-                            <span>Scan this QR code to connect the patient</span>
+                            <span>{t("scanQrCode")}</span>
                             <div className="patient-code-modal__qr-frame" aria-label={`QR code for ${DEMO_PATIENT_CODE}`}>
                                 {qrCode ? <img src={qrCode} alt={`QR code for patient ${DEMO_PATIENT_CODE}`} /> : <QrCode size={120} />}
                             </div>
                             <button className="patient-code-modal__manual" type="button" onClick={() => setShowManualCode(true)}>
                                 <Keyboard size={17} />
-                                Enter manual code
+                                {t("enterManualCode")}
                             </button>
                         </div>
                     ) : (
                         <div className="patient-code-modal__result">
-                            <span>Your patient code</span>
+                            <span>{t("yourPatientCode")}</span>
                             <strong>{DEMO_PATIENT_CODE}</strong>
-                            <button className="patient-code-modal__submit" type="button" onClick={closePatientCode}>Done</button>
+                            <button className="patient-code-modal__submit" type="button" onClick={closePatientCode}>{t("done")}</button>
                         </div>
                     )}
                 </section>
