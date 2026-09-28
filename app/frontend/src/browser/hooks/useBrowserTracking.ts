@@ -17,7 +17,7 @@ import { evaluateCalibrationSampleQuality } from '../../vision/calibration/calib
 import { L2CSOnnxEstimator } from '../../vision/estimation/l2csGaze';
 import { getCalibrationFeatures } from '../../vision/calibration/calibrationFeatures';
 
-const initialSnapshot: TrackingSnapshot = { active: false, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0, calibrating: false, calibrationIndex: 0, calibrationTarget: null, calibrationProgress: 0, calibrationPassKind: null, calibrationFailed: false, calibrationFailure: null, calibrationReady: false, trackingPauseReason: null, l2csYaw: null, l2csPitch: null, l2csProvider: null, l2csInferenceLatencyMs: null, l2csEstimatesPerSecond: null, poseStatus: 'unknown' };
+const initialSnapshot: TrackingSnapshot = { active: false, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0, calibrating: false, calibrationIndex: 0, calibrationTarget: null, calibrationProgress: 0, calibrationPassKind: null, calibrationFailed: false, calibrationFailure: null, calibrationReady: false, trackingPauseReason: null, l2csError: null, l2csYaw: null, l2csPitch: null, l2csProvider: null, l2csInferenceLatencyMs: null, l2csEstimatesPerSecond: null, poseStatus: 'unknown' };
 
 export function useBrowserTracking(
   videoRef: React.RefObject<HTMLVideoElement | null>,
@@ -37,6 +37,7 @@ export function useBrowserTracking(
   const lossRef = useRef(new FaceTrackingLossTracker());
   const poseRef = useRef<FacePoseReference | null>(null);
   const l2csRef = useRef<L2CSOnnxEstimator | null>(null);
+  const l2csDisabledRef = useRef(false);
   const {
     activeRef: calibrationActiveRef,
     indexRef: calibrationIndexRef,
@@ -67,6 +68,7 @@ export function useBrowserTracking(
     adapterRef.current = null;
     l2csRef.current?.dispose();
     l2csRef.current = null;
+    l2csDisabledRef.current = false;
     closeCamera(streamRef.current);
     streamRef.current = null;
     resetCalibration();
@@ -93,10 +95,27 @@ export function useBrowserTracking(
       lossRef.current.markDetected();
       const pose = estimateRelativeFacePose(observation);
       let l2csResult: Awaited<ReturnType<L2CSOnnxEstimator['estimate']>> = null;
-      if (l2csRef.current) {
-        try { l2csResult = await l2csRef.current.estimate(video, observation, timestamp); } catch (l2csError) { console.warn('[gaze-tracking] L2CS frame failed', l2csError); }
+      if (l2csRef.current && !l2csDisabledRef.current) {
+        try { l2csResult = await l2csRef.current.estimate(video, observation, timestamp); } catch (l2csError) {
+          l2csDisabledRef.current = true;
+          l2csRef.current.dispose();
+          l2csRef.current = null;
+          const message = l2csError instanceof Error ? l2csError.message : 'L2CS inference failed.';
+          console.warn('[gaze-tracking] L2CS disabled after terminal frame failure', l2csError);
+          if (calibrationActiveRef.current) {
+            resetCalibration();
+            setSnapshot(value => ({ ...value, calibrating: false, calibrationReady: false, calibrationTarget: null }));
+          }
+          setSnapshot(value => ({ ...value, trackingPauseReason: 'l2cs-disabled', l2csError: message }));
+          setStatus('L2CS disabled. Restart tracking to retry gaze inference.');
+        }
       }
       if (l2csResult) setSnapshot(value => ({ ...value, l2csYaw: l2csResult!.gaze.yaw, l2csPitch: l2csResult!.gaze.pitch, l2csProvider: l2csResult!.diagnostics.provider, l2csInferenceLatencyMs: l2csResult!.diagnostics.latencyMs, l2csEstimatesPerSecond: l2csResult!.diagnostics.estimatesPerSecond }));
+      if (calibrationActiveRef.current && l2csRef.current && !l2csResult) {
+        smootherRef.current.reset();
+        setStatus('Waiting for a valid L2CS gaze estimate before recording.');
+        return;
+      }
       const gazeDiagnostics = getGazeDiagnostics(observation);
       const gaze = estimateGaze(observation) ?? (l2csResult ? gazeFromL2CS(l2csResult.gaze, timestamp) : null);
       if (!gaze) {
@@ -134,6 +153,7 @@ export function useBrowserTracking(
           raw: gaze,
           compensated: compensateGazeForPose(gaze, pose, poseRef.current),
           pose: poseSample,
+          poseSource: pose,
           features,
           quality,
         });
@@ -154,6 +174,14 @@ export function useBrowserTracking(
         return;
       }
       const mapper = calibrationMapperRef.current;
+      if (mapper?.requiresL2CS() && !l2csResult) {
+        smootherRef.current.reset();
+        joystickRef.current.resetVelocity();
+        dwellRef.current.cancel();
+        setSnapshot(value => ({ ...value, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0 }));
+        setStatus('Waiting for a valid L2CS gaze estimate.');
+        return;
+      }
       const calibratedGaze = mapper?.map(smoothed, features) ?? null;
       if (!mapper && !fallbackLoggedRef.current) {
         fallbackLoggedRef.current = true;
@@ -180,7 +208,7 @@ export function useBrowserTracking(
       processingRef.current = false;
       if (activeRef.current) frameRef.current = requestAnimationFrame(processFrame);
     }
-  }, [boardRef, calibrationActiveRef, calibrationIndexRef, calibrationMapperRef, calibrationReadyRef, calibrationTargetsRef, modelTestingSession, onSelect, processCalibration, resetInteraction, videoRef]);
+  }, [boardRef, calibrationActiveRef, calibrationIndexRef, calibrationMapperRef, calibrationReadyRef, calibrationTargetsRef, modelTestingSession, onSelect, processCalibration, resetCalibration, resetInteraction, videoRef]);
   const calibrate = useCallback(() => {
     if (!activeRef.current) return;
     startCalibration();
@@ -202,7 +230,7 @@ export function useBrowserTracking(
       streamRef.current = await openCamera(videoRef.current);
       adapterRef.current = await createFaceAdapter();
       const l2cs = new L2CSOnnxEstimator();
-      try { await l2cs.initialize(); l2csRef.current = l2cs; } catch (l2csError) { l2cs.dispose(); console.warn('[gaze-tracking] L2CS unavailable; using eye estimator', l2csError); }
+      try { await l2cs.initialize(); l2csRef.current = l2cs; } catch (l2csError) { l2cs.dispose(); l2csDisabledRef.current = true; const message = l2csError instanceof Error ? l2csError.message : 'L2CS initialization failed.'; setSnapshot(value => ({ ...value, trackingPauseReason: 'l2cs-disabled', l2csError: message })); console.warn('[gaze-tracking] L2CS unavailable; using eye estimator', l2csError); }
       activeRef.current = true;
       setSnapshot(value => ({ ...value, active: true }));
       resetInteraction();

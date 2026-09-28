@@ -32,7 +32,7 @@ export function fitRidgeCalibration(samples: RidgeSample[]): RidgeModel | null {
   const hasL2CSFeatures = samples.every(sample => sample.features.l2csYaw !== undefined && sample.features.l2csPitch !== undefined);
   const xFeatures = hasL2CSFeatures ? RIDGE_X_FEATURES : LEGACY_X_FEATURES;
   const yFeatures = hasL2CSFeatures ? RIDGE_Y_FEATURES : LEGACY_Y_FEATURES;
-  const lambda = chooseLambdaLeaveOneTargetOut(aggregated);
+  const lambda = chooseLambdaLeaveOneTargetOut(aggregated, xFeatures, yFeatures);
   const x = fitAxis(aggregated, xFeatures, 'x', lambda);
   const y = fitAxis(aggregated, yFeatures, 'y', lambda);
   return x && y ? { x, y } : null;
@@ -79,7 +79,7 @@ function predict(model: LinearModel, features: RidgeCalibrationFeatures): number
   const values = [1, ...model.names.map((name, index) => (featureValue(features, name) - model.mean[index]!) / model.scale[index]!)];
   return dot(model.coefficients, values);
 }
-function isFiniteSample(sample: RidgeSample): boolean { return [...Object.values(sample.features).filter((value): value is number => typeof value === 'number'), featureValue(sample.features, 'l2csYaw'), featureValue(sample.features, 'l2csPitch')].every(Number.isFinite) && Number.isFinite(sample.target.x) && Number.isFinite(sample.target.y); }
+function isFiniteSample(sample: RidgeSample): boolean { return Object.values(sample.features).filter((value): value is number => typeof value === 'number').every(Number.isFinite) && Number.isFinite(sample.target.x) && Number.isFinite(sample.target.y); }
 function median(values: number[]): number { const sorted = [...values].sort((left, right) => left - right); const middle = Math.floor(sorted.length / 2); return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2; }
 function createMatrix(size: number): number[][] { return Array.from({ length: size }, () => Array(size).fill(0)); }
 function solve(matrix: number[][], vector: number[]): number[] | null {
@@ -102,25 +102,25 @@ function solve(matrix: number[][], vector: number[]): number[] | null {
 function dot(left: number[], right: number[]): number { return left.reduce((sum, value, index) => sum + value * right[index], 0); }
 
 function featureValue(features: RidgeCalibrationFeatures, name: keyof RidgeCalibrationFeatures): number {
-  if (name === 'l2csYaw') return features.l2csYaw ?? features.yaw;
-  if (name === 'l2csPitch') return features.l2csPitch ?? features.pitch;
+  if (name === 'l2csYaw') return features.l2csYaw ?? Number.NaN;
+  if (name === 'l2csPitch') return features.l2csPitch ?? Number.NaN;
   return features[name] as number;
 }
 
-function chooseLambdaLeaveOneTargetOut(samples: RidgeSample[]): number {
+function chooseLambdaLeaveOneTargetOut(samples: RidgeSample[], xFeatures: Array<keyof RidgeCalibrationFeatures>, yFeatures: Array<keyof RidgeCalibrationFeatures>): number {
   const targets = [...new Set(samples.map(sample => `${sample.target.x}:${sample.target.y}`))];
   if (targets.length < 3) return 0.1;
-  return RIDGE_LAMBDAS.map(lambda => ({ lambda, error: leaveOneTargetOutError(samples, targets, lambda) }))
+  return RIDGE_LAMBDAS.map(lambda => ({ lambda, error: leaveOneTargetOutError(samples, targets, lambda, xFeatures, yFeatures) }))
     .sort((left, right) => left.error - right.error)[0].lambda;
 }
 
-function leaveOneTargetOutError(samples: RidgeSample[], targets: string[], lambda: number): number {
+function leaveOneTargetOutError(samples: RidgeSample[], targets: string[], lambda: number, xFeatures: Array<keyof RidgeCalibrationFeatures>, yFeatures: Array<keyof RidgeCalibrationFeatures>): number {
   const errors: number[] = [];
   targets.forEach(heldOut => {
     const training = samples.filter(sample => `${sample.target.x}:${sample.target.y}` !== heldOut);
     const validation = samples.filter(sample => `${sample.target.x}:${sample.target.y}` === heldOut);
-    const x = fitAxis(training, RIDGE_X_FEATURES, 'x', lambda);
-    const y = fitAxis(training, RIDGE_Y_FEATURES, 'y', lambda);
+    const x = fitAxis(training, xFeatures, 'x', lambda);
+    const y = fitAxis(training, yFeatures, 'y', lambda);
     if (!x || !y) return;
     validation.forEach(sample => errors.push(Math.hypot(predict(x, sample.features) - sample.target.x, predict(y, sample.features) - sample.target.y)));
   });

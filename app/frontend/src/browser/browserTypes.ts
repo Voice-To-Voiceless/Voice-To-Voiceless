@@ -18,7 +18,8 @@ export type TrackingSnapshot = {
   calibrationFailed: boolean;
   calibrationFailure: string | null;
   calibrationReady: boolean;
-  trackingPauseReason: 'face-drift' | 'face-lost' | 'invalid-pose' | 'invalid-gaze' | null;
+  trackingPauseReason: 'face-drift' | 'face-lost' | 'invalid-pose' | 'invalid-gaze' | 'l2cs-disabled' | null;
+  l2csError: string | null;
   l2csYaw: number | null;
   l2csPitch: number | null;
   l2csProvider: 'webgpu' | 'wasm' | null;

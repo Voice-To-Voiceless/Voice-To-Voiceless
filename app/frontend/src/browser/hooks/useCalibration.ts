@@ -15,8 +15,8 @@ export const CALIBRATION_SAMPLE_DURATION_MS = 900;
 export const CALIBRATION_MAX_RECORDING_DURATION_MS = CALIBRATION_SAMPLE_DURATION_MS;
 export const CALIBRATION_INTERLEAVED_TARGETS = [CALIBRATION_TARGETS[4], CALIBRATION_TARGETS[1], CALIBRATION_TARGETS[7], CALIBRATION_TARGETS[3], CALIBRATION_TARGETS[5], CALIBRATION_TARGETS[0], CALIBRATION_TARGETS[2], CALIBRATION_TARGETS[6], CALIBRATION_TARGETS[8]] as const;
 export const CALIBRATION_TARGET_ORDERS = [
-  CALIBRATION_TARGETS,
-  [...CALIBRATION_TARGETS].reverse(),
+  CALIBRATION_INTERLEAVED_TARGETS,
+  [...CALIBRATION_INTERLEAVED_TARGETS].reverse(),
 ] as const;
 
 type CalibrationState = { active: boolean; index: number; ready: boolean };
@@ -46,10 +46,11 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
   });
 
   const start = useCallback(() => {
+    if (activeRef.current) return;
     if (!modelTestingSession) mapperRef.current = null;
     const nextPassKind = modelTestingSession?.nextPassKind;
     const pass = nextPassKind
-      ? modelTestingSession?.startPass(nextPassKind === 'training' ? CALIBRATION_TARGET_ORDERS[0] : CALIBRATION_TARGET_ORDERS[1])
+      ? modelTestingSession?.startPass(nextPassKind === 'training' ? [...CALIBRATION_TARGET_ORDERS[0]] : [...CALIBRATION_TARGET_ORDERS[1]])
       : null;
     if (pass) {
       passKindRef.current = pass.kind;
@@ -59,9 +60,10 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
       targetsRef.current = CALIBRATION_TARGETS;
     }
     const isValidation = passKindRef.current === 'validation';
+    const retainingValidatedMapper = !nextPassKind && mapperRef.current !== null;
     activeRef.current = true;
     indexRef.current = 0;
-    if (!isValidation) readyRef.current = false;
+    if (!isValidation && !retainingValidatedMapper) readyRef.current = false;
     dataRef.current = { started: performance.now(), all: [], point: [], poseSource: null };
     setState({ active: true, index: 0, ready: readyRef.current });
   }, [modelTestingSession]);
@@ -127,6 +129,22 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
         mapperRef.current = validated?.mapper ?? null;
       }
       modelTestingSession?.completePass();
+      if (passKindRef.current === 'training' && modelTestingSession && mapperRef.current) {
+        modelTestingSession.startPass([...CALIBRATION_TARGET_ORDERS[1]]);
+        passKindRef.current = 'validation';
+        targetsRef.current = CALIBRATION_TARGET_ORDERS[1];
+        activeRef.current = true;
+        indexRef.current = 0;
+        dataRef.current = { started: timestamp, all: [], point: [], poseSource: null };
+        setState({ active: true, index: 0, ready: false });
+        return {
+          target: targetsRef.current[0],
+          status: 'Training complete. Continue with the validation pass.',
+          complete: false,
+          settleProgress: 0,
+          resetSmoother: true,
+        };
+      }
       activeRef.current = false;
       readyRef.current = mapperRef.current !== null;
       console.info('[gaze-calibration] completed', {

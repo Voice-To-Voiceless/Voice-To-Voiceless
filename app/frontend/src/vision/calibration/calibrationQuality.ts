@@ -53,7 +53,7 @@ export function evaluateCalibrationSampleQuality(
   )) {
     rejectionReasons.push('low confidence');
   }
-  if (input.diagnostics.leftPosition === null || input.diagnostics.rightPosition === null) {
+  if (!input.l2csAvailable && (input.diagnostics.leftPosition === null || input.diagnostics.rightPosition === null)) {
     rejectionReasons.push('invalid eye geometry');
   }
   if (!input.l2csAvailable && (
@@ -64,10 +64,10 @@ export function evaluateCalibrationSampleQuality(
   )) {
     rejectionReasons.push('insufficient aperture');
   }
-  if (
+  if (!input.l2csAvailable && (
     !isFiniteNumber(input.diagnostics.eyeDisagreement) ||
     (input.diagnostics.eyeDisagreement ?? Infinity) > policy.maximumEyeDisagreement
-  ) {
+  )) {
     rejectionReasons.push('binocular disagreement');
   }
 

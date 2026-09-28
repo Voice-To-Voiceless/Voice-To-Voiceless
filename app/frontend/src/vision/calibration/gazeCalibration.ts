@@ -77,6 +77,12 @@ export class GazeCalibrationMapper {
       : this.grid ? interpolate(this.grid, gaze.x, gaze.y) : { x: evaluate(this.xCoefficients!, gaze.x, gaze.y), y: evaluate(this.yCoefficients!, gaze.x, gaze.y) };
     return { ...gaze, x: clamp(point.x), y: clamp(point.y) };
   }
+
+  public requiresL2CS(): boolean {
+    return this.ridgeModel !== null && (
+      this.ridgeModel.x.names.includes('l2csYaw') || this.ridgeModel.y.names.includes('l2csPitch')
+    );
+  }
 }
 
 type GridNode = { gazeX: number; gazeY: number; targetX: number; targetY: number };
