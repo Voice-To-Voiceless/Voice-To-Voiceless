@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, Check, ChevronRight, Filter, HeartPulse, Keyboard, Languages, Moon, ScanLine, Send, Settings, Sun, Users, Wifi, X } from 'lucide-react';
+import { Bell, Check, ChevronRight, Filter, HeartPulse, Keyboard, Languages, Moon, ScanLine, Send, Settings, Sun, Users, X } from 'lucide-react';
 import { deleteNotification, getNotifications, subscribeToNotifications, type PatientNotification } from '../services/notifications';
 import { getPatients, linkPatient } from '../services/patients';
 import { useLanguage } from '../i18n';
@@ -20,6 +20,10 @@ const fallbackPatients: Patient[] = [
 ];
 
 const reminderOptions = ['Este timpul pentru medicatie.', 'Ai nevoie de ajutor?', 'Asistenta vine in curand.', 'Te rog raspunde cand vezi mesajul.'];
+const localizedReminderOptions = {
+  English: ['It is time for medication.', 'Do you need help?', 'The nurse will be here soon.', 'Please respond when you see this.'],
+  Romanian: reminderOptions,
+} as const;
 const SETTINGS_STORAGE_KEY = 'voice-to-voiceless-settings';
 
 const caregiverCopy = {
@@ -55,6 +59,7 @@ declare global {
 }
 
 function PatientCodeScreen({ onBack, onCodeConfirmed }: { onBack: () => void; onCodeConfirmed: (code: string) => Promise<void> }) {
+  const { t } = useLanguage();
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [manualCode, setManualCode] = useState('');
@@ -140,31 +145,31 @@ function PatientCodeScreen({ onBack, onCodeConfirmed }: { onBack: () => void; on
   return (
     <main className={`caregiver-app caregiver-app--scanner whatsapp-link-screen${manualMode ? ' is-manual' : ''}`}>
       <header className="whatsapp-link-header">
-        <button type="button" className="scanner-close-button" onClick={onBack} aria-label="Inchide"><X size={31} strokeWidth={1.8} /></button>
-        <h1>{manualMode ? 'Introdu codul' : 'Scaneaza codul QR'}</h1>
+        <button type="button" className="scanner-close-button" onClick={onBack} aria-label={t('close')}><X size={31} strokeWidth={1.8} /></button>
+        <h1>{manualMode ? t('manualCodeTitle') : t('scanQrTitle')}</h1>
         <span aria-hidden="true" />
       </header>
 
       {manualMode ? <section className="whatsapp-manual-content">
-        <p>Pentru a conecta telefonul, introdu codul afisat pe tableta pacientului.</p>
-        <label htmlFor="patient-code">Cod de conectare</label>
-        <input id="patient-code" value={formattedCode} onChange={event => updateManualCode(event.target.value)} placeholder="Introdu codul" autoComplete="off" autoFocus />
-        <button type="button" className="whatsapp-primary-button" onClick={confirmCode} disabled={!manualCode.trim()}>Confirma codul</button>
+        <p>{t('manualCodeDescription')}</p>
+        <label htmlFor="patient-code">{t('connectionCode')}</label>
+        <input id="patient-code" value={formattedCode} onChange={event => updateManualCode(event.target.value)} placeholder={t('enterManualCode')} autoComplete="off" autoFocus />
+        <button type="button" className="whatsapp-primary-button" onClick={confirmCode} disabled={!manualCode.trim()}>{t('confirmCode')}</button>
         {error && <p className="scanner-error" role="alert">{error}</p>}
       </section> : <>
-        <section className="whatsapp-scan-copy"><p>Deschide pagina de conectare pe tableta pacientului si scaneaza codul QR.</p></section>
-        <section className="qr-scanner" aria-label="Scanner cod QR">
-          <video ref={videoRef} className="qr-scanner__video" muted playsInline aria-label="Previzualizare camera" />
-          {!cameraReady && <div className="qr-scanner__placeholder"><ScanLine size={27} /><span>Pregatim camera...</span></div>}
+        <section className="whatsapp-scan-copy"><p>{t('scannerDescription')}</p></section>
+        <section className="qr-scanner" aria-label={t('scanQrTitle')}>
+          <video ref={videoRef} className="qr-scanner__video" muted playsInline aria-label={t('camera')} />
+          {!cameraReady && <div className="qr-scanner__placeholder"><ScanLine size={27} /><span>{t('preparingCamera')}</span></div>}
           <div className="qr-scanner__frame" aria-hidden="true"><i /><i /><i /><i /><span /></div>
         </section>
-        <button type="button" className="whatsapp-manual-link" onClick={() => setManualMode(true)}><Keyboard size={18} /> Introdu codul manual</button>
+        <button type="button" className="whatsapp-manual-link" onClick={() => setManualMode(true)}><Keyboard size={18} /> {t('enterManualCode')}</button>
       </>}
     </main>
   );
 }
 
-function NotificationsScreen({ notifications, copy, onRead, onClearAll }: { notifications: PatientNotification[]; copy: Record<string, string>; onRead: (notification: PatientNotification) => void; onClearAll: () => void }) {
+function NotificationsScreen({ notifications, copy, language, onRead, onClearAll }: { notifications: PatientNotification[]; copy: Record<string, string>; language: 'English' | 'Romanian'; onRead: (notification: PatientNotification) => void; onClearAll: () => void }) {
   const [filter, setFilter] = useState<'all' | 'unread' | 'emergency'>('all');
   const visibleNotifications = notifications.filter(notification => filter === 'all' || (filter === 'unread' && !notification.read) || (filter === 'emergency' && notification.severity === 'critical'));
   const unreadCount = notifications.filter(notification => !notification.read).length;
@@ -172,7 +177,7 @@ function NotificationsScreen({ notifications, copy, onRead, onClearAll }: { noti
   return <section className="phone-notifications-screen" aria-label={copy.notifications}>
     <header className="phone-notifications-header"><div><Bell size={23} /><h2>{copy.notifications}</h2></div><button type="button" aria-label="Filtreaza notificarile"><Filter size={19} /></button></header>
     <div className="phone-notification-filters" role="tablist"><button type="button" className={filter === 'all' ? 'is-selected' : ''} onClick={() => setFilter('all')}>{copy.all}</button><button type="button" className={filter === 'unread' ? 'is-selected' : ''} onClick={() => setFilter('unread')}>{copy.unread}<span>{unreadCount}</span></button><button type="button" className={filter === 'emergency' ? 'is-selected' : ''} onClick={() => setFilter('emergency')}>{copy.emergencies}</button></div>
-    <div className="phone-notification-list">{visibleNotifications.length === 0 ? <div className="caregiver-empty">{copy.noNotifications}</div> : visibleNotifications.map(notification => <button type="button" key={notification.id} className={`phone-notification-card phone-notification-card--${notification.severity}${notification.read ? '' : ' is-unread'}`} onClick={() => onRead(notification)} aria-label={copy.markRead}><span className="phone-notification-card__icon"><Bell size={19} /></span><span className="phone-notification-card__body"><strong>{notification.message}</strong><small>{notification.patient_metadata.name || 'Patient'} · {notification.patient_metadata.room || 'Room'}</small><span>{formatNotificationTime(notification.created_at)}</span></span>{!notification.read && <span className="phone-notification-card__dot" />}</button>)}</div>
+    <div className="phone-notification-list">{visibleNotifications.length === 0 ? <div className="caregiver-empty">{copy.noNotifications}</div> : visibleNotifications.map(notification => <button type="button" key={notification.id} className={`phone-notification-card phone-notification-card--${notification.severity}${notification.read ? '' : ' is-unread'}`} onClick={() => onRead(notification)} aria-label={copy.markRead}><span className="phone-notification-card__icon"><Bell size={19} /></span><span className="phone-notification-card__body"><strong>{notification.message}</strong><small>{notification.patient_metadata.name || 'Patient'} · {localizeRoom(notification.patient_metadata.room || 'Room', language)}</small><span>{formatNotificationTime(notification.created_at)}</span></span>{!notification.read && <span className="phone-notification-card__dot" />}</button>)}</div>
     {notifications.length > 0 && <button type="button" className="phone-clear-notifications" onClick={onClearAll}>{copy.clearAll}</button>}
   </section>;
 }
@@ -186,11 +191,16 @@ export function PhoneTrackingApp() {
   const [patients, setPatients] = useState<Patient[]>(fallbackPatients);
   const [selectedPatientId, setSelectedPatientId] = useState(fallbackPatients[0]?.id ?? '');
   const [notifications, setNotifications] = useState<PatientNotification[]>([]);
-  const [message, setMessage] = useState(reminderOptions[0]);
+  const [message, setMessage] = useState<string>(localizedReminderOptions.English[0]);
+  const reminderOptionsForLanguage = localizedReminderOptions[language];
   const [sending, setSending] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [activeScreen, setActiveScreen] = useState<'dashboard' | 'notifications'>('dashboard');
   const selectedPatient = patients.find(patient => patient.id === selectedPatientId) ?? patients[0];
+
+  useEffect(() => {
+    setMessage(localizedReminderOptions[language][0]);
+  }, [language]);
   const patientNotifications = useMemo(
     () => notifications
       .filter(item => item.patient_metadata.patient_id === selectedPatient.id)
@@ -334,17 +344,17 @@ export function PhoneTrackingApp() {
         </aside>
       </>}
 
-      {activeScreen === 'notifications' ? <NotificationsScreen notifications={notifications} copy={copy} onRead={readNotification} onClearAll={dismissAllNotifications} /> : <>
-      <section className="caregiver-welcome"><div><span>{copy.goodMorning}</span><h2>{copy.patientDashboard}</h2></div><div className="caregiver-sync"><Wifi size={15} /> {copy.synced}</div></section>
+      {activeScreen === 'notifications' ? <NotificationsScreen notifications={notifications} copy={copy} language={language} onRead={readNotification} onClearAll={dismissAllNotifications} /> : <>
+      <section className="caregiver-welcome"><div><h2>{copy.patientDashboard}</h2></div></section>
 
       <button type="button" className="patient-code-button" onClick={() => setShowCodeScanner(true)}><span className="patient-code-button__icon"><ScanLine size={21} /></span><span><strong>{copy.scanNewPatient}</strong><small>{copy.scanDescription}</small></span><ChevronRight size={18} /></button>
 
       <section className="caregiver-patient-list" aria-label="Pacienti">
         <div className="caregiver-section-label"><span><Users size={15} /> {copy.myPatients}</span><strong>{patients.length} {copy.active}</strong></div>
-        {patients.map(patient => <button key={patient.id} type="button" className={`patient-row${patient.id === selectedPatient.id ? ' is-selected' : ''}`} onClick={() => setSelectedPatientId(patient.id)}><span className={`patient-avatar patient-avatar--${patient.status}`}>{patient.name.split(' ').map(part => part[0]).join('')}</span><span className="patient-row__details"><strong>{patient.name}</strong><span>{patient.room} · {patient.lastSeen}</span></span><span className={`patient-status patient-status--${patient.status}`} /> <ChevronRight size={17} /></button>)}
+        {patients.map(patient => <button key={patient.id} type="button" className={`patient-row${patient.id === selectedPatient.id ? ' is-selected' : ''}`} onClick={() => setSelectedPatientId(patient.id)}><span className={`patient-avatar patient-avatar--${patient.status}`}>{patient.name.split(' ').map(part => part[0]).join('')}</span><span className="patient-row__details"><strong>{patient.name}</strong><span>{localizeRoom(patient.room, language)} · {localizeLastSeen(patient.lastSeen, language)}</span></span><span className={`patient-status patient-status--${patient.status}`} /> <ChevronRight size={17} /></button>)}
       </section>
 
-      <section className="caregiver-panel caregiver-reminder"><div className="caregiver-panel__heading"><div><span><Send size={15} /> {copy.toTablet}</span><h2>{copy.sendReminder}</h2></div></div><p>{copy.reminderDescription} {selectedPatient.name.split(' ')[0]}.</p><select value={message} onChange={event => setMessage(event.target.value)} aria-label="Mesaj reminder">{reminderOptions.map(option => <option key={option}>{option}</option>)}</select><button className="caregiver-send-button" type="button" onClick={sendReminder} disabled={sending || selectedPatient.status === 'offline'}><Send size={17} /> {sending ? copy.sending : copy.sendToTablet}</button>{feedback && <div className="caregiver-feedback" role="status"><Check size={15} /> {feedback}</div>}</section>
+      <section className="caregiver-panel caregiver-reminder"><div className="caregiver-panel__heading"><div><span><Send size={15} /> {copy.toTablet}</span><h2>{copy.sendReminder}</h2></div></div><p>{copy.reminderDescription} {selectedPatient.name.split(' ')[0]}.</p><select value={message} onChange={event => setMessage(event.target.value)} aria-label={copy.sendReminder}>{reminderOptionsForLanguage.map(option => <option key={option}>{option}</option>)}</select><button className="caregiver-send-button" type="button" onClick={sendReminder} disabled={sending || selectedPatient.status === 'offline'}><Send size={17} /> {sending ? copy.sending : copy.sendToTablet}</button>{feedback && <div className="caregiver-feedback" role="status"><Check size={15} /> {feedback}</div>}</section>
       </>}
 
       <nav className="phone-bottom-nav" aria-label="Navigare principala"><button type="button" className={activeScreen === 'dashboard' ? 'is-active' : ''} onClick={() => setActiveScreen('dashboard')}><Users size={19} /><span>{copy.dashboard}</span></button><button type="button" className={activeScreen === 'notifications' ? 'is-active' : ''} onClick={() => setActiveScreen('notifications')}><Bell size={19} />{notifications.some(notification => !notification.read) && <i /> }<span>{copy.notifications}</span></button><button type="button" onClick={() => setSidebarOpen(true)}><Settings size={19} /><span>{copy.settings}</span></button></nav>
@@ -356,4 +366,15 @@ function formatNotificationTime(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'Acum';
   return date.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' });
+}
+
+function localizeRoom(value: string, language: 'English' | 'Romanian'): string {
+  if (language === 'English') {
+    return value.replace(/^Camera\b/, 'Room').replace(/^Room nealocata$/, 'Unassigned room');
+  }
+  return value.replace(/^Room\b/, 'Camera').replace(/^Unassigned room$/, 'Camera nealocata');
+}
+
+function localizeLastSeen(value: string, language: 'English' | 'Romanian'): string {
+  return language === 'English' ? value.replace(/^Acum\b/, 'Now') : value.replace(/^Now\b/, 'Acum');
 }
