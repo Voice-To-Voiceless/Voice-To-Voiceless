@@ -50,7 +50,7 @@ export function DebugOverlay({ rawGaze, calibratedGaze, showTarget, l2csYaw, l2c
 function format(value: number | null | undefined): string { return value === null || value === undefined ? '—' : value.toFixed(1); }
 
 function formatBounds(bounds: L2CSDebugPreview['bounds']): string { return `crop l=${bounds.left.toFixed(3)} t=${bounds.top.toFixed(3)} r=${bounds.right.toFixed(3)} b=${bounds.bottom.toFixed(3)}`; }
-function isLocalDebugHost(): boolean { return typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname); }
+function isLocalDebugHost(): boolean { return typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location?.hostname ?? ''); }
 
 function mirrorHorizontal(point: GazePoint | null): GazePoint | null {
   return point ? { ...point, x: 1 - point.x } : null;
