@@ -32,6 +32,7 @@ export type FaceLandmarkObservation = {
   leftEye: EyeObservation;
   rightEye: EyeObservation;
   faceAnchors?: FaceAnchors;
+  faceBounds?: { left: number; top: number; right: number; bottom: number };
   timestamp: number;
 };
 

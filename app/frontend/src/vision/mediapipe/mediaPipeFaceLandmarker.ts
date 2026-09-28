@@ -1,7 +1,7 @@
 import { FaceLandmarkerAdapter } from './faceLandmarkerAdapter';
 import { FaceLandmarkObservation, VisionFrame } from '../types/landmarkTypes';
 import { createMediaPipeLandmarker } from './mediaPipeFactory';
-import { mapMediaPipeLandmarks } from './mediaPipeLandmarkMapper';
+import { getFaceBounds, mapMediaPipeLandmarks } from './mediaPipeLandmarkMapper';
 
 type MediaPipeLandmarkerFactory = (
   wasmPath: string,
@@ -66,11 +66,15 @@ export class MediaPipeFaceLandmarkerAdapter implements FaceLandmarkerAdapter {
       return null;
     }
 
-    return mapMediaPipeLandmarks(
+    const observation = mapMediaPipeLandmarks(
       landmarks,
       frame.timestamp,
       this.options.minimumConfidence ?? 0.5,
     );
+    if (observation) {
+      Object.defineProperty(observation, 'faceBounds', { value: getFaceBounds(landmarks), enumerable: false });
+    }
+    return observation;
   }
 
   public async processExpressionFrame(frame: VisionFrame): Promise<FaceExpressionObservation | null> {

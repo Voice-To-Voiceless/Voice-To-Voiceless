@@ -161,7 +161,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
         progress={tracking.snapshot.calibrationProgress}
         passKind={tracking.snapshot.calibrationPassKind}
       />
-      {showDebugOverlay && <DebugOverlay rawGaze={tracking.snapshot.rawGaze} calibratedGaze={tracking.snapshot.calibratedGaze} showTarget={showTargetIndicator} />}
+      {showDebugOverlay && <DebugOverlay rawGaze={tracking.snapshot.rawGaze} calibratedGaze={tracking.snapshot.calibratedGaze} showTarget={showTargetIndicator} l2csYaw={tracking.snapshot.l2csYaw} l2csPitch={tracking.snapshot.l2csPitch} provider={tracking.snapshot.l2csProvider} latencyMs={tracking.snapshot.l2csInferenceLatencyMs} estimatesPerSecond={tracking.snapshot.l2csEstimatesPerSecond} poseStatus={tracking.snapshot.poseStatus} />}
       <CalibrationModal tracking={tracking} recognition={recognition} videoRef={videoRef} faceDetected={faceDetected} trackingActive={trackingActive} recognitionActive={recognitionActive} t={t} />
 
       <CommunicationBoard

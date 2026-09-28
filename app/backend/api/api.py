@@ -1,4 +1,4 @@
-"""HTTP API for notifications."""
+"""HTTP API for notifications and gaze inference."""
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware

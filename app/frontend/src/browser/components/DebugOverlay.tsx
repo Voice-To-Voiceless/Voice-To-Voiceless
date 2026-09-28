@@ -5,11 +5,17 @@ type Props = {
   rawGaze: GazePoint | null;
   calibratedGaze: GazePoint | null;
   showTarget: boolean;
+  l2csYaw?: number | null;
+  l2csPitch?: number | null;
+  provider?: string | null;
+  latencyMs?: number | null;
+  estimatesPerSecond?: number | null;
+  poseStatus?: string;
 };
 
 type PointerState = { point: GazePoint; target: string | null } | null;
 
-export function DebugOverlay({ rawGaze, calibratedGaze, showTarget }: Props) {
+export function DebugOverlay({ rawGaze, calibratedGaze, showTarget, l2csYaw, l2csPitch, provider, latencyMs, estimatesPerSecond, poseStatus }: Props) {
   const [pointer, setPointer] = useState<PointerState>(null);
 
   useEffect(() => {
@@ -31,9 +37,12 @@ export function DebugOverlay({ rawGaze, calibratedGaze, showTarget }: Props) {
       <DebugMarker point={calibratedGaze} label="Calibrated gaze" className="debug-marker--calibrated" />
       <DebugMarker point={pointer?.point ?? null} label="Mouse cursor" className="debug-marker--mouse" />
       {showTarget && <div className="debug-overlay__target">Target: {pointer?.target ?? 'None'}</div>}
+      <div className="debug-overlay__metrics">L2CS {provider ?? 'off'} · yaw {format(l2csYaw)}° · pitch {format(l2csPitch)}° · {format(latencyMs)} ms · {format(estimatesPerSecond)} est/s · pose {poseStatus ?? 'unknown'}</div>
     </aside>
   );
 }
+
+function format(value: number | null | undefined): string { return value === null || value === undefined ? '—' : value.toFixed(1); }
 
 function mirrorHorizontal(point: GazePoint | null): GazePoint | null {
   return point ? { ...point, x: 1 - point.x } : null;
