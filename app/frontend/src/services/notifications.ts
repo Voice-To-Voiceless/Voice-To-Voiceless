@@ -42,8 +42,9 @@ export async function createNotification(notification: {
   return response.json() as Promise<PatientNotification>;
 }
 
-export async function getNotifications(): Promise<PatientNotification[]> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/notifications`);
+export async function getNotifications(recipient?: 'nurse' | 'patient'): Promise<PatientNotification[]> {
+  const query = recipient ? `?recipient=${encodeURIComponent(recipient)}` : '';
+  const response = await fetch(`${API_BASE_URL}/api/v1/notifications${query}`);
   if (!response.ok) {
     throw new Error('Notifications could not be loaded.');
   }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, Check, ChevronRight, Filter, HeartPulse, Keyboard, Languages, Menu, Moon, ScanLine, Send, Settings, Sun, Users, Wifi, X } from 'lucide-react';
+import { Bell, Check, ChevronRight, Filter, HeartPulse, Keyboard, Languages, Moon, ScanLine, Send, Settings, Sun, Users, Wifi, X } from 'lucide-react';
 import { deleteNotification, getNotifications, subscribeToNotifications, type PatientNotification } from '../services/notifications';
 import { getPatients, linkPatient } from '../services/patients';
 import { useLanguage } from '../i18n';
@@ -236,7 +236,7 @@ export function PhoneTrackingApp() {
   useEffect(() => {
     let active = true;
     const loadNotifications = () => {
-      getNotifications()
+      getNotifications('nurse')
         .then(items => {
           if (!active) return;
           setNotifications(items);
@@ -322,7 +322,6 @@ export function PhoneTrackingApp() {
     <main className="caregiver-app">
       <header className="caregiver-header">
         <div className="caregiver-brand"><span className="caregiver-brand__mark"><HeartPulse size={20} /></span><div><span>CARE TEAM</span><h1>VoiceToVoiceless</h1></div></div>
-        <button className="caregiver-profile" type="button" aria-label={copy.menu} onClick={() => setSidebarOpen(true)}><Menu size={18} /><span>AS</span></button>
       </header>
 
       {sidebarOpen && <>

@@ -15,7 +15,7 @@ export function NurseNotificationsPage({ onBack }: NurseNotificationsPageProps) 
 
   async function loadNotifications() {
     try {
-      setNotifications(await getNotifications());
+      setNotifications(await getNotifications('nurse'));
       setError(null);
     } catch {
       setError('Backend-ul nu este disponibil. Verifică serviciul de pe portul 8000.');
