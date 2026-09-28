@@ -8,6 +8,7 @@ import {
   getPassCaptureSummary,
   getPassDiagnostics,
   getPoseDistributionShift,
+  getPassCaptureStatus,
   hasCompleteTargetCoverage,
 } from './modelTestingDiagnostics';
 import type {
@@ -28,6 +29,7 @@ type CalibrationDiagnosticsSnapshot = {
       ordinary: ReturnType<typeof getOrdinaryValidationDiagnostics>;
       poseConditioned: ReturnType<typeof getAcceptedPoseValidationDiagnostics>;
     };
+    passCaptureStatus: Array<ReturnType<typeof getPassCaptureStatus> & { pass: CalibrationPassKind }>;
   };
   eyeDiagnostics: { targets: Array<Record<string, unknown>>; passCount: number };
 };
@@ -48,7 +50,7 @@ export class ModelTestingSession {
   private passIndex = 0;
   private sessionClosed = false;
   private eyeDiagnostics: Array<Record<string, unknown>> = [];
-  private eyeDiagnosticsTarget = -1;
+  private eyeDiagnosticsKey = '';
 
   public constructor(options: ModelTestingSessionOptions = {}) {
     this.enableDiagnostics = options.enableDiagnostics ?? false;
@@ -60,7 +62,7 @@ export class ModelTestingSession {
     this.passIndex = 0;
     this.sessionClosed = false;
     this.eyeDiagnostics = [];
-    this.eyeDiagnosticsTarget = -1;
+    this.eyeDiagnosticsKey = '';
   }
 
   public startPass(targetOrder: CalibrationSample['target'][]): CalibrationPass | null {
@@ -89,9 +91,11 @@ export class ModelTestingSession {
   }
 
   public recordEyeDiagnostics(targetIndex: number, entry: Record<string, unknown>): void {
-    if (this.eyeDiagnosticsTarget === targetIndex) return;
-    this.eyeDiagnosticsTarget = targetIndex;
-    this.eyeDiagnostics.push(entry);
+    const pass = this.passes.length === 1 ? 'training' : 'validation';
+    const key = `${pass}:${targetIndex}`;
+    if (this.eyeDiagnosticsKey === key) return;
+    this.eyeDiagnosticsKey = key;
+    this.eyeDiagnostics.push({ pass, ...entry });
   }
 
   public recordCalibrationSample(target: CalibrationSample['target'], points: CalibrationDiagnosticPoints): void {
@@ -163,6 +167,10 @@ export class ModelTestingSession {
             validation?.poseConditioned ?? [],
           ),
         },
+        passCaptureStatus: this.passes.map((pass, index) => ({
+          pass: index === 0 ? 'training' : 'validation' as CalibrationPassKind,
+          ...getPassCaptureStatus(pass),
+        })),
       },
       eyeDiagnostics: { targets: this.eyeDiagnostics, passCount: this.passes.length },
     };

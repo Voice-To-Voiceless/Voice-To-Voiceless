@@ -23,6 +23,8 @@ export type CalibrationQualityInput = {
   rightConfidence: number;
   diagnostics: GazeDiagnostics;
   pose: { yaw: number; pitch: number; eyeScale?: number; interEyeDistance?: number } | null;
+  l2csAvailable?: boolean;
+  temporalStable?: boolean;
 };
 
 export type CalibrationSampleQuality = {
@@ -41,32 +43,33 @@ export function evaluateCalibrationSampleQuality(
   if (!isFiniteNumber(input.gaze.x) || !isFiniteNumber(input.gaze.y) || !isFiniteNumber(input.gaze.confidence)) {
     rejectionReasons.push('non-finite value');
   }
+  if (input.l2csAvailable && input.temporalStable === false) rejectionReasons.push('temporal filter rejection');
   if (input.pose === null || !isFiniteNumber(input.pose.yaw) || !isFiniteNumber(input.pose.pitch)) {
     rejectionReasons.push('pose unavailable');
   }
-  if (
+  if (!input.l2csAvailable && (
     !isFiniteNumber(input.leftConfidence) ||
     !isFiniteNumber(input.rightConfidence) ||
     input.leftConfidence < policy.minimumConfidence ||
     input.rightConfidence < policy.minimumConfidence
-  ) {
+  )) {
     rejectionReasons.push('low confidence');
   }
-  if (input.diagnostics.leftPosition === null || input.diagnostics.rightPosition === null) {
+  if (!input.l2csAvailable && (input.diagnostics.leftPosition === null || input.diagnostics.rightPosition === null)) {
     rejectionReasons.push('invalid eye geometry');
   }
-  if (
+  if (!input.l2csAvailable && (
     !isFiniteNumber(input.diagnostics.leftAperture) ||
     !isFiniteNumber(input.diagnostics.rightAperture) ||
     input.diagnostics.leftAperture < policy.minimumAperture ||
     input.diagnostics.rightAperture < policy.minimumAperture
-  ) {
+  )) {
     rejectionReasons.push('insufficient aperture');
   }
-  if (
+  if (!input.l2csAvailable && (
     !isFiniteNumber(input.diagnostics.eyeDisagreement) ||
     (input.diagnostics.eyeDisagreement ?? Infinity) > policy.maximumEyeDisagreement
-  ) {
+  )) {
     rejectionReasons.push('binocular disagreement');
   }
 

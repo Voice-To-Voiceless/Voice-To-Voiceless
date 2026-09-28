@@ -27,6 +27,18 @@ test('moves in the requested direction and supports axis inversion', () => {
   expect(position.y).toBeCloseTo(0.5);
 });
 
+test('keeps screen-space vertical direction by default', () => {
+  const controller = new GazeJoystickController({
+    deadzone: 0,
+    maximumSpeed: 1,
+    acceleration: 100,
+    deceleration: 100,
+  });
+
+  controller.update(gaze(0.5, 0.5, 0));
+  expect(controller.update(gaze(0.5, 1, 1000)).y).toBeGreaterThan(0.5);
+});
+
 test('integrates velocity over time and clamps at the screen edge', () => {
   const controller = new GazeJoystickController({
     deadzone: 0,

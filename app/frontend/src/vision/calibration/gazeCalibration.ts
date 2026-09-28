@@ -77,6 +77,12 @@ export class GazeCalibrationMapper {
       : this.grid ? interpolate(this.grid, gaze.x, gaze.y) : { x: evaluate(this.xCoefficients!, gaze.x, gaze.y), y: evaluate(this.yCoefficients!, gaze.x, gaze.y) };
     return { ...gaze, x: clamp(point.x), y: clamp(point.y) };
   }
+
+  public requiresL2CS(): boolean {
+    return this.ridgeModel !== null && (
+      this.ridgeModel.x.names.includes('l2csYaw') || this.ridgeModel.y.names.includes('l2csPitch')
+    );
+  }
 }
 
 type GridNode = { gazeX: number; gazeY: number; targetX: number; targetY: number };
@@ -87,7 +93,14 @@ function hasValidTargets(samples: CalibrationSample[]): boolean {
 }
 
 function hasCompleteFeatures(samples: CalibrationSample[]): samples is Required<CalibrationSample>[] {
-  return samples.length > 0 && samples.every(sample => sample.features !== undefined && Object.values(sample.features).every(Number.isFinite));
+  return samples.length > 0 && samples.every(sample => {
+    const features = sample.features;
+    return features !== undefined
+      && Number.isFinite(features.yaw) && Number.isFinite(features.pitch)
+      && Number.isFinite(features.faceCenterX) && Number.isFinite(features.faceCenterY)
+      && (features.l2csYaw === undefined || Number.isFinite(features.l2csYaw))
+      && (features.l2csPitch === undefined || Number.isFinite(features.l2csPitch));
+  });
 }
 
 function evaluateValidation(mapper: GazeCalibrationMapper, samples: CalibrationSample[]): ValidationFitDiagnostics {

@@ -51,3 +51,11 @@ export function mapMediaPipeLandmarks(
     timestamp,
   };
 }
+
+export function getFaceBounds(landmarks: MediaPipeLandmark[]) {
+  const left = Math.max(0, Math.min(...landmarks.map(point => point.x)) - 0.08);
+  const right = Math.min(1, Math.max(...landmarks.map(point => point.x)) + 0.08);
+  const top = Math.max(0, Math.min(...landmarks.map(point => point.y)) - 0.12);
+  const bottom = Math.min(1, Math.max(...landmarks.map(point => point.y)) + 0.08);
+  return { left, top, right, bottom };
+}
