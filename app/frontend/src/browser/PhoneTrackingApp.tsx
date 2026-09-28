@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Bell, Check, ChevronRight, HeartPulse, Keyboard, Languages, Menu, Moon, ScanLine, Send, Sun, Users, Wifi, X } from 'lucide-react';
 import { deleteNotification, getNotifications, subscribeToNotifications, type PatientNotification } from '../services/notifications';
-import { getPatients } from '../services/patients';
+import { getPatients, linkPatient } from '../services/patients';
 import { useLanguage } from '../i18n';
 
 type Patient = {
@@ -54,12 +54,23 @@ declare global {
   }
 }
 
-function PatientCodeScreen({ onBack }: { onBack: () => void }) {
+function PatientCodeScreen({ onBack, onCodeConfirmed }: { onBack: () => void; onCodeConfirmed: (code: string) => Promise<void> }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [manualCode, setManualCode] = useState('');
   const [manualMode, setManualMode] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
+  const [error, setError] = useState('');
+
+  const submitCode = useCallback(async (code: string) => {
+    if (!code.trim()) return;
+    setError('');
+    try {
+      await onCodeConfirmed(code);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Codul nu a putut fi folosit.');
+    }
+  }, [onCodeConfirmed]);
 
   useEffect(() => {
     if (manualMode) return;
@@ -92,6 +103,8 @@ function PatientCodeScreen({ onBack }: { onBack: () => void }) {
             const code = result[0]?.rawValue?.trim();
             if (code) {
               setManualCode(code);
+              setManualMode(true);
+              submitCode(code);
               return;
             }
           } catch {
@@ -110,10 +123,10 @@ function PatientCodeScreen({ onBack }: { onBack: () => void }) {
       streamRef.current?.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     };
-  }, [manualMode]);
+  }, [manualMode, submitCode]);
 
   function updateManualCode(value: string) {
-    const normalized = value.replace(/[^a-z0-9]/gi, '').toUpperCase();
+    const normalized = value.replace(/[^a-z0-9-]/gi, '').toUpperCase();
     setManualCode(normalized);
   }
 
@@ -121,7 +134,7 @@ function PatientCodeScreen({ onBack }: { onBack: () => void }) {
 
   function confirmCode() {
     const code = manualCode.trim();
-    if (!code) return;
+    submitCode(code);
   }
 
   return (
@@ -137,6 +150,7 @@ function PatientCodeScreen({ onBack }: { onBack: () => void }) {
         <label htmlFor="patient-code">Cod de conectare</label>
         <input id="patient-code" value={formattedCode} onChange={event => updateManualCode(event.target.value)} placeholder="Introdu codul" autoComplete="off" autoFocus />
         <button type="button" className="whatsapp-primary-button" onClick={confirmCode} disabled={!manualCode.trim()}>Confirma codul</button>
+        {error && <p className="scanner-error" role="alert">{error}</p>}
       </section> : <>
         <section className="whatsapp-scan-copy"><p>Deschide pagina de conectare pe tableta pacientului si scaneaza codul QR.</p></section>
         <section className="qr-scanner" aria-label="Scanner cod QR">
@@ -272,7 +286,23 @@ export function PhoneTrackingApp() {
     }
   }
 
-  if (showCodeScanner) return <PatientCodeScreen onBack={() => setShowCodeScanner(false)} />;
+  async function handlePatientCode(code: string) {
+    const linkedPatient = await linkPatient(code);
+    const patient: Patient = {
+      id: linkedPatient.id,
+      name: linkedPatient.name,
+      room: linkedPatient.room || 'Camera nealocata',
+      status: 'online',
+      lastSeen: 'Acum',
+      note: linkedPatient.details || 'Nu exista detalii pentru acest pacient.',
+    };
+    setPatients(current => current.some(item => item.id === patient.id) ? current : [...current, patient]);
+    setSelectedPatientId(patient.id);
+    setFeedback(`${patient.name} a fost adaugat la pacientii tai.`);
+    setShowCodeScanner(false);
+  }
+
+  if (showCodeScanner) return <PatientCodeScreen onBack={() => setShowCodeScanner(false)} onCodeConfirmed={handlePatientCode} />;
 
   return (
     <main className="caregiver-app">
