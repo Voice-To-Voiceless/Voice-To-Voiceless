@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Bell, Check, ChevronRight, HeartPulse, Keyboard, Languages, Menu, Moon, ScanLine, Send, Sun, Users, Wifi, X } from 'lucide-react';
+import { Bell, Check, ChevronRight, HeartPulse, Keyboard, Languages, Menu, Moon, ScanLine, Send, Sun, Users, Wifi, X } from 'lucide-react';
 import { deleteNotification, getNotifications, subscribeToNotifications, type PatientNotification } from '../services/notifications';
 import { getPatients } from '../services/patients';
 import { useLanguage } from '../i18n';
@@ -58,16 +58,16 @@ function PatientCodeScreen({ onBack }: { onBack: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [manualCode, setManualCode] = useState('');
-  const [scannerMessage, setScannerMessage] = useState('Aliniaza codul QR in chenar');
+  const [manualMode, setManualMode] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
 
   useEffect(() => {
+    if (manualMode) return;
     let active = true;
     let detectorTimer: number | undefined;
 
     async function startCamera() {
       if (!navigator.mediaDevices?.getUserMedia) {
-        setScannerMessage('Camera nu este disponibila. Introdu codul manual mai jos.');
         return;
       }
       try {
@@ -92,17 +92,14 @@ function PatientCodeScreen({ onBack }: { onBack: () => void }) {
             const code = result[0]?.rawValue?.trim();
             if (code) {
               setManualCode(code);
-              setScannerMessage('Cod detectat. Verifica-l si confirma.');
               return;
             }
           } catch {
-            setScannerMessage('Nu am putut citi codul. Incearca din nou sau foloseste codul manual.');
           }
           detectorTimer = window.setTimeout(detect, 350);
         };
         detectorTimer = window.setTimeout(detect, 500);
       } catch {
-        setScannerMessage('Permisiunea pentru camera nu a fost acordata. Introdu codul manual mai jos.');
       }
     }
 
@@ -113,38 +110,42 @@ function PatientCodeScreen({ onBack }: { onBack: () => void }) {
       streamRef.current?.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     };
-  }, []);
+  }, [manualMode]);
+
+  function updateManualCode(value: string) {
+    const normalized = value.replace(/[^a-z0-9]/gi, '').toUpperCase();
+    setManualCode(normalized);
+  }
+
+  const formattedCode = manualCode;
 
   function confirmCode() {
     const code = manualCode.trim();
-    setScannerMessage(code ? `Cod pregatit: ${code}` : 'Introdu un cod valid pentru a continua.');
+    if (!code) return;
   }
 
   return (
-    <main className="caregiver-app caregiver-app--scanner">
-      <header className="caregiver-header">
-        <button type="button" className="scanner-back-button" onClick={onBack} aria-label="Inapoi la pacienti"><ArrowLeft size={19} /></button>
-        <div className="caregiver-brand"><span className="caregiver-brand__mark"><HeartPulse size={20} /></span><div><span>CARE TEAM</span><h1>VoiceToVoiceless</h1></div></div>
-        <span className="scanner-header-spacer" aria-hidden="true" />
+    <main className={`caregiver-app caregiver-app--scanner whatsapp-link-screen${manualMode ? ' is-manual' : ''}`}>
+      <header className="whatsapp-link-header">
+        <button type="button" className="scanner-close-button" onClick={onBack} aria-label="Inchide"><X size={31} strokeWidth={1.8} /></button>
+        <h1>{manualMode ? 'Introdu codul' : 'Scaneaza codul QR'}</h1>
+        <span aria-hidden="true" />
       </header>
 
-      <section className="scanner-intro"><span>ADAUGA UN PACIENT</span><h2>Scaneaza codul pacientului</h2><p>Apropie camera de codul QR de pe tableta pacientului.</p></section>
-
-      <section className="qr-scanner" aria-label="Scanner cod QR">
-        <video ref={videoRef} className="qr-scanner__video" muted playsInline aria-label="Previzualizare camera" />
-        {!cameraReady && <div className="qr-scanner__placeholder"><ScanLine size={27} /><span>Pregatim camera...</span></div>}
-        <div className="qr-scanner__frame" aria-hidden="true"><i /><i /><i /><i /><span /></div>
-        <div className="qr-scanner__hint"><ScanLine size={16} /> {scannerMessage}</div>
-      </section>
-
-      <div className="scanner-divider"><span>sau</span></div>
-
-      <section className="manual-code-panel">
-        <div className="manual-code-panel__heading"><Keyboard size={18} /><div><strong>Introdu codul manual</strong><span>Codul se gaseste sub codul QR.</span></div></div>
-        <label htmlFor="patient-code">Cod pacient</label>
-        <input id="patient-code" value={manualCode} onChange={event => setManualCode(event.target.value)} placeholder="Ex: PT-1024-5678" autoComplete="off" />
-        <button type="button" className="caregiver-send-button" onClick={confirmCode} disabled={!manualCode.trim()}><Check size={17} /> Confirma codul</button>
-      </section>
+      {manualMode ? <section className="whatsapp-manual-content">
+        <p>Pentru a conecta telefonul, introdu codul afisat pe tableta pacientului.</p>
+        <label htmlFor="patient-code">Cod de conectare</label>
+        <input id="patient-code" value={formattedCode} onChange={event => updateManualCode(event.target.value)} placeholder="Introdu codul" autoComplete="off" autoFocus />
+        <button type="button" className="whatsapp-primary-button" onClick={confirmCode} disabled={!manualCode.trim()}>Confirma codul</button>
+      </section> : <>
+        <section className="whatsapp-scan-copy"><p>Deschide pagina de conectare pe tableta pacientului si scaneaza codul QR.</p></section>
+        <section className="qr-scanner" aria-label="Scanner cod QR">
+          <video ref={videoRef} className="qr-scanner__video" muted playsInline aria-label="Previzualizare camera" />
+          {!cameraReady && <div className="qr-scanner__placeholder"><ScanLine size={27} /><span>Pregatim camera...</span></div>}
+          <div className="qr-scanner__frame" aria-hidden="true"><i /><i /><i /><i /><span /></div>
+        </section>
+        <button type="button" className="whatsapp-manual-link" onClick={() => setManualMode(true)}><Keyboard size={18} /> Introdu codul manual</button>
+      </>}
     </main>
   );
 }
