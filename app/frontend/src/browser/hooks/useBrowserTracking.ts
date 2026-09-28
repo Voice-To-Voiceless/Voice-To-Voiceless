@@ -12,7 +12,7 @@ import { findVisibleTarget } from '../services/gazeTargetResolver';
 import { TrackingSnapshot } from '../browserTypes';
 import { MediaPipeFaceLandmarkerAdapter } from '../../vision/mediapipe/mediaPipeFaceLandmarker';
 import { ModelTestingSession } from '../../modelTesting/modelTestingSession';
-import { CALIBRATION_TARGETS, useCalibration } from './useCalibration';
+import { useCalibration } from './useCalibration';
 import { evaluateCalibrationSampleQuality } from '../../vision/calibration/calibrationQuality';
 import { L2CSOnnxEstimator } from '../../vision/estimation/l2csGaze';
 import { getCalibrationFeatures } from '../../vision/calibration/calibrationFeatures';
