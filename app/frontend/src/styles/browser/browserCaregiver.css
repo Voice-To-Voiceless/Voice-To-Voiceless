@@ -16,23 +16,41 @@
 .caregiver-brand h1 { color: #18352a; font: 800 17px/1.1 Georgia, serif; margin-top: 3px; }
 .caregiver-profile { align-items: center; background: #dce9de; border: 0; border-radius: 22px; color: #315846; display: flex; gap: 5px; height: 38px; justify-content: center; width: 54px; }
 .caregiver-profile span { font: 800 11px Arial, sans-serif; }
+.caregiver-profile { cursor: pointer; }
+.caregiver-sidebar-backdrop { background: #10251c66; border: 0; inset: 0; position: fixed; z-index: 60; }
+.caregiver-sidebar { background: #fff; border-left: 1px solid #dce6dd; box-shadow: -12px 0 34px #17352b24; display: flex; flex-direction: column; gap: 18px; max-width: 330px; min-height: 100vh; padding: 24px 20px; position: fixed; right: 0; top: 0; width: min(86vw, 330px); z-index: 61; }
+.caregiver-sidebar__header { align-items: flex-start; display: flex; justify-content: space-between; }
+.caregiver-sidebar__header span { color: #718075; font: 800 9px Arial, sans-serif; letter-spacing: .1em; text-transform: uppercase; }
+.caregiver-sidebar__header h2 { color: #18352a; font: 700 25px/1.1 Georgia, serif; margin-top: 6px; }
+.caregiver-sidebar__close { align-items: center; background: #f1f5f1; border: 0; border-radius: 50%; color: #315846; cursor: pointer; display: flex; height: 36px; justify-content: center; width: 36px; }
+.caregiver-sidebar__hint { color: #718075; font: 12px/1.45 Arial, sans-serif; margin-top: -8px; }
+.caregiver-sidebar__section { border-top: 1px solid #e1e9e1; display: flex; flex-direction: column; gap: 11px; padding-top: 16px; }
+.caregiver-sidebar__label { align-items: center; color: #315846; display: flex; font: 700 13px Arial, sans-serif; gap: 8px; }
+.caregiver-language-options { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }
+.caregiver-language-options button { background: #f5f8f5; border: 1px solid #d7e3d8; border-radius: 9px; color: #52665a; cursor: pointer; font: 700 12px Arial, sans-serif; min-height: 40px; }
+.caregiver-language-options button.is-selected { background: #dcefe2; border-color: #70aa7e; color: #1f6b3a; }
+.caregiver-theme-toggle { align-self: flex-start; background: #cbd8ce; border: 0; border-radius: 999px; cursor: pointer; height: 25px; padding: 3px; width: 48px; }
+.caregiver-theme-toggle span { background: #fff; border-radius: 50%; display: block; height: 19px; transform: translateX(0); transition: transform .18s; width: 19px; }
+.caregiver-theme-toggle.is-on { background: #4d9b69; }
+.caregiver-theme-toggle.is-on span { transform: translateX(23px); }
 .caregiver-welcome { align-items: flex-end; margin-top: 4px; }
 .caregiver-welcome h2 { color: #18352a; font: 700 24px/1.1 Georgia, serif; margin-top: 5px; }
 .caregiver-sync { align-items: center; color: #42815a; display: flex; font: 10px Arial, sans-serif; gap: 5px; }
 .caregiver-section-label { margin-top: 2px; }
 .caregiver-section-label span { align-items: center; color: #18352a; }
 .caregiver-section-label strong, .caregiver-panel__heading > strong { color: #718075; font: 600 11px Arial, sans-serif; }
-.caregiver-patient-list { display: flex; flex-direction: column; gap: 7px; }
-.patient-row { align-items: center; background: #fff; border: 1px solid #e2e9e2; border-radius: 13px; color: #18352a; cursor: pointer; display: flex; gap: 9px; padding: 9px; text-align: left; width: 100%; }
-.patient-row.is-selected { border-color: #70aa7e; box-shadow: 0 0 0 2px #70aa7e26; }
-.patient-avatar { align-items: center; border-radius: 11px; display: flex; flex: 0 0 38px; font: 800 11px Arial, sans-serif; height: 38px; justify-content: center; }
+.caregiver-patient-list { display: flex; flex-direction: column; gap: 9px; max-height: 310px; overflow-y: auto; padding: 2px 5px 5px 1px; scrollbar-color: #9aaba0 transparent; scrollbar-width: thin; }
+.patient-row { align-items: center; background: #fff; border: 1px solid #e2e9e2; border-radius: 15px; color: #18352a; cursor: pointer; display: flex; gap: 11px; min-height: 64px; padding: 10px 12px; text-align: left; transition: border-color .18s, box-shadow .18s, transform .18s, background-color .18s; width: 100%; }
+.patient-row:hover { border-color: #a8c8ae; box-shadow: 0 7px 16px #17352b12; transform: translateY(-1px); }
+.patient-row.is-selected { background: #fbfefb; border-color: #70aa7e; box-shadow: 0 0 0 2px #70aa7e26, 0 7px 16px #17352b12; }
+.patient-avatar { align-items: center; border-radius: 13px; display: flex; flex: 0 0 42px; font: 800 12px Arial, sans-serif; height: 42px; justify-content: center; }
 .patient-avatar--online { background: #d9efdf; color: #2d8150; }
 .patient-avatar--attention { background: #fff0d4; color: #a56b18; }
 .patient-avatar--offline { background: #e8ece8; color: #7a877d; }
-.patient-row__details { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; }
-.patient-row__details strong { font: 700 13px Arial, sans-serif; }
-.patient-row__details span { color: #829087; font: 10px Arial, sans-serif; }
-.patient-status { border-radius: 50%; height: 7px; width: 7px; }
+.patient-row__details { display: flex; flex: 1; flex-direction: column; gap: 5px; min-width: 0; }
+.patient-row__details strong { font: 700 14px Arial, sans-serif; }
+.patient-row__details span { color: #829087; font: 11px Arial, sans-serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.patient-status { border: 3px solid #fff; border-radius: 50%; box-shadow: 0 0 0 1px #dce5dd; height: 12px; width: 12px; }
 .patient-status--online { background: #35a45b; }
 .patient-status--attention { background: #e0a33c; }
 .patient-status--offline { background: #9ca8a0; }
@@ -70,6 +88,50 @@
 .caregiver-send-button { align-items: center; background: #315846; border: 0; border-radius: 10px; color: white; display: flex; font: 700 12px Arial, sans-serif; gap: 7px; justify-content: center; margin-top: 9px; min-height: 44px; width: 100%; }
 .caregiver-send-button:disabled { opacity: .5; }
 .caregiver-feedback { align-items: center; color: #327246; display: flex; font: 11px Arial, sans-serif; gap: 5px; margin-top: 9px; }
+html[data-theme="dark"] .caregiver-app { background: #10161d; color: #edf3f7; }
+html[data-theme="dark"] .caregiver-brand h1,
+html[data-theme="dark"] .caregiver-welcome h2,
+html[data-theme="dark"] .caregiver-patient-card__top h2,
+html[data-theme="dark"] .caregiver-panel__heading h2,
+html[data-theme="dark"] .caregiver-section-label span,
+html[data-theme="dark"] .patient-row,
+html[data-theme="dark"] .patient-row__details strong,
+html[data-theme="dark"] .notification-row { color: #edf3f7; }
+html[data-theme="dark"] .caregiver-brand h1,
+html[data-theme="dark"] .caregiver-welcome h2,
+html[data-theme="dark"] .caregiver-patient-card__top h2,
+html[data-theme="dark"] .caregiver-panel__heading h2 { color: #edf3f7; }
+html[data-theme="dark"] .caregiver-profile { background: #22303d; color: #8bbcff; }
+html[data-theme="dark"] .patient-row,
+html[data-theme="dark"] .caregiver-patient-card,
+html[data-theme="dark"] .caregiver-panel { background: #1a232c; border-color: #384d5d; box-shadow: 0 10px 26px #00000038; }
+html[data-theme="dark"] .patient-row:hover { background: #22303d; border-color: #6fa8dc; box-shadow: 0 8px 18px #00000030; }
+html[data-theme="dark"] .patient-row.is-selected { background: #22303d; }
+html[data-theme="dark"] .patient-status { border-color: #1a232c; box-shadow: 0 0 0 1px #526c80; }
+html[data-theme="dark"] .patient-row__details span,
+html[data-theme="dark"] .caregiver-patient-card__top p,
+html[data-theme="dark"] .caregiver-note,
+html[data-theme="dark"] .caregiver-metrics span,
+html[data-theme="dark"] .caregiver-empty,
+html[data-theme="dark"] .caregiver-reminder > p { color: #b5c3cf; }
+html[data-theme="dark"] .caregiver-metrics { border-color: #384d5d; }
+html[data-theme="dark"] .caregiver-sidebar { background: #1a232c; border-color: #384d5d; }
+html[data-theme="dark"] .caregiver-sidebar__header h2,
+html[data-theme="dark"] .caregiver-sidebar__label { color: #edf3f7; }
+html[data-theme="dark"] .caregiver-sidebar__hint,
+html[data-theme="dark"] .caregiver-sidebar__header span { color: #b5c3cf; }
+html[data-theme="dark"] .caregiver-sidebar__section { border-color: #384d5d; }
+html[data-theme="dark"] .caregiver-sidebar__close,
+html[data-theme="dark"] .caregiver-language-options button { background: #22303d; border-color: #526c80; color: #e4edf4; }
+html[data-theme="dark"] .caregiver-language-options button.is-selected { background: #34445d; border-color: #6fa8dc; color: #f2f8f5; }
+html[data-theme="dark"] .caregiver-reminder select { background: #22303d; border-color: #526c80; color: #e4edf4; }
+html[data-theme="dark"] .notification-row { border-color: #384d5d; }
+html[data-theme="dark"] .caregiver-metrics strong { color: #8bbcff; }
+html[data-theme="dark"] .caregiver-sync,
+html[data-theme="dark"] .caregiver-metrics svg { color: #8bbcff; }
+html[data-theme="dark"] .patient-row.is-selected { border-color: #6fa8dc; box-shadow: 0 0 0 2px #6fa8dc33; }
+html[data-theme="dark"] .patient-code-button { background: #23333e; }
+html[data-theme="dark"] .caregiver-send-button { background: #34445d; }
 .patient-notification-popup { background: #fff; border: 1px solid #d8e5da; border-radius: 18px; box-shadow: 0 18px 45px #17352b2e; left: 50%; max-width: 420px; padding: 22px; position: fixed; text-align: center; top: 50%; transform: translate(-50%, -50%); width: calc(100% - 32px); z-index: 20; }
 .patient-notification-popup__icon { align-items: center; background: #dcefe1; border-radius: 50%; color: #2f7550; display: flex; height: 48px; justify-content: center; margin: 0 auto 12px; width: 48px; }
 .patient-notification-popup__eyebrow { color: #6d8274; font: 800 10px Arial, sans-serif; letter-spacing: .08em; text-transform: uppercase; }

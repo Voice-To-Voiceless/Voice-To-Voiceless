@@ -54,6 +54,10 @@ def create_app(services: ApplicationServices | None = None) -> FastAPI:
 	async def health() -> dict[str, str]:
 		return {"status": "ok"}
 
+	@app.get("/api/v1/patients")
+	async def list_patients() -> list[dict[str, str]]:
+		return [patient.to_dict() for patient in dependencies.patient_service.list()]
+
 	@app.post("/api/v1/notifications", status_code=201)
 	async def create_notification(request: NotificationCreateRequest) -> dict[str, object]:
 		notification = dependencies.notification_service.create(**request.model_dump())
