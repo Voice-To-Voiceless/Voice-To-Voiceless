@@ -87,7 +87,14 @@ function hasValidTargets(samples: CalibrationSample[]): boolean {
 }
 
 function hasCompleteFeatures(samples: CalibrationSample[]): samples is Required<CalibrationSample>[] {
-  return samples.length > 0 && samples.every(sample => sample.features !== undefined && Object.values(sample.features).every(Number.isFinite));
+  return samples.length > 0 && samples.every(sample => {
+    const features = sample.features;
+    return features !== undefined
+      && Number.isFinite(features.yaw) && Number.isFinite(features.pitch)
+      && Number.isFinite(features.faceCenterX) && Number.isFinite(features.faceCenterY)
+      && (features.l2csYaw === undefined || Number.isFinite(features.l2csYaw))
+      && (features.l2csPitch === undefined || Number.isFinite(features.l2csPitch));
+  });
 }
 
 function evaluateValidation(mapper: GazeCalibrationMapper, samples: CalibrationSample[]): ValidationFitDiagnostics {

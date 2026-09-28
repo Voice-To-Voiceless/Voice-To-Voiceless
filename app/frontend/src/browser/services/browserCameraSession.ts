@@ -1,7 +1,8 @@
 import { MediaPipeFaceLandmarkerAdapter } from '../../vision/mediapipe/mediaPipeFaceLandmarker';
 
-export const MODEL_PATH = '/models/face_landmarker.task';
-export const WASM_PATH = '/wasm';
+const assetUrl = (path: string) => new URL(path, typeof document === 'undefined' ? 'http://localhost/' : document.baseURI).toString();
+export const MODEL_PATH = assetUrl('models/face_landmarker.task');
+export const WASM_PATH = assetUrl('wasm/');
 
 export async function openCamera(video: HTMLVideoElement): Promise<MediaStream> {
   const stream = await navigator.mediaDevices.getUserMedia({

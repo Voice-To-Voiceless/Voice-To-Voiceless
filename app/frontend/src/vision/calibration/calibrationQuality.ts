@@ -23,6 +23,7 @@ export type CalibrationQualityInput = {
   rightConfidence: number;
   diagnostics: GazeDiagnostics;
   pose: { yaw: number; pitch: number; eyeScale?: number; interEyeDistance?: number } | null;
+  l2csAvailable?: boolean;
 };
 
 export type CalibrationSampleQuality = {
@@ -44,23 +45,23 @@ export function evaluateCalibrationSampleQuality(
   if (input.pose === null || !isFiniteNumber(input.pose.yaw) || !isFiniteNumber(input.pose.pitch)) {
     rejectionReasons.push('pose unavailable');
   }
-  if (
+  if (!input.l2csAvailable && (
     !isFiniteNumber(input.leftConfidence) ||
     !isFiniteNumber(input.rightConfidence) ||
     input.leftConfidence < policy.minimumConfidence ||
     input.rightConfidence < policy.minimumConfidence
-  ) {
+  )) {
     rejectionReasons.push('low confidence');
   }
   if (input.diagnostics.leftPosition === null || input.diagnostics.rightPosition === null) {
     rejectionReasons.push('invalid eye geometry');
   }
-  if (
+  if (!input.l2csAvailable && (
     !isFiniteNumber(input.diagnostics.leftAperture) ||
     !isFiniteNumber(input.diagnostics.rightAperture) ||
     input.diagnostics.leftAperture < policy.minimumAperture ||
     input.diagnostics.rightAperture < policy.minimumAperture
-  ) {
+  )) {
     rejectionReasons.push('insufficient aperture');
   }
   if (

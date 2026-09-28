@@ -1,8 +1,8 @@
 export type RidgeCalibrationFeatures = {
-  leftIrisX: number;
-  leftIrisY: number;
-  rightIrisX: number;
-  rightIrisY: number;
+  leftIrisX?: number;
+  leftIrisY?: number;
+  rightIrisX?: number;
+  rightIrisY?: number;
   yaw: number;
   pitch: number;
   roll: number;
@@ -20,8 +20,8 @@ type LinearModel = { names: Array<keyof RidgeCalibrationFeatures>; mean: number[
 
 // Keep the mapper anchored to gaze geometry. Pose and scale remain available for diagnostics,
 // but their frame-to-frame drift should not move the calibrated point directly.
-export const RIDGE_X_FEATURES: Array<keyof RidgeCalibrationFeatures> = ['l2csYaw', 'yaw', 'pitch', 'roll', 'eyeScale', 'faceCenterX', 'faceCenterY'];
-export const RIDGE_Y_FEATURES: Array<keyof RidgeCalibrationFeatures> = ['l2csPitch', 'yaw', 'pitch', 'roll', 'eyeScale', 'faceCenterX', 'faceCenterY'];
+export const RIDGE_X_FEATURES: Array<keyof RidgeCalibrationFeatures> = ['l2csYaw', 'yaw', 'faceCenterX'];
+export const RIDGE_Y_FEATURES: Array<keyof RidgeCalibrationFeatures> = ['l2csPitch', 'pitch', 'faceCenterY'];
 const LEGACY_X_FEATURES: Array<keyof RidgeCalibrationFeatures> = ['leftIrisX', 'rightIrisX', 'faceCenterX'];
 const LEGACY_Y_FEATURES: Array<keyof RidgeCalibrationFeatures> = ['leftIrisY', 'rightIrisY', 'faceCenterY'];
 const RIDGE_LAMBDAS = [0.001, 0.01, 0.1, 1, 10];

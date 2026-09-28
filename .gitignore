@@ -1,5 +1,7 @@
 # Git ignore file for the V2VL project
 .vscode/
+.uv-cache/
+.venv/
 logs/
 logs/frontend.log
 logs/backend.log
