@@ -149,6 +149,7 @@ html[data-theme="dark"] .caregiver-send-button { background: #34445d; }
 .whatsapp-link-screen .qr-scanner__frame span { background: #27d367; box-shadow: 0 0 14px #27d367; }
 .whatsapp-link-screen .qr-scanner__hint { background: #000b; bottom: 18px; color: #ddd; font-size: 12px; left: 22px; right: 22px; }
 .whatsapp-manual-link { align-items: center; background: #171717; border: 0; color: #27d367; display: flex; font: 400 18px Arial, sans-serif; gap: 9px; justify-content: center; min-height: 132px; padding: 22px; width: 100%; }
+.scanner-error { color: #ff9b9b; font: 13px/1.4 Arial, sans-serif; margin: 12px 0 0; text-align: center; }
 .whatsapp-manual-content { background: #171717; display: flex; flex: 1; flex-direction: column; padding: 82px 34px 30px; text-align: center; }
 .whatsapp-manual-content > p:first-child { color: #f1f1f1; font: 400 18px/1.4 Arial, sans-serif; margin: 0 auto 56px; max-width: 430px; }
 .whatsapp-manual-content label { color: #8d8d8d; font: 700 11px Arial, sans-serif; letter-spacing: .08em; margin-bottom: 12px; text-transform: uppercase; }
