@@ -58,7 +58,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   useEffect(() => {
     let active = true;
     const loadNurseAlert = () => {
-      getNotifications()
+      getNotifications('patient')
         .then(items => {
           if (!active) return;
           const latest = items.find(item => item.recipient === 'patient' && item.patient_metadata.patient_id === TABLET_PATIENT_ID && !item.read);
