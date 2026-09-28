@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, Check, ChevronRight, HeartPulse, Keyboard, Languages, Menu, Moon, ScanLine, Send, Sun, Users, Wifi, X } from 'lucide-react';
+import { Bell, Check, ChevronRight, Filter, HeartPulse, Keyboard, Languages, Menu, Moon, ScanLine, Send, Settings, Sun, Users, Wifi, X } from 'lucide-react';
 import { deleteNotification, getNotifications, subscribeToNotifications, type PatientNotification } from '../services/notifications';
 import { getPatients, linkPatient } from '../services/patients';
 import { useLanguage } from '../i18n';
@@ -23,8 +23,8 @@ const reminderOptions = ['Este timpul pentru medicatie.', 'Ai nevoie de ajutor?'
 const SETTINGS_STORAGE_KEY = 'voice-to-voiceless-settings';
 
 const caregiverCopy = {
-  English: { menu: 'Open menu', closeMenu: 'Close menu', settings: 'Settings', preferences: 'Preferences', language: 'Language', darkMode: 'Dark mode', lightMode: 'Light mode', english: 'English', romanian: 'Romanian', goodMorning: 'Good morning', patientDashboard: 'Patient dashboard', synced: 'Synced now', scanNewPatient: 'Scan new patient', scanDescription: 'Scan the QR code on the tablet', myPatients: 'MY PATIENTS', active: 'active', patientProfile: 'PATIENT PROFILE', status: 'Status', lastContact: 'Last contact', communication: 'Communication', tabletActive: 'Tablet active', notifications: 'NOTIFICATIONS', recentActivity: 'Recent activity', unread: 'unread', clearAll: 'Clear all', noNotifications: 'No notifications for this patient.', toTablet: 'TO TABLET', sendReminder: 'Send a reminder', reminderDescription: 'The message will appear immediately on', sendToTablet: 'Send to tablet', sending: 'Sending...', online: 'Online', needsAttention: 'Needs attention', offline: 'Offline', stable: 'Stable', attention: 'Attention', settingsHint: 'Change the language and appearance.' },
-  Romanian: { menu: 'Deschide meniul', closeMenu: 'Inchide meniul', settings: 'Setari', preferences: 'Preferinte', language: 'Limba', darkMode: 'Mod intunecat', lightMode: 'Mod luminos', english: 'Engleza', romanian: 'Romana', goodMorning: 'Buna dimineata', patientDashboard: 'Panoul pacientilor', synced: 'Sincronizat acum', scanNewPatient: 'Scaneaza pacient nou', scanDescription: 'Citeste codul QR de pe tableta', myPatients: 'PACIENTII MEI', active: 'activi', patientProfile: 'PROFIL PACIENT', status: 'Stare', lastContact: 'Ultimul contact', communication: 'Comunicare', tabletActive: 'Tableta activa', notifications: 'NOTIFICARI', recentActivity: 'Activitate recenta', unread: 'necitite', clearAll: 'Sterge toate', noNotifications: 'Nu exista notificari pentru acest pacient.', toTablet: 'CATRE TABLETA', sendReminder: 'Trimite un reminder', reminderDescription: 'Mesajul va aparea imediat pe tableta lui', sendToTablet: 'Trimite catre tableta', sending: 'Se trimite...', online: 'Online', needsAttention: 'Necesita atentie', offline: 'Offline', stable: 'Stabil', attention: 'Atentie', settingsHint: 'Schimba limba si aspectul aplicatiei.' },
+  English: { menu: 'Open menu', closeMenu: 'Close menu', settings: 'Settings', preferences: 'Preferences', language: 'Language', darkMode: 'Dark mode', lightMode: 'Light mode', english: 'English', romanian: 'Romanian', goodMorning: 'Good morning', patientDashboard: 'Patient dashboard', synced: 'Synced now', scanNewPatient: 'Scan new patient', scanDescription: 'Scan the QR code on the tablet', myPatients: 'MY PATIENTS', active: 'active', notifications: 'Notifications', unread: 'unread', clearAll: 'Clear all', noNotifications: 'No notifications for this patient.', all: 'All', emergencies: 'Emergency', markRead: 'Mark notification as read', toTablet: 'TO TABLET', sendReminder: 'Send a reminder', reminderDescription: 'The message will appear immediately on', sendToTablet: 'Send to tablet', sending: 'Sending...', online: 'Online', needsAttention: 'Needs attention', offline: 'Offline', settingsHint: 'Change the language and appearance.', patients: 'Patients', dashboard: 'Dashboard' },
+  Romanian: { menu: 'Deschide meniul', closeMenu: 'Inchide meniul', settings: 'Setari', preferences: 'Preferinte', language: 'Limba', darkMode: 'Mod intunecat', lightMode: 'Mod luminos', english: 'Engleza', romanian: 'Romana', goodMorning: 'Buna dimineata', patientDashboard: 'Panoul pacientilor', synced: 'Sincronizat acum', scanNewPatient: 'Scaneaza pacient nou', scanDescription: 'Citeste codul QR de pe tableta', myPatients: 'PACIENTII MEI', active: 'activi', notifications: 'Notificari', unread: 'necitite', clearAll: 'Sterge toate', noNotifications: 'Nu exista notificari pentru acest pacient.', all: 'Toate', emergencies: 'Urgente', markRead: 'Marcheaza notificarea ca citita', toTablet: 'CATRE TABLETA', sendReminder: 'Trimite un reminder', reminderDescription: 'Mesajul va aparea imediat pe tableta lui', sendToTablet: 'Trimite catre tableta', sending: 'Se trimite...', online: 'Online', needsAttention: 'Necesita atentie', offline: 'Offline', settingsHint: 'Schimba limba si aspectul aplicatiei.', patients: 'Pacienti', dashboard: 'Panou' },
 } as const;
 
 function readPhoneSettings(): { language: 'English' | 'Romanian'; darkMode: boolean } {
@@ -164,6 +164,19 @@ function PatientCodeScreen({ onBack, onCodeConfirmed }: { onBack: () => void; on
   );
 }
 
+function NotificationsScreen({ notifications, copy, onRead, onClearAll }: { notifications: PatientNotification[]; copy: Record<string, string>; onRead: (notification: PatientNotification) => void; onClearAll: () => void }) {
+  const [filter, setFilter] = useState<'all' | 'unread' | 'emergency'>('all');
+  const visibleNotifications = notifications.filter(notification => filter === 'all' || (filter === 'unread' && !notification.read) || (filter === 'emergency' && notification.severity === 'critical'));
+  const unreadCount = notifications.filter(notification => !notification.read).length;
+
+  return <section className="phone-notifications-screen" aria-label={copy.notifications}>
+    <header className="phone-notifications-header"><div><Bell size={23} /><h2>{copy.notifications}</h2></div><button type="button" aria-label="Filtreaza notificarile"><Filter size={19} /></button></header>
+    <div className="phone-notification-filters" role="tablist"><button type="button" className={filter === 'all' ? 'is-selected' : ''} onClick={() => setFilter('all')}>{copy.all}</button><button type="button" className={filter === 'unread' ? 'is-selected' : ''} onClick={() => setFilter('unread')}>{copy.unread}<span>{unreadCount}</span></button><button type="button" className={filter === 'emergency' ? 'is-selected' : ''} onClick={() => setFilter('emergency')}>{copy.emergencies}</button></div>
+    <div className="phone-notification-list">{visibleNotifications.length === 0 ? <div className="caregiver-empty">{copy.noNotifications}</div> : visibleNotifications.map(notification => <button type="button" key={notification.id} className={`phone-notification-card phone-notification-card--${notification.severity}${notification.read ? '' : ' is-unread'}`} onClick={() => onRead(notification)} aria-label={copy.markRead}><span className="phone-notification-card__icon"><Bell size={19} /></span><span className="phone-notification-card__body"><strong>{notification.message}</strong><small>{notification.patient_metadata.name || 'Patient'} · {notification.patient_metadata.room || 'Room'}</small><span>{formatNotificationTime(notification.created_at)}</span></span>{!notification.read && <span className="phone-notification-card__dot" />}</button>)}</div>
+    {notifications.length > 0 && <button type="button" className="phone-clear-notifications" onClick={onClearAll}>{copy.clearAll}</button>}
+  </section>;
+}
+
 export function PhoneTrackingApp() {
   const { language } = useLanguage();
   const copy = caregiverCopy[language];
@@ -176,6 +189,7 @@ export function PhoneTrackingApp() {
   const [message, setMessage] = useState(reminderOptions[0]);
   const [sending, setSending] = useState(false);
   const [feedback, setFeedback] = useState('');
+  const [activeScreen, setActiveScreen] = useState<'dashboard' | 'notifications'>('dashboard');
   const selectedPatient = patients.find(patient => patient.id === selectedPatientId) ?? patients[0];
   const patientNotifications = useMemo(
     () => notifications
@@ -321,6 +335,7 @@ export function PhoneTrackingApp() {
         </aside>
       </>}
 
+      {activeScreen === 'notifications' ? <NotificationsScreen notifications={notifications} copy={copy} onRead={readNotification} onClearAll={dismissAllNotifications} /> : <>
       <section className="caregiver-welcome"><div><span>{copy.goodMorning}</span><h2>{copy.patientDashboard}</h2></div><div className="caregiver-sync"><Wifi size={15} /> {copy.synced}</div></section>
 
       <button type="button" className="patient-code-button" onClick={() => setShowCodeScanner(true)}><span className="patient-code-button__icon"><ScanLine size={21} /></span><span><strong>{copy.scanNewPatient}</strong><small>{copy.scanDescription}</small></span><ChevronRight size={18} /></button>
@@ -330,9 +345,10 @@ export function PhoneTrackingApp() {
         {patients.map(patient => <button key={patient.id} type="button" className={`patient-row${patient.id === selectedPatient.id ? ' is-selected' : ''}`} onClick={() => setSelectedPatientId(patient.id)}><span className={`patient-avatar patient-avatar--${patient.status}`}>{patient.name.split(' ').map(part => part[0]).join('')}</span><span className="patient-row__details"><strong>{patient.name}</strong><span>{patient.room} · {patient.lastSeen}</span></span><span className={`patient-status patient-status--${patient.status}`} /> <ChevronRight size={17} /></button>)}
       </section>
 
-      <section className="caregiver-panel"><div className="caregiver-panel__heading"><div><span><Bell size={15} /> {copy.notifications}</span><h2>{copy.recentActivity}</h2></div><div className="caregiver-notification-actions"><strong>{patientNotifications.filter(item => !item.read).length} {copy.unread}</strong>{patientNotifications.length > 0 && <button type="button" className="notification-clear-button" onClick={dismissAllNotifications}>{copy.clearAll}</button>}</div></div>{patientNotifications.length === 0 ? <div className="caregiver-empty">{copy.noNotifications}</div> : <div className="notification-list">{patientNotifications.map(notification => <button type="button" key={notification.id} className={`notification-row${notification.read ? '' : ' is-unread'}`} onClick={() => readNotification(notification)} aria-label={`Marcheaza mesajul ca citit: ${notification.message}`}><span className={`notification-icon notification-icon--${notification.severity}`}><Bell size={15} /></span><span><strong>{notification.message}</strong><small>{formatNotificationTime(notification.created_at)}</small></span>{!notification.read && <span className="notification-unread" />}</button>)}</div>}</section>
-
       <section className="caregiver-panel caregiver-reminder"><div className="caregiver-panel__heading"><div><span><Send size={15} /> {copy.toTablet}</span><h2>{copy.sendReminder}</h2></div></div><p>{copy.reminderDescription} {selectedPatient.name.split(' ')[0]}.</p><select value={message} onChange={event => setMessage(event.target.value)} aria-label="Mesaj reminder">{reminderOptions.map(option => <option key={option}>{option}</option>)}</select><button className="caregiver-send-button" type="button" onClick={sendReminder} disabled={sending || selectedPatient.status === 'offline'}><Send size={17} /> {sending ? copy.sending : copy.sendToTablet}</button>{feedback && <div className="caregiver-feedback" role="status"><Check size={15} /> {feedback}</div>}</section>
+      </>}
+
+      <nav className="phone-bottom-nav" aria-label="Navigare principala"><button type="button" className={activeScreen === 'dashboard' ? 'is-active' : ''} onClick={() => setActiveScreen('dashboard')}><Users size={19} /><span>{copy.dashboard}</span></button><button type="button" className={activeScreen === 'notifications' ? 'is-active' : ''} onClick={() => setActiveScreen('notifications')}><Bell size={19} />{notifications.some(notification => !notification.read) && <i /> }<span>{copy.notifications}</span></button><button type="button" onClick={() => setSidebarOpen(true)}><Settings size={19} /><span>{copy.settings}</span></button></nav>
     </main>
   );
 }
