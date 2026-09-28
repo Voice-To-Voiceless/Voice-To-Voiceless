@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Bell, Check, ChevronRight, HeartPulse, Keyboard, Languages, Menu, Moon, ScanLine, Send, Sun, Users, Wifi, X } from 'lucide-react';
 import { deleteNotification, getNotifications, subscribeToNotifications, type PatientNotification } from '../services/notifications';
-import { getPatients, linkPatient, type PatientRecord } from '../services/patients';
+import { getPatients, linkPatient } from '../services/patients';
 import { useLanguage } from '../i18n';
 
 type Patient = {
@@ -62,6 +62,16 @@ function PatientCodeScreen({ onBack, onCodeConfirmed }: { onBack: () => void; on
   const [cameraReady, setCameraReady] = useState(false);
   const [error, setError] = useState('');
 
+  const submitCode = useCallback(async (code: string) => {
+    if (!code.trim()) return;
+    setError('');
+    try {
+      await onCodeConfirmed(code);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Codul nu a putut fi folosit.');
+    }
+  }, [onCodeConfirmed]);
+
   useEffect(() => {
     if (manualMode) return;
     let active = true;
@@ -94,7 +104,7 @@ function PatientCodeScreen({ onBack, onCodeConfirmed }: { onBack: () => void; on
             if (code) {
               setManualCode(code);
               setManualMode(true);
-              void submitCode(code);
+              submitCode(code);
               return;
             }
           } catch {
@@ -113,7 +123,7 @@ function PatientCodeScreen({ onBack, onCodeConfirmed }: { onBack: () => void; on
       streamRef.current?.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     };
-  }, [manualMode]);
+  }, [manualMode, submitCode]);
 
   function updateManualCode(value: string) {
     const normalized = value.replace(/[^a-z0-9-]/gi, '').toUpperCase();
@@ -122,19 +132,9 @@ function PatientCodeScreen({ onBack, onCodeConfirmed }: { onBack: () => void; on
 
   const formattedCode = manualCode;
 
-  async function submitCode(code: string) {
-    if (!code.trim()) return;
-    setError('');
-    try {
-      await onCodeConfirmed(code);
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Codul nu a putut fi folosit.');
-    }
-  }
-
   function confirmCode() {
     const code = manualCode.trim();
-    void submitCode(code);
+    submitCode(code);
   }
 
   return (
