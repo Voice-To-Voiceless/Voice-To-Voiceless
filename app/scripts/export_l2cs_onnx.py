@@ -33,6 +33,9 @@ class L2CSModel(torch.nn.Module):
         return self.fc_yaw_gaze(features), self.fc_pitch_gaze(features)
 
 
+INPUT_SIZE = 448
+
+
 def load_model(weights: Path) -> L2CSModel:
     model = L2CSModel()
     state = load_file(str(weights), device="cpu")
@@ -53,9 +56,9 @@ def sha256(path: Path) -> str:
 def fixed_inputs() -> list[np.ndarray]:
     rng = np.random.default_rng(20260928)
     return [
-        np.zeros((1, 3, 224, 224), dtype=np.float32),
-        np.full((1, 3, 224, 224), 0.5, dtype=np.float32),
-        rng.standard_normal((1, 3, 224, 224), dtype=np.float32),
+        np.zeros((1, 3, INPUT_SIZE, INPUT_SIZE), dtype=np.float32),
+        np.full((1, 3, INPUT_SIZE, INPUT_SIZE), 0.5, dtype=np.float32),
+        rng.standard_normal((1, 3, INPUT_SIZE, INPUT_SIZE), dtype=np.float32),
     ]
 
 
@@ -68,7 +71,7 @@ def main() -> None:
     args.output.parent.mkdir(parents=True, exist_ok=True)
 
     model = load_model(args.weights)
-    example = torch.zeros((1, 3, 224, 224), dtype=torch.float32)
+    example = torch.zeros((1, 3, INPUT_SIZE, INPUT_SIZE), dtype=torch.float32)
     torch.onnx.export(
         model,
         (example,),
@@ -93,7 +96,7 @@ def main() -> None:
 
     manifest = {
         "model": "L2CS-Net ResNet-50 Gaze360",
-        "input": {"name": "images", "shape": [1, 3, 224, 224], "layout": "NCHW", "color": "RGB", "dtype": "float32", "resize": [224, 224], "normalization": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}, "horizontal_flip": False},
+        "input": {"name": "images", "shape": [1, 3, INPUT_SIZE, INPUT_SIZE], "layout": "NCHW", "color": "RGB", "dtype": "float32", "resize": [INPUT_SIZE, INPUT_SIZE], "normalization": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}, "horizontal_flip": False},
         "outputs": [{"name": "yaw_logits", "axis": "yaw"}, {"name": "pitch_logits", "axis": "pitch"}],
         "decoding": {"bins": 90, "degrees_per_bin": 4, "minimum_degrees": -180, "formula": "sum(softmax(logits) * arange(90)) * 4 - 180", "output_unit": "degrees"},
         "provenance": {"checkpoint": "py-feat re-host of official L2CS-Net Gaze360 weights", "source": "https://github.com/Ahmednull/L2CS-Net", "weights_sha256": sha256(args.weights)},
@@ -112,7 +115,7 @@ def load_parity_images(directory: Path) -> list[np.ndarray]:
     std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
     result = []
     for path in images:
-        image = np.asarray(Image.open(path).convert("RGB").resize((224, 224)), dtype=np.float32) / 255.0
+        image = np.asarray(Image.open(path).convert("RGB").resize((INPUT_SIZE, INPUT_SIZE)), dtype=np.float32) / 255.0
         result.append(((image - mean) / std).transpose(2, 0, 1)[None, ...].astype(np.float32))
     return result
 

@@ -46,7 +46,7 @@ export function CalibrationModal({ tracking, recognition, videoRef, faceDetected
     <div className="calibration-modal__content">
       <button type="button" className="calibration-modal__close" aria-label={t('closeCameraPopup')} title={t('close')} onClick={isCalibration ? tracking.cancelCalibration : recognition.stop}><X size={20} aria-hidden="true" /></button>
       <div className="calibration-modal__body">
-        <div className="calibration-modal__preview"><CameraPanel isLive={trackingActive || recognitionActive} fps={60}><CameraPreview><video ref={videoRef} className="camera-preview" autoPlay muted playsInline /></CameraPreview></CameraPanel></div>
+        <div className="calibration-modal__preview"><CameraPanel isLive={trackingActive || recognitionActive} fps={60}><CameraPreview><video ref={videoRef} className="camera-preview" autoPlay muted playsInline />{tracking.snapshot.l2csCropPreview && <div className="l2cs-crop-border" style={{ left: `${(1 - tracking.snapshot.l2csCropPreview.bounds.right) * 100}%`, top: `${tracking.snapshot.l2csCropPreview.bounds.top * 100}%`, width: `${(tracking.snapshot.l2csCropPreview.bounds.right - tracking.snapshot.l2csCropPreview.bounds.left) * 100}%`, height: `${(tracking.snapshot.l2csCropPreview.bounds.bottom - tracking.snapshot.l2csCropPreview.bounds.top) * 100}%` }} aria-hidden="true" />}</CameraPreview></CameraPanel></div>
         {recognitionActive ? <aside className="camera-status-sidebar camera-status-sidebar--details" aria-label={t('faceRecognition')}>
           <strong>{t('faceRecognition')}</strong>
           <StatusDetail label={t('state')} value={recognition.snapshot.state} />

@@ -17,6 +17,24 @@ export function hasCompleteTargetCoverage(pass: PassData): boolean {
   return targets.size > 0 && [...targets].every(target => captured.has(target));
 }
 
+export function getPassCaptureStatus(pass: PassData) {
+  const expectedTargets = [...new Set(pass.targetOrder.map(target => `${target.x}:${target.y}`))];
+  const capturedTargets = [...new Set(pass.all.map(sample => `${sample.target.x}:${sample.target.y}`))];
+  const missingTargets = expectedTargets
+    .filter(key => !capturedTargets.includes(key))
+    .map(key => {
+      const [x, y] = key.split(':').map(Number);
+      return { x, y };
+    });
+  return {
+    expectedTargetCount: expectedTargets.length,
+    capturedTargetCount: capturedTargets.length,
+    sampleCount: pass.all.length,
+    complete: missingTargets.length === 0 && expectedTargets.length > 0,
+    missingTargets,
+  };
+}
+
 export function getOrdinaryValidationDiagnostics(training: CalibrationSample[], validation: CalibrationSample[]) {
   const mapper = GazeCalibrationMapper.fit(training);
   if (mapper === null || validation.length === 0) return { rmsResidual: null, maxResidual: null, targetResiduals: [] };

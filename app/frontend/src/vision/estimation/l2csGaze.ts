@@ -1,16 +1,21 @@
-import * as ort from 'onnxruntime-web';
+// The base package does not include the browser WebGPU execution provider.
+// Importing this entry point is required before a `webgpu` session can work.
+import * as ort from 'onnxruntime-web/webgpu';
 import { FaceLandmarkObservation } from '../types/landmarkTypes';
 
 const assetUrl = (path: string) => new URL(path, typeof document === 'undefined' ? 'http://localhost/' : document.baseURI).toString();
 ort.env.wasm.wasmPaths = assetUrl('onnxruntime/');
 
 export type L2CSAngularGaze = { yaw: number; pitch: number; confidence: number; timestamp: number };
-export type L2CSInferenceDiagnostics = { provider: 'webgpu' | 'wasm'; latencyMs: number; estimatesPerSecond: number };
+export type L2CSDebugPreview = { bounds: { left: number; top: number; right: number; bottom: number } };
+export type L2CSInferenceDiagnostics = { provider: 'webgpu' | 'wasm'; latencyMs: number; estimatesPerSecond: number; cropPreview?: L2CSDebugPreview };
 export type L2CSManifest = { input: { name: string; shape: number[]; normalization: { mean: number[]; std: number[] } }; outputs: Array<{ name: string; axis: 'yaw' | 'pitch' }>; decoding: { bins: number; degrees_per_bin: number; minimum_degrees: number } };
 
 const MODEL_URL = assetUrl('models/l2cs_gaze360_resnet50.onnx');
 const MANIFEST_URL = assetUrl('models/l2cs_gaze360_resnet50.manifest.json');
-const MINIMUM_ESTIMATES_PER_SECOND = 8;
+// WASM inference on this machine is ~4.2 estimates/s. Treat rates below 3/s
+// as unusable, but do not kill a healthy albeit slower L2CS stream.
+const MINIMUM_ESTIMATES_PER_SECOND = 3;
 const PERFORMANCE_WINDOW_MS = 5000;
 
 export class L2CSOnnxEstimator {
@@ -28,7 +33,8 @@ export class L2CSOnnxEstimator {
     });
     validateManifest(manifest);
     this.manifest = manifest;
-    const providers: Array<'webgpu' | 'wasm'> = typeof navigator !== 'undefined' && 'gpu' in navigator ? ['webgpu', 'wasm'] : ['wasm'];
+    const webGpuAdapter = await getWebGpuAdapter();
+    const providers: Array<'webgpu' | 'wasm'> = webGpuAdapter ? ['webgpu', 'wasm'] : ['wasm'];
     let lastError: unknown = null;
     for (const provider of providers) {
       try {
@@ -39,6 +45,7 @@ export class L2CSOnnxEstimator {
         break;
       } catch (error) {
         lastError = error;
+        console.warn(`[l2cs] ${provider} session initialization failed; trying the next provider.`, error);
         this.session?.release();
         this.session = null;
         this.provider = null;
@@ -80,7 +87,8 @@ export class L2CSOnnxEstimator {
 
   private async run(video: HTMLVideoElement, observation: FaceLandmarkObservation, timestamp: number) {
     const started = performance.now();
-    const tensor = createFaceTensor(video, observation, this.manifest!.input.shape[2]!, this.manifest!.input.normalization.mean, this.manifest!.input.normalization.std);
+    const crop = getFaceCrop(observation.faceBounds!, video.videoWidth, video.videoHeight);
+    const { tensor } = createFaceTensor(video, crop, this.manifest!.input.shape[2]!, this.manifest!.input.normalization.mean, this.manifest!.input.normalization.std);
     const outputs = await this.session!.run({ [this.manifest!.input.name]: tensor });
     const yawName = this.manifest!.outputs.find(output => output.axis === 'yaw')!.name;
     const pitchName = this.manifest!.outputs.find(output => output.axis === 'pitch')!.name;
@@ -91,38 +99,54 @@ export class L2CSOnnxEstimator {
     const yaw = decodeAngle(yawOutput.data, this.manifest!.decoding);
     const pitch = decodeAngle(pitchOutput.data, this.manifest!.decoding);
     const latencyMs = performance.now() - started;
+    const currentConfidence = confidenceFromLogits(yawOutput.data, pitchOutput.data);
     const now = performance.now();
     this.estimateTimes.push(now);
     this.estimateTimes = this.estimateTimes.filter(time => now - time <= PERFORMANCE_WINDOW_MS);
     const estimatesPerSecond = this.estimateTimes.length / (PERFORMANCE_WINDOW_MS / 1000);
     if (now - this.performanceStartedAt >= PERFORMANCE_WINDOW_MS && estimatesPerSecond < MINIMUM_ESTIMATES_PER_SECOND) throw new Error(`L2CS inference is too slow (${estimatesPerSecond.toFixed(1)} estimates/s).`);
-    return { gaze: { yaw, pitch, confidence: confidenceFromLogits(yawOutput.data, pitchOutput.data), timestamp }, diagnostics: { provider: this.provider!, latencyMs, estimatesPerSecond } };
+    return { gaze: { yaw, pitch, confidence: currentConfidence, timestamp }, diagnostics: { provider: this.provider!, latencyMs, estimatesPerSecond, cropPreview: { bounds: toNormalizedBounds(crop, video.videoWidth, video.videoHeight) } } };
+  }
+
+}
+
+async function getWebGpuAdapter(): Promise<unknown | null> {
+  if (typeof navigator === 'undefined') return null;
+  const gpu = (navigator as Navigator & { gpu?: { requestAdapter: () => Promise<unknown | null> } }).gpu;
+  if (!gpu) return null;
+  try {
+    const adapter = await gpu.requestAdapter();
+    if (!adapter) console.warn('[l2cs] WebGPU is exposed but no adapter is available; using WASM.');
+    return adapter;
+  } catch (error) {
+    console.warn('[l2cs] WebGPU adapter request failed; using WASM.', error);
+    return null;
   }
 }
 
-function createFaceTensor(video: HTMLVideoElement, observation: FaceLandmarkObservation, size: number, mean: number[], std: number[]): ort.Tensor {
-  const bounds = observation.faceBounds;
-  if (!bounds) throw new Error('L2CS face crop is unavailable.');
-  const crop = getPaddedSquareCrop(bounds, video.videoWidth, video.videoHeight);
+function createFaceTensor(video: HTMLVideoElement, crop: { left: number; top: number; width: number; height: number }, size: number, mean: number[], std: number[]): { tensor: ort.Tensor } {
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
   const context = canvas.getContext('2d', { willReadFrequently: true });
   if (!context) throw new Error('L2CS could not create a canvas context.');
-  context.drawImage(video, crop.left, crop.top, crop.size, crop.size, 0, 0, size, size);
+  context.drawImage(video, crop.left, crop.top, crop.width, crop.height, 0, 0, size, size);
   const pixels = context.getImageData(0, 0, size, size).data;
   const values = new Float32Array(3 * size * size);
   for (let index = 0; index < size * size; index += 1) for (let channel = 0; channel < 3; channel += 1) values[channel * size * size + index] = (pixels[index * 4 + channel] / 255 - mean[channel]!) / std[channel]!;
-  return new ort.Tensor('float32', values, [1, 3, size, size]);
+  return { tensor: new ort.Tensor('float32', values, [1, 3, size, size]) };
 }
 
-export function getPaddedSquareCrop(bounds: { left: number; top: number; right: number; bottom: number }, width: number, height: number): { left: number; top: number; size: number } {
+function toNormalizedBounds(crop: { left: number; top: number; width: number; height: number }, videoWidth: number, videoHeight: number) {
+  return { left: crop.left / videoWidth, top: crop.top / videoHeight, right: (crop.left + crop.width) / videoWidth, bottom: (crop.top + crop.height) / videoHeight };
+}
+
+export function getFaceCrop(bounds: { left: number; top: number; right: number; bottom: number }, width: number, height: number): { left: number; top: number; width: number; height: number } {
   const left = Math.min(1, Math.max(0, bounds.left)) * width;
   const top = Math.min(1, Math.max(0, bounds.top)) * height;
   const right = Math.min(1, Math.max(0, bounds.right)) * width;
   const bottom = Math.min(1, Math.max(0, bounds.bottom)) * height;
-  const size = Math.min(Math.max(right - left, bottom - top) * 1.25, width, height);
-  return { left: Math.min(Math.max(0, (left + right - size) / 2), width - size), top: Math.min(Math.max(0, (top + bottom - size) / 2), height - size), size };
+  return { left, top, width: Math.max(1, right - left), height: Math.max(1, bottom - top) };
 }
 
 export function decodeAngle(values: unknown, decoding: L2CSManifest['decoding']): number {

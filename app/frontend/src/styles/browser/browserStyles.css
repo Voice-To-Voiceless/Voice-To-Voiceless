@@ -104,6 +104,8 @@ h2 { font-size: 1.4rem; margin: 0; }
 .debug-marker--calibrated { background: #3f88c5; box-shadow: 0 0 0 5px #3f88c566; }
 .debug-marker--mouse { background: #f2c14e; box-shadow: 0 0 0 5px #f2c14e66; }
 .debug-overlay__target { background: #10251ce6; border-radius: 6px; color: white; font: 700 12px Arial, sans-serif; padding: 6px 9px; position: absolute; right: 12px; top: 12px; }
+.debug-overlay__crop-bounds { background: #10251ce6; border-radius: 6px; color: white; font: 11px Arial, sans-serif; padding: 6px 9px; position: absolute; right: 12px; top: 48px; }
+.debug-overlay__crop-red { color: #ff6b61; }
 .calibration-target { background: conic-gradient(#fff var(--calibration-progress), #f8c66d 0); border-radius: 50%; box-shadow: 0 0 0 8px #f8c66d66, 0 3px 12px #10251c99; height: 50px; pointer-events: none; position: fixed; transform: translate(-50%, -50%); width: 50px; z-index: 41; }
 .calibration-target::after { background: #f8c66d; border: 5px solid white; border-radius: 50%; content: ''; inset: 8px; position: absolute; }
 .calibration-target--validation { background: conic-gradient(#fff var(--calibration-progress), #4da3ff 0); box-shadow: 0 0 0 8px #4da3ff66, 0 3px 12px #10251c99; }

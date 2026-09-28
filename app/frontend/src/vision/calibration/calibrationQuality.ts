@@ -24,6 +24,7 @@ export type CalibrationQualityInput = {
   diagnostics: GazeDiagnostics;
   pose: { yaw: number; pitch: number; eyeScale?: number; interEyeDistance?: number } | null;
   l2csAvailable?: boolean;
+  temporalStable?: boolean;
 };
 
 export type CalibrationSampleQuality = {
@@ -42,6 +43,7 @@ export function evaluateCalibrationSampleQuality(
   if (!isFiniteNumber(input.gaze.x) || !isFiniteNumber(input.gaze.y) || !isFiniteNumber(input.gaze.confidence)) {
     rejectionReasons.push('non-finite value');
   }
+  if (input.l2csAvailable && input.temporalStable === false) rejectionReasons.push('temporal filter rejection');
   if (input.pose === null || !isFiniteNumber(input.pose.yaw) || !isFiniteNumber(input.pose.pitch)) {
     rejectionReasons.push('pose unavailable');
   }

@@ -54,3 +54,11 @@
     height: 100%;
     object-fit: cover;
 }
+
+.l2cs-crop-border {
+    border: 2px solid #ff3b30;
+    box-sizing: border-box;
+    pointer-events: none;
+    position: absolute;
+    z-index: 2;
+}

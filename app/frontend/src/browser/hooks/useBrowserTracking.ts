@@ -17,7 +17,7 @@ import { evaluateCalibrationSampleQuality } from '../../vision/calibration/calib
 import { L2CSOnnxEstimator } from '../../vision/estimation/l2csGaze';
 import { getCalibrationFeatures } from '../../vision/calibration/calibrationFeatures';
 
-const initialSnapshot: TrackingSnapshot = { active: false, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0, calibrating: false, calibrationIndex: 0, calibrationTarget: null, calibrationProgress: 0, calibrationPassKind: null, calibrationFailed: false, calibrationFailure: null, calibrationReady: false, trackingPauseReason: null, l2csError: null, l2csYaw: null, l2csPitch: null, l2csProvider: null, l2csInferenceLatencyMs: null, l2csEstimatesPerSecond: null, poseStatus: 'unknown' };
+const initialSnapshot: TrackingSnapshot = { active: false, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0, calibrating: false, calibrationIndex: 0, calibrationTarget: null, calibrationProgress: 0, calibrationPassKind: null, calibrationFailed: false, calibrationFailure: null, calibrationReady: false, trackingPauseReason: null, l2csError: null, l2csYaw: null, l2csPitch: null, l2csProvider: null, l2csInferenceLatencyMs: null, l2csEstimatesPerSecond: null, l2csCropPreview: null, poseStatus: 'unknown' };
 
 export function useBrowserTracking(
   videoRef: React.RefObject<HTMLVideoElement | null>,
@@ -30,8 +30,11 @@ export function useBrowserTracking(
   const frameRef = useRef<number | null>(null);
   const activeRef = useRef(false);
   const processingRef = useRef(false);
-  const smootherRef = useRef(new GazeSmoother());
-  const joystickRef = useRef(new GazeJoystickController({ invertX: true, invertY: true }));
+  const smootherRef = useRef(new GazeSmoother(0.18, 0.006));
+  const l2csStabilityRef = useRef<Array<{ x: number; y: number; timestamp: number }>>([]);
+  // Gaze coordinates are already screen-space normalized coordinates: y increases downward.
+  // Keep the fallback cursor aligned with the raw gaze direction vertically.
+  const joystickRef = useRef(new GazeJoystickController({ invertX: true, invertY: false }));
   const fallbackLoggedRef = useRef(false);
   const dwellRef = useRef(new DwellSelector(1200));
   const lossRef = useRef(new FaceTrackingLossTracker());
@@ -46,6 +49,7 @@ export function useBrowserTracking(
     targetsRef: calibrationTargetsRef,
     start: startCalibration,
     reset: resetCalibration,
+    pause: pauseCalibration,
     process: processCalibration,
   } = useCalibration(modelTestingSession);
   const [snapshot, setSnapshot] = useState(initialSnapshot);
@@ -57,6 +61,7 @@ export function useBrowserTracking(
     dwellRef.current.cancel();
     joystickRef.current.reset();
     poseRef.current = null;
+    l2csStabilityRef.current = [];
     setSnapshot(value => ({ ...value, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0 }));
   }, []);
   const stop = useCallback(() => {
@@ -110,14 +115,16 @@ export function useBrowserTracking(
           setStatus('L2CS disabled. Restart tracking to retry gaze inference.');
         }
       }
-      if (l2csResult) setSnapshot(value => ({ ...value, l2csYaw: l2csResult!.gaze.yaw, l2csPitch: l2csResult!.gaze.pitch, l2csProvider: l2csResult!.diagnostics.provider, l2csInferenceLatencyMs: l2csResult!.diagnostics.latencyMs, l2csEstimatesPerSecond: l2csResult!.diagnostics.estimatesPerSecond }));
-      if (calibrationActiveRef.current && l2csRef.current && !l2csResult) {
+      if (l2csResult) setSnapshot(value => ({ ...value, l2csYaw: l2csResult!.gaze.yaw, l2csPitch: l2csResult!.gaze.pitch, l2csProvider: l2csResult!.diagnostics.provider, l2csInferenceLatencyMs: l2csResult!.diagnostics.latencyMs, l2csEstimatesPerSecond: l2csResult!.diagnostics.estimatesPerSecond, l2csCropPreview: l2csResult!.diagnostics.cropPreview ?? value.l2csCropPreview }));
+      const l2csIsActive = l2csRef.current !== null && !l2csDisabledRef.current;
+      if (calibrationActiveRef.current && l2csIsActive && !l2csResult) {
+        pauseCalibration(timestamp);
         smootherRef.current.reset();
         setStatus('Waiting for a valid L2CS gaze estimate before recording.');
         return;
       }
       const gazeDiagnostics = getGazeDiagnostics(observation);
-      const gaze = estimateGaze(observation) ?? (l2csResult ? gazeFromL2CS(l2csResult.gaze, timestamp) : null);
+      const gaze = l2csResult ? gazeFromL2CS(l2csResult.gaze, timestamp) : estimateGaze(observation);
       if (!gaze) {
         joystickRef.current.resetVelocity();
         dwellRef.current.cancel();
@@ -128,6 +135,7 @@ export function useBrowserTracking(
       if (!poseRef.current && pose !== null && pose.yaw !== null && pose.pitch !== null) poseRef.current = { yaw: pose.yaw, pitch: pose.pitch };
       const poseSample = getPoseSample(pose);
       const features = getCalibrationFeatures(gazeDiagnostics, pose, l2csResult?.gaze);
+      const temporalStable = l2csResult ? updateL2CSStability(l2csStabilityRef.current, gaze) : true;
       const smoothed = smootherRef.current.update(gaze);
       if (calibrationActiveRef.current) {
         const targetIndex = calibrationIndexRef.current;
@@ -138,6 +146,7 @@ export function useBrowserTracking(
           diagnostics: gazeDiagnostics,
           pose: poseSample,
           l2csAvailable: l2csResult !== null,
+          temporalStable,
         });
         if (modelTestingSession) modelTestingSession.recordEyeDiagnostics(targetIndex, {
             targetIndex,
@@ -148,6 +157,10 @@ export function useBrowserTracking(
             gazeDiagnostics,
             gaze,
             smoothed,
+            l2cs: l2csResult?.gaze ?? null,
+            l2csProvider: l2csResult?.diagnostics.provider ?? null,
+            l2csInferenceLatencyMs: l2csResult?.diagnostics.latencyMs ?? null,
+            l2csEstimatesPerSecond: l2csResult?.diagnostics.estimatesPerSecond ?? null,
           });
         const result = processCalibration(smoothed, timestamp, {
           raw: gaze,
@@ -159,7 +172,7 @@ export function useBrowserTracking(
         });
         setSnapshot(value => ({
           ...value,
-          rawGaze: { x: gaze.x, y: gaze.y },
+          rawGaze: { x: smoothed.x, y: smoothed.y },
           gazePoint: result.target,
           activeTarget: null,
           dwellProgress: 0,
@@ -169,7 +182,10 @@ export function useBrowserTracking(
           calibrationProgress: result.settleProgress,
           calibrationReady: calibrationReadyRef.current,
         }));
-        if (result.resetSmoother) smootherRef.current.reset();
+        if (result.resetSmoother) {
+          smootherRef.current.reset();
+          l2csStabilityRef.current = [];
+        }
         if (result.status) setStatus(result.status);
         return;
       }
@@ -195,20 +211,20 @@ export function useBrowserTracking(
       const targetId = boardRef.current ? findVisibleTarget(boardRef.current, point.x, point.y) : null;
       if (!targetId) {
         dwellRef.current.cancel();
-        setSnapshot(value => ({ ...value, rawGaze: { x: gaze.x, y: gaze.y }, calibratedGaze, gazePoint: point, activeTarget: null, dwellProgress: 0 }));
+        setSnapshot(value => ({ ...value, rawGaze: { x: smoothed.x, y: smoothed.y }, calibratedGaze, gazePoint: point, activeTarget: null, dwellProgress: 0 }));
         setStatus('Tracking ready. Look at a communication action.');
         return;
       }
       const selection = dwellRef.current.update(targetId, timestamp);
       const dwellProgress = selection ? 1 : dwellRef.current.progress(targetId, timestamp);
-      setSnapshot(value => ({ ...value, rawGaze: { x: gaze.x, y: gaze.y }, calibratedGaze, gazePoint: point, activeTarget: targetId, dwellProgress }));
+      setSnapshot(value => ({ ...value, rawGaze: { x: smoothed.x, y: smoothed.y }, calibratedGaze, gazePoint: point, activeTarget: targetId, dwellProgress }));
       setStatus(`Looking at ${targetId}. Hold to select.`);
       if (selection) onSelect(targetId);
     } finally {
       processingRef.current = false;
       if (activeRef.current) frameRef.current = requestAnimationFrame(processFrame);
     }
-  }, [boardRef, calibrationActiveRef, calibrationIndexRef, calibrationMapperRef, calibrationReadyRef, calibrationTargetsRef, modelTestingSession, onSelect, processCalibration, resetCalibration, resetInteraction, videoRef]);
+  }, [boardRef, calibrationActiveRef, calibrationIndexRef, calibrationMapperRef, calibrationReadyRef, calibrationTargetsRef, modelTestingSession, onSelect, pauseCalibration, processCalibration, resetCalibration, resetInteraction, videoRef]);
   const calibrate = useCallback(() => {
     if (!activeRef.current) return;
     startCalibration();
@@ -249,6 +265,17 @@ function getPoseSample(pose: ReturnType<typeof estimateRelativeFacePose>) { if (
   return { yaw: pose.yaw, pitch: pose.pitch, eyeScale: pose.eyeScale, interEyeDistance: pose.interEyeDistance };
 }
 
-function gazeFromL2CS(gaze: { yaw: number; pitch: number; confidence: number }, timestamp: number) {
-  return { x: Math.min(1, Math.max(0, 0.5 + gaze.yaw / 180)), y: Math.min(1, Math.max(0, 0.5 - gaze.pitch / 180)), confidence: gaze.confidence, timestamp };
+export function gazeFromL2CS(gaze: { yaw: number; pitch: number; confidence: number }, timestamp: number) {
+  // L2CS yaw is positive toward the camera's left, while screen X increases
+  // toward the user's right. Invert yaw when converting to screen space.
+  return { x: Math.min(1, Math.max(0, 0.5 - gaze.yaw / 180)), y: Math.min(1, Math.max(0, 0.5 - gaze.pitch / 180)), confidence: gaze.confidence, timestamp };
+}
+
+function updateL2CSStability(history: Array<{ x: number; y: number; timestamp: number }>, gaze: { x: number; y: number; timestamp: number }): boolean {
+  history.push({ x: gaze.x, y: gaze.y, timestamp: gaze.timestamp });
+  while (history.length > 0 && gaze.timestamp - history[0]!.timestamp > 900) history.shift();
+  if (history.length < 3) return false;
+  const xValues = history.map(sample => sample.x);
+  const yValues = history.map(sample => sample.y);
+  return Math.max(...xValues) - Math.min(...xValues) <= 0.035 && Math.max(...yValues) - Math.min(...yValues) <= 0.035;
 }

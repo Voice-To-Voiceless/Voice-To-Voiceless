@@ -1,5 +1,6 @@
 import { ActionId } from '../types/communication';
 import { FaceAnalysis } from './services/faceExpressionAnalysis';
+import { L2CSDebugPreview } from '../vision/estimation/l2csGaze';
 
 export type GazePoint = { x: number; y: number };
 
@@ -25,6 +26,7 @@ export type TrackingSnapshot = {
   l2csProvider: 'webgpu' | 'wasm' | null;
   l2csInferenceLatencyMs: number | null;
   l2csEstimatesPerSecond: number | null;
+  l2csCropPreview: L2CSDebugPreview | null;
   poseStatus: 'stable' | 'drift' | 'unavailable' | 'unknown';
 };
 

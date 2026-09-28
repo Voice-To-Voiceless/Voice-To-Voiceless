@@ -11,8 +11,11 @@ export const CALIBRATION_TARGETS = [
 ];
 
 export const CALIBRATION_SETTLE_DURATION_MS = 1800;
-export const CALIBRATION_SAMPLE_DURATION_MS = 900;
+// Keep calibration practical while allowing the current L2CS stream to collect
+// as many accepted samples as its ~4 estimates/s throughput permits.
+export const CALIBRATION_SAMPLE_DURATION_MS = 3000;
 export const CALIBRATION_MAX_RECORDING_DURATION_MS = CALIBRATION_SAMPLE_DURATION_MS;
+const L2CS_MINIMUM_ACCEPTED_SAMPLES_PER_TARGET = 10;
 export const CALIBRATION_INTERLEAVED_TARGETS = [CALIBRATION_TARGETS[4], CALIBRATION_TARGETS[1], CALIBRATION_TARGETS[7], CALIBRATION_TARGETS[3], CALIBRATION_TARGETS[5], CALIBRATION_TARGETS[0], CALIBRATION_TARGETS[2], CALIBRATION_TARGETS[6], CALIBRATION_TARGETS[8]] as const;
 export const CALIBRATION_TARGET_ORDERS = [
   CALIBRATION_INTERLEAVED_TARGETS,
@@ -76,6 +79,10 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
     setState(value => ({ ...value, active: false }));
   }, [modelTestingSession]);
 
+  const pause = useCallback((timestamp: number) => {
+    if (activeRef.current) dataRef.current.started = timestamp;
+  }, []);
+
   const process = useCallback((gaze: NormalizedGazePoint, timestamp: number, diagnosticPoints?: CalibrationDiagnosticPoints): CalibrationResult => {
     const index = indexRef.current;
     const target = targetsRef.current[index];
@@ -110,7 +117,11 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
     if (elapsed < CALIBRATION_SETTLE_DURATION_MS + CALIBRATION_SAMPLE_DURATION_MS) {
       return { target, status: 'Hold steady. Recording your gaze.', complete: false, settleProgress: 1, resetSmoother: false };
     }
-    if (dataRef.current.point.length < DEFAULT_CALIBRATION_QUALITY_POLICY.minimumAcceptedSamplesPerTarget) {
+    const usesL2CS = dataRef.current.point.some(sample => sample.features?.l2csYaw !== undefined && sample.features?.l2csPitch !== undefined);
+    const minimumAcceptedSamples = usesL2CS
+      ? L2CS_MINIMUM_ACCEPTED_SAMPLES_PER_TARGET
+      : DEFAULT_CALIBRATION_QUALITY_POLICY.minimumAcceptedSamplesPerTarget;
+    if (dataRef.current.point.length < minimumAcceptedSamples) {
       dataRef.current.started = timestamp;
       modelTestingSession?.exportDiagnostics();
       modelTestingSession?.discardCurrentPass();
@@ -121,6 +132,7 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
       return { target: null, status: 'Calibration failed. Hold your gaze steadily on each dot.', complete: false, settleProgress: 0, resetSmoother: true, failed: true };
     }
     if (index === targetsRef.current.length - 1) {
+      const completedPassKind = passKindRef.current;
       if (passKindRef.current === 'training' || !modelTestingSession) {
         mapperRef.current = GazeCalibrationMapper.fit(dataRef.current.all);
         if (modelTestingSession) trainingSamplesRef.current = dataRef.current.all;
@@ -145,6 +157,7 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
           resetSmoother: true,
         };
       }
+      if (completedPassKind === 'validation') modelTestingSession?.exportDiagnostics();
       activeRef.current = false;
       readyRef.current = mapperRef.current !== null;
       console.info('[gaze-calibration] completed', {
@@ -169,5 +182,5 @@ export function useCalibration(modelTestingSession?: ModelTestingSession) {
     return { target, status: null, complete: false, settleProgress: 0, resetSmoother: true };
   }, [modelTestingSession]);
 
-  return { state, activeRef, indexRef, readyRef, mapper: mapperRef, targetsRef, start, reset, process };
+  return { state, activeRef, indexRef, readyRef, mapper: mapperRef, targetsRef, start, reset, pause, process };
 }
