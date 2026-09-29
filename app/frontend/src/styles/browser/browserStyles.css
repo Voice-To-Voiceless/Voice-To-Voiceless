@@ -149,9 +149,9 @@ h2 { font-size: 1.4rem; margin: 0; }
 .action-description { color: #68766c; font: 13px/1.35 Arial, sans-serif; }
 .dwell-progress { background: #1f6b3a; bottom: 0; height: 8px; left: 0; position: absolute; transition: width .08s linear; }
 .tracking-button,
-.face-recognition-button { background: #1F2937; border: 1px solid #334155; border-radius: 16px; color: #ffffff; cursor: pointer; flex: 0 1 42%; font: 700 17px Arial, sans-serif; margin: 0; min-height: 60px; padding: 16px 28px; transition: background .2s, border-color .2s, transform .2s; }
+.face-recognition-button { background: #128C7E; border: 1px solid #128C7E; border-radius: 16px; color: #ffffff; cursor: pointer; flex: 0 1 42%; font: 700 17px Arial, sans-serif; margin: 0; min-height: 60px; padding: 16px 28px; transition: background .2s, border-color .2s, transform .2s; }
 .tracking-button:hover,
-.face-recognition-button:hover { background: #334155; border-color: #475569; transform: translateY(-1px); }
+.face-recognition-button:hover { background: #0b7a6f; border-color: #0b7a6f; transform: translateY(-1px); }
 .tracking-button:disabled, .face-recognition-button:disabled { cursor: not-allowed; opacity: .5; }
 .calibration-button { background: #fff8ed; border: 1px solid #d99d5b; border-radius: 16px; color: #844618; cursor: pointer; flex: 0 1 42%; font: 700 17px Arial, sans-serif; margin: 0; min-height: 60px; padding: 16px 28px; transition: background .2s, border-color .2s, transform .2s; }
 .calibration-button:hover { background: #fff1dc; border-color: #c98642; transform: translateY(-1px); }
