@@ -198,6 +198,12 @@ export function PhoneTrackingApp() {
   const selectedPatient = patients.find(patient => patient.id === selectedPatientId) ?? patients[0];
 
   useEffect(() => {
+    if (!feedback) return;
+    const timeout = window.setTimeout(() => setFeedback(''), 3000);
+    return () => window.clearTimeout(timeout);
+  }, [feedback]);
+
+  useEffect(() => {
     setMessage(localizedReminderOptions[language][0]);
   }, [language]);
   const patientNotifications = useMemo(
@@ -330,9 +336,10 @@ export function PhoneTrackingApp() {
       lastSeen: 'Acum',
       note: linkedPatient.details || 'Nu exista detalii pentru acest pacient.',
     };
+    const alreadyLinked = patients.some(item => item.id === patient.id);
     setPatients(current => current.some(item => item.id === patient.id) ? current : [...current, patient]);
     setSelectedPatientId(patient.id);
-    setFeedback(`${patient.name} a fost adaugat la pacientii tai.`);
+    setFeedback(alreadyLinked ? `${patient.name} este deja conectat.` : `Conectarea a reusit: ${patient.name} a fost adaugat la pacientii tai.`);
     setShowCodeScanner(false);
   }
 
@@ -356,6 +363,7 @@ export function PhoneTrackingApp() {
 
       {activeScreen === 'notifications' ? <NotificationsScreen notifications={notifications} patients={patients} copy={copy} language={language} onRead={readNotification} onClearAll={dismissAllNotifications} /> : <>
       <section className="caregiver-welcome"><div><h2>{copy.patientDashboard}</h2></div></section>
+      {feedback && <div className="caregiver-feedback caregiver-feedback--banner" role="status"><Check size={16} /> {feedback}</div>}
 
       <button type="button" className="patient-code-button" onClick={() => setShowCodeScanner(true)}><span className="patient-code-button__icon"><ScanLine size={21} /></span><span><strong>{copy.scanNewPatient}</strong><small>{copy.scanDescription}</small></span><ChevronRight size={18} /></button>
 
@@ -364,7 +372,7 @@ export function PhoneTrackingApp() {
         {patients.map(patient => <button key={patient.id} type="button" className={`patient-row${patient.id === selectedPatient.id ? ' is-selected' : ''}`} onClick={() => setSelectedPatientId(patient.id)}><span className={`patient-avatar patient-avatar--${patient.status}`}>{patient.name.split(' ').map(part => part[0]).join('')}</span><span className="patient-row__details"><strong>{patient.name}</strong><span>{localizeRoom(patient.room, language)} · {localizeLastSeen(patient.lastSeen, language)}</span></span><span className={`patient-status patient-status--${patient.status}`} /> <ChevronRight size={17} /></button>)}
       </section>
 
-      <section className="caregiver-panel caregiver-reminder"><div className="caregiver-panel__heading"><div><span><Send size={15} /> {copy.toTablet}</span><h2>{copy.sendReminder}</h2></div></div><p>{copy.reminderDescription} {selectedPatient.name.split(' ')[0]}.</p><select value={message} onChange={event => setMessage(event.target.value)} aria-label={copy.sendReminder}>{reminderOptionsForLanguage.map(option => <option key={option}>{option}</option>)}</select><button className="caregiver-send-button" type="button" onClick={sendReminder} disabled={sending || selectedPatient.status === 'offline'}><Send size={17} /> {sending ? copy.sending : copy.sendToTablet}</button>{feedback && <div className="caregiver-feedback" role="status"><Check size={15} /> {feedback}</div>}</section>
+      <section className="caregiver-panel caregiver-reminder"><div className="caregiver-panel__heading"><div><span><Send size={15} /> {copy.toTablet}</span><h2>{copy.sendReminder}</h2></div></div><p>{copy.reminderDescription} {selectedPatient.name.split(' ')[0]}.</p><select value={message} onChange={event => setMessage(event.target.value)} aria-label={copy.sendReminder}>{reminderOptionsForLanguage.map(option => <option key={option}>{option}</option>)}</select><button className="caregiver-send-button" type="button" onClick={sendReminder} disabled={sending || selectedPatient.status === 'offline'}><Send size={17} /> {sending ? copy.sending : copy.sendToTablet}</button></section>
       </>}
 
       <nav className="phone-bottom-nav" aria-label="Navigare principala"><button type="button" className={activeScreen === 'dashboard' ? 'is-active' : ''} onClick={() => setActiveScreen('dashboard')}><Users size={19} /><span>{copy.dashboard}</span></button><button type="button" className={activeScreen === 'notifications' ? 'is-active' : ''} onClick={() => setActiveScreen('notifications')}><Bell size={19} />{notifications.some(notification => !notification.read) && <i /> }<span>{copy.notifications}</span></button><button type="button" onClick={() => setSidebarOpen(true)}><Settings size={19} /><span>{copy.settings}</span></button></nav>

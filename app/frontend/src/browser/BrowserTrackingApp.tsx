@@ -35,6 +35,8 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   const [activePage, setActivePage] = useState<'Home' | 'Accessibility' | 'Settings'>('Home');
   const { t } = useLanguage();
   const actionNotificationsInFlight = useRef(new Set<ActionId>());
+  const attentionStartedAtRef = useRef<number | null>(null);
+  const attentionNotificationSentRef = useRef(false);
   const selection = useSelectionFeedback();
   const tracking = useBrowserTracking(videoRef, boardRef, selection.selectAction, modelTestingSession);
   const { calibrate } = tracking;
@@ -42,6 +44,34 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   const trackingActive = tracking.snapshot.active;
   const recognitionActive = recognition.snapshot.active;
   const localizedActions = COMMUNICATION_ACTIONS.map(action => ({ ...action, label: t(action.id) }));
+
+  useEffect(() => {
+    if (recognition.snapshot.state !== 'attention_required') {
+      attentionStartedAtRef.current = null;
+      attentionNotificationSentRef.current = false;
+      return;
+    }
+
+    attentionStartedAtRef.current ??= Date.now();
+    const elapsed = Date.now() - attentionStartedAtRef.current;
+    const remaining = Math.max(0, 5000 - elapsed);
+    const timeout = window.setTimeout(() => {
+      if (attentionNotificationSentRef.current || recognition.snapshot.state !== 'attention_required') return;
+      attentionNotificationSentRef.current = true;
+      createNotification({
+        source: 'face_recognition',
+        type: 'attention_required',
+        severity: 'warning',
+        message: 'Attention required: the patient may need assistance.',
+        patient_metadata: { patient_id: TABLET_PATIENT_ID },
+        recipient: 'nurse',
+      }).catch(() => {
+        attentionNotificationSentRef.current = false;
+      });
+    }, remaining);
+
+    return () => window.clearTimeout(timeout);
+  }, [recognition.snapshot.state]);
 
   useEffect(() => {
     applyStoredAccessibilitySettings();

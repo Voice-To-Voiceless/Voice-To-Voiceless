@@ -88,6 +88,7 @@
 .caregiver-send-button { align-items: center; background: #315846; border: 0; border-radius: 10px; color: white; display: flex; font: 700 12px Arial, sans-serif; gap: 7px; justify-content: center; margin-top: 9px; min-height: 44px; width: 100%; }
 .caregiver-send-button:disabled { opacity: .5; }
 .caregiver-feedback { align-items: center; color: #327246; display: flex; font: 11px Arial, sans-serif; gap: 5px; margin-top: 9px; }
+.caregiver-feedback--banner { align-self: flex-start; background: #d9f7e4; border: 1px solid #74c995; border-radius: 9px; color: #176b46 !important; font-size: 12px; margin: -4px 0 0; max-width: 100%; padding: 8px 11px; }
 html[data-theme="dark"] .caregiver-app { background: #10161d; color: #edf3f7; }
 html[data-theme="dark"] .caregiver-brand h1,
 html[data-theme="dark"] .caregiver-welcome h2,
