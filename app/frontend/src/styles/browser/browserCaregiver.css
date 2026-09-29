@@ -43,7 +43,7 @@
 .patient-row { align-items: center; background: #fff; border: 1px solid #e2e9e2; border-radius: 15px; color: #18352a; cursor: pointer; display: flex; gap: 11px; min-height: 64px; padding: 10px 12px; text-align: left; transition: border-color .18s, box-shadow .18s, transform .18s, background-color .18s; width: 100%; }
 .patient-row:hover { border-color: #a8c8ae; box-shadow: 0 7px 16px #17352b12; transform: translateY(-1px); }
 .patient-row.is-selected { background: #fbfefb; border-color: #70aa7e; box-shadow: 0 0 0 2px #70aa7e26, 0 7px 16px #17352b12; }
-.patient-avatar { align-items: center; border-radius: 13px; display: flex; flex: 0 0 42px; font: 800 12px Arial, sans-serif; height: 42px; justify-content: center; }
+.patient-avatar { align-items: center; border-radius: 50%; display: flex; flex: 0 0 42px; font: 800 12px Arial, sans-serif; height: 42px; justify-content: center; }
 .patient-avatar--online { background: #d9efdf; color: #2d8150; }
 .patient-avatar--attention { background: #fff0d4; color: #a56b18; }
 .patient-avatar--offline { background: #e8ece8; color: #7a877d; }
@@ -175,9 +175,12 @@ html[data-theme="dark"] .caregiver-send-button { background: #34445d; }
 .phone-notifications-header > div { align-items: center; color: #18352a; display: flex; gap: 9px; }
 .phone-notifications-header h2 { font: 700 22px/1.1 Georgia, serif; }
 .phone-notifications-header button { align-items: center; background: transparent; border: 0; color: #587265; display: flex; padding: 7px; }
-.phone-notification-filters { display: flex; gap: 8px; }
+.phone-notification-filters { align-items: center; display: flex; gap: 8px; min-height: 30px; }
 .phone-notification-filters button { align-items: center; background: #edf2ee; border: 0; border-radius: 999px; color: #5e7165; display: inline-flex; font: 700 11px Arial, sans-serif; gap: 5px; min-height: 30px; padding: 7px 14px; }
 .phone-notification-filters button.is-selected { background: #2d6855; color: #fff; }
+.phone-notification-filters .phone-clear-notifications { align-self: center; margin-left: auto; }
+.phone-notification-filters button.phone-clear-notifications { background: transparent; border-radius: 0; color: #35d99a; min-height: 0; padding: 5px 3px; }
+.phone-notification-filters button.phone-clear-notifications:hover { color: #7af2c0; text-decoration: none; }
 .phone-notification-filters button span { align-items: center; background: #ed665b; border-radius: 50%; color: #fff; display: inline-flex; font-size: 9px; height: 15px; justify-content: center; width: 15px; }
 .phone-notification-list { display: flex; flex-direction: column; gap: 9px; }
 .phone-notification-card { align-items: center; border: 1px solid transparent; border-radius: 14px; box-shadow: 0 3px 12px #17352b0d; cursor: pointer; display: flex; gap: 11px; min-height: 72px; padding: 11px 12px; text-align: left; width: 100%; }
@@ -266,6 +269,9 @@ html[data-theme="dark"] .caregiver-app:not(.whatsapp-link-screen) .phone-notific
 html[data-theme="dark"] .caregiver-app:not(.whatsapp-link-screen) .phone-notification-card--info .phone-notification-card__icon,
 html[data-theme="dark"] .caregiver-app:not(.whatsapp-link-screen) .phone-notification-card--warning .phone-notification-card__icon { background: #263641; color: #a9bbc5; }
 html[data-theme="dark"] .caregiver-app:not(.whatsapp-link-screen) .phone-clear-notifications { color: var(--phone-accent); }
+.caregiver-app .phone-notification-filters button.phone-clear-notifications { align-items: center; appearance: none; background: var(--phone-surface-raised) !important; border: 0; border-radius: 999px; box-shadow: none; color: var(--phone-accent) !important; display: inline-flex; font: 700 12px/1 Arial, sans-serif; height: 30px; min-height: 30px; padding: 7px 14px; }
+html:not([data-theme="dark"]) .caregiver-app .phone-notification-filters button.phone-clear-notifications { background: #e9edef !important; color: #33424d !important; }
+html[data-theme="dark"] .caregiver-app .phone-notification-filters button.phone-clear-notifications { background: var(--phone-surface-raised) !important; color: var(--phone-accent) !important; }
 html[data-theme="dark"] .caregiver-app:not(.whatsapp-link-screen) .phone-bottom-nav { background: #101820; border-top-color: var(--phone-border); }
 html[data-theme="dark"] .caregiver-app:not(.whatsapp-link-screen) .phone-bottom-nav button { color: #8498a2; }
 html[data-theme="dark"] .caregiver-app:not(.whatsapp-link-screen) .phone-bottom-nav button.is-active { color: var(--phone-accent); }
