@@ -26,7 +26,8 @@
     "react-native-nitro-modules": "^0.37.1",
     "react-native-safe-area-context": "^5.5.2",
     "react-native-svg": "^15.15.5",
-    "react-native-vision-camera": "^5.2.3"
+    "react-native-vision-camera": "^5.2.3",
+    "webgazer": "^3.5.3"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

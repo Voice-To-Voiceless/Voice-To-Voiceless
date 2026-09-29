@@ -16,6 +16,15 @@ import { useCalibration } from './useCalibration';
 import { evaluateCalibrationSampleQuality } from '../../vision/calibration/calibrationQuality';
 import { L2CSOnnxEstimator } from '../../vision/estimation/l2csGaze';
 import { getCalibrationFeatures } from '../../vision/calibration/calibrationFeatures';
+import { BrowserWebGazerAdapter } from '../../vision/webgazer/webgazerAdapter';
+import { createWebGazerCalibrationBackend } from '../../vision/webgazer/webgazerCalibration';
+
+type GazeProvider = 'webgazer' | 'l2cs';
+
+function getGazeProvider(): GazeProvider {
+  if (typeof window === 'undefined') return 'l2cs';
+  return new URLSearchParams(window.location.search).get('gazeProvider') === 'l2cs' ? 'l2cs' : 'webgazer';
+}
 
 const initialSnapshot: TrackingSnapshot = { active: false, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0, calibrating: false, calibrationIndex: 0, calibrationTarget: null, calibrationProgress: 0, calibrationPassKind: null, calibrationFailed: false, calibrationFailure: null, calibrationReady: false, trackingPauseReason: null, l2csError: null, l2csYaw: null, l2csPitch: null, l2csProvider: null, l2csInferenceLatencyMs: null, l2csEstimatesPerSecond: null, l2csCropPreview: null, poseStatus: 'unknown' };
 
@@ -40,6 +49,9 @@ export function useBrowserTracking(
   const lossRef = useRef(new FaceTrackingLossTracker());
   const poseRef = useRef<FacePoseReference | null>(null);
   const l2csRef = useRef<L2CSOnnxEstimator | null>(null);
+  const gazeProviderRef = useRef<GazeProvider>(getGazeProvider());
+  const webgazerRef = useRef<BrowserWebGazerAdapter | null>(null);
+  const calibrationBackendRef = useRef<ReturnType<typeof createWebGazerCalibrationBackend> | null>(null);
   const l2csDisabledRef = useRef(false);
   const {
     activeRef: calibrationActiveRef,
@@ -47,11 +59,12 @@ export function useBrowserTracking(
     readyRef: calibrationReadyRef,
     mapper: calibrationMapperRef,
     targetsRef: calibrationTargetsRef,
+    passKindRef: calibrationPassKindRef,
     start: startCalibration,
     reset: resetCalibration,
     pause: pauseCalibration,
     process: processCalibration,
-  } = useCalibration(modelTestingSession);
+  } = useCalibration(modelTestingSession, calibrationBackendRef);
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [status, setStatus] = useState('Camera is off. Start tracking to begin.');
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +86,9 @@ export function useBrowserTracking(
     adapterRef.current = null;
     l2csRef.current?.dispose();
     l2csRef.current = null;
+    void webgazerRef.current?.stop();
+    webgazerRef.current = null;
+    calibrationBackendRef.current = null;
     l2csDisabledRef.current = false;
     closeCamera(streamRef.current);
     streamRef.current = null;
@@ -99,6 +115,7 @@ export function useBrowserTracking(
       }
       lossRef.current.markDetected();
       const pose = estimateRelativeFacePose(observation);
+      const webgazerPrediction = gazeProviderRef.current === 'webgazer' ? webgazerRef.current?.getPrediction() ?? null : null;
       let l2csResult: Awaited<ReturnType<L2CSOnnxEstimator['estimate']>> = null;
       if (l2csRef.current && !l2csDisabledRef.current) {
         try { l2csResult = await l2csRef.current.estimate(video, observation, timestamp); } catch (l2csError) {
@@ -117,15 +134,27 @@ export function useBrowserTracking(
       }
       if (l2csResult) setSnapshot(value => ({ ...value, l2csYaw: l2csResult!.gaze.yaw, l2csPitch: l2csResult!.gaze.pitch, l2csProvider: l2csResult!.diagnostics.provider, l2csInferenceLatencyMs: l2csResult!.diagnostics.latencyMs, l2csEstimatesPerSecond: l2csResult!.diagnostics.estimatesPerSecond, l2csCropPreview: l2csResult!.diagnostics.cropPreview ?? value.l2csCropPreview }));
       const l2csIsActive = l2csRef.current !== null && !l2csDisabledRef.current;
-      if (calibrationActiveRef.current && l2csIsActive && !l2csResult) {
+      if (calibrationActiveRef.current && gazeProviderRef.current === 'l2cs' && l2csIsActive && !l2csResult) {
         pauseCalibration(timestamp);
         smootherRef.current.reset();
         setStatus('Waiting for a valid L2CS gaze estimate before recording.');
         return;
       }
+      const trainingWebGazer = gazeProviderRef.current === 'webgazer' && calibrationActiveRef.current && calibrationPassKindRef.current === 'training';
+      if (gazeProviderRef.current === 'webgazer' && !webgazerPrediction && !trainingWebGazer) {
+        if (calibrationActiveRef.current) pauseCalibration(timestamp);
+        smootherRef.current.reset();
+        dwellRef.current.cancel();
+        setSnapshot(value => ({ ...value, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0 }));
+        setStatus('Waiting for a valid WebGazer estimate. Keep your eyes visible.');
+        return;
+      }
       const gazeDiagnostics = getGazeDiagnostics(observation);
-      const gaze = l2csResult ? gazeFromL2CS(l2csResult.gaze, timestamp) : estimateGaze(observation);
+      const gaze = webgazerPrediction
+        ? gazeFromWebGazer(webgazerPrediction)
+        : l2csResult ? gazeFromL2CS(l2csResult.gaze, timestamp) : estimateGaze(observation);
       if (!gaze) {
+        if (calibrationActiveRef.current) pauseCalibration(timestamp);
         joystickRef.current.resetVelocity();
         dwellRef.current.cancel();
         setSnapshot(value => ({ ...value, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0 }));
@@ -173,13 +202,16 @@ export function useBrowserTracking(
         setSnapshot(value => ({
           ...value,
           rawGaze: { x: smoothed.x, y: smoothed.y },
-          gazePoint: result.target,
+          gazePoint: gazeProviderRef.current === 'webgazer' && !webgazerPrediction ? null : { x: smoothed.x, y: smoothed.y },
           activeTarget: null,
           dwellProgress: 0,
-          calibrating: !result.complete,
+          calibrating: calibrationActiveRef.current,
           calibrationIndex: calibrationIndexRef.current,
           calibrationTarget: result.target,
           calibrationProgress: result.settleProgress,
+          calibrationPassKind: calibrationActiveRef.current ? calibrationPassKindRef.current : null,
+          calibrationFailed: Boolean(result.failed) || (result.complete && !calibrationReadyRef.current),
+          calibrationFailure: result.failed || (result.complete && !calibrationReadyRef.current) ? result.status : null,
           calibrationReady: calibrationReadyRef.current,
         }));
         if (result.resetSmoother) {
@@ -190,6 +222,20 @@ export function useBrowserTracking(
         return;
       }
       const mapper = calibrationMapperRef.current;
+      if (!mapper || !calibrationReadyRef.current) {
+        const previewPoint = joystickRef.current.update(smoothed);
+        dwellRef.current.cancel();
+        setSnapshot(value => ({
+          ...value,
+          rawGaze: { x: smoothed.x, y: smoothed.y },
+          calibratedGaze: null,
+          gazePoint: previewPoint,
+          activeTarget: null,
+          dwellProgress: 0,
+        }));
+        setStatus('Calibration validation required before gaze selection.');
+        return;
+      }
       if (mapper?.requiresL2CS() && !l2csResult) {
         smootherRef.current.reset();
         joystickRef.current.resetVelocity();
@@ -224,19 +270,30 @@ export function useBrowserTracking(
       processingRef.current = false;
       if (activeRef.current) frameRef.current = requestAnimationFrame(processFrame);
     }
-  }, [boardRef, calibrationActiveRef, calibrationIndexRef, calibrationMapperRef, calibrationReadyRef, calibrationTargetsRef, modelTestingSession, onSelect, pauseCalibration, processCalibration, resetCalibration, resetInteraction, videoRef]);
-  const calibrate = useCallback(() => {
+  }, [boardRef, calibrationActiveRef, calibrationIndexRef, calibrationMapperRef, calibrationPassKindRef, calibrationReadyRef, calibrationTargetsRef, modelTestingSession, onSelect, pauseCalibration, processCalibration, resetCalibration, resetInteraction, videoRef]);
+  const calibrate = useCallback(async () => {
+    if (!activeRef.current) return;
+    try {
+      if (modelTestingSession?.nextPassKind !== 'validation') {
+        await calibrationBackendRef.current?.clearTrainingData();
+      }
+    } catch (calibrationError) {
+      const message = calibrationError instanceof Error ? calibrationError.message : 'WebGazer training data could not be cleared.';
+      setError(message);
+      setStatus('Calibration could not start. Restart tracking and try again.');
+      return;
+    }
     if (!activeRef.current) return;
     startCalibration();
     fallbackLoggedRef.current = false;
     resetInteraction();
     joystickRef.current.reset();
-    setSnapshot(value => ({ ...value, calibrating: true, calibrationIndex: 0, calibrationTarget: calibrationTargetsRef.current[0], calibrationProgress: 0, calibrationReady: false, gazePoint: calibrationTargetsRef.current[0] }));
+    setSnapshot(value => ({ ...value, calibrating: true, calibrationIndex: 0, calibrationTarget: calibrationTargetsRef.current[0], calibrationProgress: 0, calibrationPassKind: calibrationPassKindRef.current, calibrationFailed: false, calibrationFailure: null, calibrationReady: false, gazePoint: null }));
     setStatus('Calibration started. Look at the yellow dot.');
-  }, [calibrationTargetsRef, resetInteraction, startCalibration]);
+  }, [calibrationPassKindRef, calibrationTargetsRef, modelTestingSession, resetInteraction, startCalibration]);
   const cancelCalibration = useCallback(() => {
     resetCalibration();
-    setSnapshot(value => ({ ...value, calibrating: false, calibrationTarget: null, calibrationProgress: 0, calibrationFailed: false, calibrationFailure: null }));
+    setSnapshot(value => ({ ...value, calibrating: false, calibrationTarget: null, calibrationProgress: 0, calibrationPassKind: null, calibrationFailed: false, calibrationFailure: null }));
   }, [resetCalibration]);
   const start = useCallback(async () => {
     if (activeRef.current || !videoRef.current) return;
@@ -245,8 +302,16 @@ export function useBrowserTracking(
     try {
       streamRef.current = await openCamera(videoRef.current);
       adapterRef.current = await createFaceAdapter();
-      const l2cs = new L2CSOnnxEstimator();
-      try { await l2cs.initialize(); l2csRef.current = l2cs; } catch (l2csError) { l2cs.dispose(); l2csDisabledRef.current = true; const message = l2csError instanceof Error ? l2csError.message : 'L2CS initialization failed.'; setSnapshot(value => ({ ...value, trackingPauseReason: 'l2cs-disabled', l2csError: message })); console.warn('[gaze-tracking] L2CS unavailable; using eye estimator', l2csError); }
+      if (gazeProviderRef.current === 'webgazer') {
+        setStatus('Initializing WebGazer...');
+        const webgazer = new BrowserWebGazerAdapter(streamRef.current);
+        webgazerRef.current = webgazer;
+        calibrationBackendRef.current = createWebGazerCalibrationBackend(webgazer);
+        await webgazer.start();
+      } else {
+        const l2cs = new L2CSOnnxEstimator();
+        try { await l2cs.initialize(); l2csRef.current = l2cs; } catch (l2csError) { l2cs.dispose(); l2csDisabledRef.current = true; const message = l2csError instanceof Error ? l2csError.message : 'L2CS initialization failed.'; setSnapshot(value => ({ ...value, trackingPauseReason: 'l2cs-disabled', l2csError: message })); console.warn('[gaze-tracking] L2CS unavailable; using eye estimator', l2csError); }
+      }
       activeRef.current = true;
       setSnapshot(value => ({ ...value, active: true }));
       resetInteraction();
@@ -269,6 +334,15 @@ export function gazeFromL2CS(gaze: { yaw: number; pitch: number; confidence: num
   // L2CS yaw is positive toward the camera's left, while screen X increases
   // toward the user's right. Invert yaw when converting to screen space.
   return { x: Math.min(1, Math.max(0, 0.5 - gaze.yaw / 180)), y: Math.min(1, Math.max(0, 0.5 - gaze.pitch / 180)), confidence: gaze.confidence, timestamp };
+}
+
+export function gazeFromWebGazer(gaze: { x: number; y: number; timestamp: number }) {
+  return {
+    x: Math.min(1, Math.max(0, gaze.x / window.innerWidth)),
+    y: Math.min(1, Math.max(0, gaze.y / window.innerHeight)),
+    confidence: 1,
+    timestamp: gaze.timestamp,
+  };
 }
 
 function updateL2CSStability(history: Array<{ x: number; y: number; timestamp: number }>, gaze: { x: number; y: number; timestamp: number }): boolean {

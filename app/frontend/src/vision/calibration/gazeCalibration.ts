@@ -6,6 +6,10 @@ import type { RidgeCalibrationFeatures } from './ridgeCalibration';
 
 export type CalibrationTarget = { x: number; y: number };
 export type CalibrationSample = { gaze: CalibrationTarget; target: CalibrationTarget; features?: RidgeCalibrationFeatures };
+export interface GazeCalibrationMapperLike {
+  map(gaze: NormalizedGazePoint, features?: RidgeCalibrationFeatures): NormalizedGazePoint;
+  requiresL2CS(): boolean;
+}
 export type CalibrationFitDiagnostics = {
   accepted: boolean;
   rmsResidual: number | null;
@@ -21,7 +25,7 @@ export type ValidationFitDiagnostics = {
 };
 export const MAX_VALIDATION_RMS = 0.15;
 
-export class GazeCalibrationMapper {
+export class GazeCalibrationMapper implements GazeCalibrationMapperLike {
   private constructor(
     private readonly xCoefficients: [number, number, number] | null,
     private readonly yCoefficients: [number, number, number] | null,
