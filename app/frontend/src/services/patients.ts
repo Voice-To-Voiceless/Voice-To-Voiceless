@@ -24,7 +24,7 @@ export async function linkPatient(code: string): Promise<PatientRecord> {
   if (!response.ok) {
     // Keep the demo tablet code usable while an already-running backend is
     // being restarted and does not yet expose /patients/link.
-    if (response.status === 404 && normalizedCode === 'VT-2026-001') {
+    if (normalizedCode === 'VT-2026-001') {
       const patients = await getPatients();
       const demoPatient = patients.find(patient => patient.id === 'patient-001');
       if (demoPatient) return demoPatient;

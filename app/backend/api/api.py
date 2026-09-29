@@ -64,7 +64,10 @@ def create_app(services: ApplicationServices | None = None) -> FastAPI:
 
 	@app.post("/api/v1/patients/link")
 	async def link_patient(request: PatientLinkRequest) -> dict[str, str]:
-		patient = dependencies.patient_service.link_by_code(request.code)
+		try:
+			patient = dependencies.patient_service.link_by_code(request.code)
+		except ValueError as error:
+			raise HTTPException(status_code=409, detail=str(error)) from error
 		if patient is None:
 			raise HTTPException(status_code=404, detail="Invalid patient code")
 		return patient.to_dict()

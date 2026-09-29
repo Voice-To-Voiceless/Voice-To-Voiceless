@@ -1,9 +1,12 @@
 """Patient queries backed by PostgreSQL."""
 
 from dataclasses import asdict, dataclass
+from datetime import datetime, timezone
+import hashlib
 from sqlalchemy import or_, select
+from sqlalchemy.orm import joinedload
 from app.database.repositories import PatientRepository
-from app.database.models import Patient
+from app.database.models import Nurse, Patient, PatientLinkCode
 from app.database.session import session_scope
 
 
@@ -40,14 +43,38 @@ class PatientService:
         with session_scope() as session:
             # The tablet currently displays VT-2026-001 as the demo code. Keep
             # that code compatible with the first seeded development patient.
-            query = select(Patient).where(
-                or_(
-                    Patient.patient_code == normalized_code,
-                    Patient.external_id == normalized_code,
-                    (normalized_code == "VT-2026-001") & (Patient.external_id == "patient-001"),
-                )
+            query = select(Patient).options(joinedload(Patient.room)).where(
+                or_(Patient.patient_code == normalized_code, Patient.external_id == normalized_code)
             )
             record = session.scalar(query)
+            if record is None and normalized_code == "VT-2026-001":
+                record = session.scalar(
+                    select(Patient).options(joinedload(Patient.room)).where(Patient.external_id == "patient-001")
+                )
+            if record is None:
+                code_hash = hashlib.sha256(normalized_code.encode("utf-8")).hexdigest()
+                link_code = session.scalar(
+                    select(PatientLinkCode)
+                    .options(joinedload(PatientLinkCode.patient).joinedload(Patient.room))
+                    .where(
+                        PatientLinkCode.code_hash == code_hash,
+                        or_(
+                            PatientLinkCode.used_at.is_not(None),
+                            PatientLinkCode.expires_at > datetime.now(timezone.utc),
+                        ),
+                    )
+                    .with_for_update()
+                )
+                if link_code is not None:
+                    record = link_code.patient
+                    nurse = session.scalar(select(Nurse).where(Nurse.full_name == "Asistenta de serviciu"))
+                    if nurse is not None:
+                        if record.nurse_id is not None and record.nurse_id != nurse.id:
+                            raise ValueError("Patient is already assigned to another nurse")
+                        if record.nurse_id is None:
+                            record.nurse_id = nurse.id
+                    if link_code.used_at is None:
+                        link_code.used_at = datetime.now(timezone.utc)
             if record is None:
                 return None
 
