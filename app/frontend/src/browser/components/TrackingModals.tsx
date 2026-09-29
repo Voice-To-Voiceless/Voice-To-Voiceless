@@ -32,13 +32,15 @@ export function TrackingGuideModal({ t, onClose, onBegin }: { t: Translator; onC
   </section>;
 }
 
-export function CalibrationModal({ tracking, recognition, videoRef, faceDetected, trackingActive, recognitionActive, t }: {
+export function CalibrationModal({ tracking, recognition, videoRef, faceDetected, trackingActive, recognitionActive, attentionNotificationRemainingMs, attentionNotificationSent, t }: {
   tracking: Tracking;
   recognition: Recognition;
   videoRef: React.RefObject<HTMLVideoElement | null>;
   faceDetected: boolean;
   trackingActive: boolean;
   recognitionActive: boolean;
+  attentionNotificationRemainingMs?: number;
+  attentionNotificationSent?: boolean;
   t: Translator;
 }) {
   const isCalibration = tracking.snapshot.calibrationTarget !== null || tracking.snapshot.calibrating || tracking.snapshot.calibrationFailed;
@@ -53,6 +55,12 @@ export function CalibrationModal({ tracking, recognition, videoRef, faceDetected
           <StatusDetail label={t('risk')} value={recognition.snapshot.risk.toFixed(2)} />
           <StatusDetail label={t('expression')} value={recognition.snapshot.expression} />
           <StatusDetail label={t('indicators')} value={recognition.snapshot.indicators.length > 0 ? recognition.snapshot.indicators.join(', ') : t('none')} />
+          {recognition.snapshot.state === 'attention_required' && (
+            <StatusDetail
+              label={attentionNotificationSent ? t('notificationSent') : t('notificationIn')}
+              value={attentionNotificationSent ? 'sent' : `${Math.max(0, (attentionNotificationRemainingMs ?? 0) / 1000).toFixed(1)}s`}
+            />
+          )}
         </aside> : <aside className="camera-status-sidebar" aria-label={t('eyeTrackingReady')}>
           <StatusItem icon={<Camera size={16} />} label={faceDetected ? t('faceDetected') : t('noFaceDetected')} active={faceDetected} />
           <StatusItem icon={<Eye size={16} />} label={trackingActive ? t('eyeTrackingActive') : t('eyeTrackingOff')} active={trackingActive} />
