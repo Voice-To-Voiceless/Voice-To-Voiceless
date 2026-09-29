@@ -37,13 +37,20 @@ def _to_dto(record: Any) -> Notification:
     else:
         created_at_value = str(created_at)
 
+    patient_metadata = dict(record.patient_metadata or {})
+    patient = getattr(record, "patient", None)
+    if patient is not None:
+        patient_metadata.setdefault("name", patient.full_name)
+        if patient.room is not None:
+            patient_metadata.setdefault("room", patient.room.name)
+
     return Notification(
         id=str(record.id),
         source=record.source,
         type=record.type,
         severity=record.severity,
         message=record.message,
-        patient_metadata=dict(record.patient_metadata or {}),
+        patient_metadata=patient_metadata,
         created_at=created_at_value,
         read=record.read,
         recipient=record.recipient,

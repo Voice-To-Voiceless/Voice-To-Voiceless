@@ -355,7 +355,7 @@ html[data-reduced-motion="true"] *, html[data-reduced-motion="true"] *::before, 
 .caregiver-patient-list { display: flex; flex-direction: column; gap: 7px; }
 .patient-row { align-items: center; background: #fff; border: 1px solid #e2e9e2; border-radius: 13px; color: #18352a; cursor: pointer; display: flex; gap: 9px; padding: 9px; text-align: left; width: 100%; }
 .patient-row.is-selected { border-color: #70aa7e; box-shadow: 0 0 0 2px #70aa7e26; }
-.patient-avatar { align-items: center; border-radius: 11px; display: flex; flex: 0 0 38px; font: 800 11px Arial, sans-serif; height: 38px; justify-content: center; }
+.patient-avatar { align-items: center; border-radius: 50%; display: flex; flex: 0 0 38px; font: 800 11px Arial, sans-serif; height: 38px; justify-content: center; }
 .patient-avatar--online { background: #d9efdf; color: #2d8150; }.patient-avatar--attention { background: #fff0d4; color: #a56b18; }.patient-avatar--offline { background: #e8ece8; color: #7a877d; }
 .patient-row__details { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; }.patient-row__details strong { font: 700 13px Arial, sans-serif; }.patient-row__details span { color: #829087; font: 10px Arial, sans-serif; }
 .patient-status { border-radius: 50%; height: 7px; width: 7px; }.patient-status--online { background: #35a45b; }.patient-status--attention { background: #e0a33c; }.patient-status--offline { background: #9ca8a0; }

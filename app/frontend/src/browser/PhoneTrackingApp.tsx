@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, Check, ChevronRight, Filter, HeartPulse, Keyboard, Languages, Moon, ScanLine, Send, Settings, Sun, Users, X } from 'lucide-react';
+import { Bell, Check, ChevronRight, HeartPulse, Keyboard, Languages, Moon, ScanLine, Send, Settings, Sun, Users, X } from 'lucide-react';
 import { deleteNotification, getNotifications, subscribeToNotifications, type PatientNotification } from '../services/notifications';
 import { getPatients, linkPatient } from '../services/patients';
 import { useLanguage } from '../i18n';
@@ -169,16 +169,15 @@ function PatientCodeScreen({ onBack, onCodeConfirmed }: { onBack: () => void; on
   );
 }
 
-function NotificationsScreen({ notifications, copy, language, onRead, onClearAll }: { notifications: PatientNotification[]; copy: Record<string, string>; language: 'English' | 'Romanian'; onRead: (notification: PatientNotification) => void; onClearAll: () => void }) {
+function NotificationsScreen({ notifications, patients, copy, language, onRead, onClearAll }: { notifications: PatientNotification[]; patients: Patient[]; copy: Record<string, string>; language: 'English' | 'Romanian'; onRead: (notification: PatientNotification) => void; onClearAll: () => void }) {
   const [filter, setFilter] = useState<'all' | 'unread' | 'emergency'>('all');
   const visibleNotifications = notifications.filter(notification => filter === 'all' || (filter === 'unread' && !notification.read) || (filter === 'emergency' && notification.severity === 'critical'));
   const unreadCount = notifications.filter(notification => !notification.read).length;
 
   return <section className="phone-notifications-screen" aria-label={copy.notifications}>
-    <header className="phone-notifications-header"><div><Bell size={23} /><h2>{copy.notifications}</h2></div><button type="button" aria-label="Filtreaza notificarile"><Filter size={19} /></button></header>
-    <div className="phone-notification-filters" role="tablist"><button type="button" className={filter === 'all' ? 'is-selected' : ''} onClick={() => setFilter('all')}>{copy.all}</button><button type="button" className={filter === 'unread' ? 'is-selected' : ''} onClick={() => setFilter('unread')}>{copy.unread}<span>{unreadCount}</span></button><button type="button" className={filter === 'emergency' ? 'is-selected' : ''} onClick={() => setFilter('emergency')}>{copy.emergencies}</button></div>
-    <div className="phone-notification-list">{visibleNotifications.length === 0 ? <div className="caregiver-empty">{copy.noNotifications}</div> : visibleNotifications.map(notification => <button type="button" key={notification.id} className={`phone-notification-card phone-notification-card--${notification.severity}${notification.read ? '' : ' is-unread'}`} onClick={() => onRead(notification)} aria-label={copy.markRead}><span className="phone-notification-card__icon"><Bell size={19} /></span><span className="phone-notification-card__body"><strong>{notification.message}</strong><small>{notification.patient_metadata.name || 'Patient'} · {localizeRoom(notification.patient_metadata.room || 'Room', language)}</small><span>{formatNotificationTime(notification.created_at)}</span></span>{!notification.read && <span className="phone-notification-card__dot" />}</button>)}</div>
-    {notifications.length > 0 && <button type="button" className="phone-clear-notifications" onClick={onClearAll}>{copy.clearAll}</button>}
+    <header className="phone-notifications-header"><div><Bell size={23} /><h2>{copy.notifications}</h2></div></header>
+    <div className="phone-notification-filters" role="tablist"><button type="button" className={filter === 'all' ? 'is-selected' : ''} onClick={() => setFilter('all')}>{copy.all}</button><button type="button" className={filter === 'unread' ? 'is-selected' : ''} onClick={() => setFilter('unread')}>{copy.unread}<span>{unreadCount}</span></button><button type="button" className={filter === 'emergency' ? 'is-selected' : ''} onClick={() => setFilter('emergency')}>{copy.emergencies}</button>{notifications.length > 0 && <button type="button" className="phone-clear-notifications" onClick={onClearAll}>{copy.clearAll}</button>}</div>
+    <div className="phone-notification-list">{visibleNotifications.length === 0 ? <div className="caregiver-empty">{copy.noNotifications}</div> : visibleNotifications.map(notification => { const patient = patients.find(item => item.id === notification.patient_metadata.patient_id); const patientName = patient?.name || notification.patient_metadata.name || 'Patient'; const patientRoom = patient?.room || notification.patient_metadata.room || 'Room'; return <button type="button" key={notification.id} className={`phone-notification-card phone-notification-card--${notification.severity}${notification.read ? '' : ' is-unread'}`} onClick={() => onRead(notification)} aria-label={copy.markRead}><span className="phone-notification-card__icon"><Bell size={19} /></span><span className="phone-notification-card__body"><strong>{notification.message}</strong><small>{patientName} · {localizeRoom(patientRoom, language)}</small><span>{formatNotificationTime(notification.created_at)}</span></span>{!notification.read && <span className="phone-notification-card__dot" />}</button>; })}</div>
   </section>;
 }
 
@@ -229,6 +228,14 @@ export function PhoneTrackingApp() {
   }, []);
 
   useEffect(() => {
+    if (patients.length === 0) return;
+    setNotifications(current => current.map(notification => {
+      const patient = patients.find(item => item.id === notification.patient_metadata.patient_id);
+      return patient ? { ...notification, patient_metadata: { ...notification.patient_metadata, name: patient.name, room: patient.room } } : notification;
+    }));
+  }, [patients]);
+
+  useEffect(() => {
     const updateSettings = () => {
       const settings = readPhoneSettings();
       setDarkMode(settings.darkMode);
@@ -249,7 +256,10 @@ export function PhoneTrackingApp() {
       getNotifications('nurse')
         .then(items => {
           if (!active) return;
-          setNotifications(items);
+          setNotifications(items.map(notification => {
+            const patient = patients.find(item => item.id === notification.patient_metadata.patient_id);
+            return patient ? { ...notification, patient_metadata: { ...notification.patient_metadata, name: patient.name, room: patient.room } } : notification;
+          }));
         })
         .catch(() => setFeedback('Notificarile nu au putut fi incarcate.'));
     };
@@ -265,7 +275,7 @@ export function PhoneTrackingApp() {
       window.clearInterval(refreshTimer);
       socket?.close();
     };
-  }, []);
+  }, [patients]);
 
   async function sendReminder() {
     setSending(true);
@@ -344,7 +354,7 @@ export function PhoneTrackingApp() {
         </aside>
       </>}
 
-      {activeScreen === 'notifications' ? <NotificationsScreen notifications={notifications} copy={copy} language={language} onRead={readNotification} onClearAll={dismissAllNotifications} /> : <>
+      {activeScreen === 'notifications' ? <NotificationsScreen notifications={notifications} patients={patients} copy={copy} language={language} onRead={readNotification} onClearAll={dismissAllNotifications} /> : <>
       <section className="caregiver-welcome"><div><h2>{copy.patientDashboard}</h2></div></section>
 
       <button type="button" className="patient-code-button" onClick={() => setShowCodeScanner(true)}><span className="patient-code-button__icon"><ScanLine size={21} /></span><span><strong>{copy.scanNewPatient}</strong><small>{copy.scanDescription}</small></span><ChevronRight size={18} /></button>
