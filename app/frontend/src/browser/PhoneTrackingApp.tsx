@@ -25,6 +25,7 @@ const localizedReminderOptions = {
   Romanian: reminderOptions,
 } as const;
 const SETTINGS_STORAGE_KEY = 'voice-to-voiceless-settings';
+const PHONE_THEME_STORAGE_KEY = 'voice-to-voiceless-phone-theme';
 
 const caregiverCopy = {
   English: { menu: 'Open menu', closeMenu: 'Close menu', settings: 'Settings', preferences: 'Preferences', language: 'Language', darkMode: 'Dark mode', lightMode: 'Light mode', english: 'English', romanian: 'Romanian', goodMorning: 'Good morning', patientDashboard: 'Patient dashboard', synced: 'Synced now', scanNewPatient: 'Scan new patient', scanDescription: 'Scan the QR code on the tablet', myPatients: 'MY PATIENTS', active: 'active', notifications: 'Notifications', unread: 'unread', clearAll: 'Clear all', noNotifications: 'No notifications for this patient.', all: 'All', emergencies: 'Emergency', markRead: 'Mark notification as read', toTablet: 'TO TABLET', sendReminder: 'Send a reminder', reminderDescription: 'The message will appear immediately on', sendToTablet: 'Send to tablet', sending: 'Sending...', online: 'Online', needsAttention: 'Needs attention', offline: 'Offline', settingsHint: 'Change the language and appearance.', patients: 'Patients', dashboard: 'Dashboard' },
@@ -34,15 +35,29 @@ const caregiverCopy = {
 function readPhoneSettings(): { language: 'English' | 'Romanian'; darkMode: boolean } {
   try {
     const saved = JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY) ?? '{}') as { language?: 'English' | 'Romanian'; darkMode?: boolean };
-    return { language: saved.language === 'Romanian' ? 'Romanian' : 'English', darkMode: saved.darkMode === true };
+    const phoneTheme = localStorage.getItem(PHONE_THEME_STORAGE_KEY);
+    // Use the previous shared preference once when upgrading existing installations.
+    const darkMode = phoneTheme === null ? saved.darkMode === true : phoneTheme === 'dark';
+    return { language: saved.language === 'Romanian' ? 'Romanian' : 'English', darkMode };
   } catch {
     return { language: 'English', darkMode: false };
   }
 }
 
 function savePhoneSetting(key: 'language' | 'darkMode', value: 'English' | 'Romanian' | boolean) {
-  const current = readPhoneSettings();
-  localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify({ ...current, [key]: value }));
+  if (key === 'darkMode') {
+    localStorage.setItem(PHONE_THEME_STORAGE_KEY, value ? 'dark' : 'light');
+    window.dispatchEvent(new Event('voice-to-voiceless-settings-changed'));
+    return;
+  }
+
+  let sharedSettings: Record<string, unknown> = {};
+  try {
+    sharedSettings = JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY) ?? '{}') as Record<string, unknown>;
+  } catch {
+    // Start with defaults when stored settings are malformed.
+  }
+  localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify({ ...sharedSettings, [key]: value }));
   window.dispatchEvent(new Event('voice-to-voiceless-settings-changed'));
 }
 
