@@ -92,7 +92,7 @@ export default function Sidebar({ notification, activeItem = "Home", onNavigate 
 
                 <button className="sidebar__item sidebar__patient-code-button" type="button" onClick={openPatientCode}>
                     <IdCard size={22} />
-                    <span>Patient code</span>
+                    <span>{t("patientCode")}</span>
                 </button>
 
             </nav>
@@ -117,8 +117,6 @@ export default function Sidebar({ notification, activeItem = "Home", onNavigate 
                         <X size={20} />
                     </button>
 
-                    <div className="patient-code-modal__icon"><QrCode size={22} /></div>
-                    <p className="patient-code-modal__eyebrow">{t("patientAccess")}</p>
                     <h2 id="patient-code-title">{t("patientCode")}</h2>
 
                     {!showManualCode ? (

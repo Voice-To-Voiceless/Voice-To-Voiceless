@@ -50,7 +50,7 @@ button { font: inherit; }
 .tracking-app { max-width: 1040px; margin: 0 auto; padding: 28px 28px 24px; }
 .app-header, .section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; }
 .app-header { align-items: flex-start; margin-bottom: 22px; }
-.eyebrow { color: #58705d; font: 700 12px Arial, sans-serif; letter-spacing: 1.7px; margin: 0 0 8px; }
+.eyebrow { color: #128c7e; font: 700 12px Arial, sans-serif; letter-spacing: 1.7px; margin: 0 0 8px; }
 h1 { font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1; margin: 0; }
 h2 { font-size: 1.4rem; margin: 0; }
 .connection-badge { align-items: center; background: #fff; border: 1px solid #cddccd; border-radius: 999px; color: #617568; display: inline-flex; font: 700 12px Arial, sans-serif; gap: 8px; padding: 9px 12px; white-space: nowrap; }
@@ -59,34 +59,37 @@ h2 { font-size: 1.4rem; margin: 0; }
 .ready .connection-dot, .camera-status-dot { background: #65a776; }
 .camera-panel { aspect-ratio: 16 / 9; background: #18352a; border-radius: 18px; margin-bottom: 14px; min-height: 420px; overflow: hidden; position: relative; }
 .camera-preview { height: 100%; object-fit: cover; transform: scaleX(-1); width: 100%; }
-.calibration-modal { align-items: center; background: #10251c99; display: flex; inset: 0; justify-content: center; padding: 16px; position: fixed; z-index: 30; }
+.calibration-modal { align-items: center; background: #ffffffdf; display: flex; inset: 0; justify-content: center; padding: 16px; position: fixed; z-index: 30; }
 .calibration-modal--hidden { display: none; }
-.tracking-guide-modal { align-items: center; background: #10251ccc; display: flex; inset: 0; justify-content: center; padding: 20px; position: fixed; z-index: 50; }
-.tracking-guide-modal__content { background: #fff; border: 1px solid #d5e1d6; border-radius: 18px; box-shadow: 0 20px 60px #10251c4d; max-width: 520px; padding: 30px; position: relative; width: 100%; }
+.tracking-guide-modal { align-items: center; background: #ffffffdf; display: flex; inset: 0; justify-content: center; padding: 20px; position: fixed; z-index: 50; }
+.tracking-guide-modal__content { background: #fff; border: 1px solid #d9e8df; border-radius: 16px; box-shadow: 0 18px 50px #0b141a52; max-width: 520px; padding: 30px; position: relative; width: 100%; }
 .tracking-guide-modal__close { align-items: center; background: transparent; border: 0; border-radius: 50%; color: #718075; cursor: pointer; display: flex; height: 34px; justify-content: center; position: absolute; right: 12px; top: 12px; width: 34px; }
-.tracking-guide-modal__close:hover { background: #eef3ed; color: #18352a; }
+.tracking-guide-modal__close:hover { background: #f0f2f1; color: #075e54; }
 .tracking-guide-modal__intro { align-items: center; display: flex; gap: 12px; margin-bottom: 18px; }
-.tracking-guide-modal__icon { align-items: center; background: #dcefe2; border-radius: 12px; color: #1f6b3a; display: flex; height: 52px; justify-content: center; margin-bottom: 18px; width: 52px; }
+.tracking-guide-modal__icon { align-items: center; background: #d9fdd3; border-radius: 12px; color: #128c7e; display: flex; height: 52px; justify-content: center; margin-bottom: 18px; width: 52px; }
 .tracking-guide-modal__intro .tracking-guide-modal__icon { margin-bottom: 0; }
 .tracking-guide-modal__intro .eyebrow { margin: 0; }
-.tracking-guide-modal__content h2 { color: #18352a; font-size: 1.8rem; margin-bottom: 8px; }
+.tracking-guide-modal__content h2 { color: #111b21; font-size: 1.8rem; margin-bottom: 8px; }
 .tracking-guide-modal__content h2,
-.tracking-guide-modal__description { text-align: center; }
-.tracking-guide-modal__description { color: #68766c; font: 14px/1.45 Arial, sans-serif; margin: 0 auto 20px; max-width: 420px; }
-.tracking-guide-modal__rules { border-top: 1px solid #e1e9e1; display: grid; gap: 10px; padding: 16px 0; }
-.tracking-guide-modal__rule { align-items: center; color: #315846; display: flex; font: 600 14px/1.35 Arial, sans-serif; gap: 10px; }
-.tracking-guide-modal__rule svg { color: #1f6b3a; flex: 0 0 auto; }
+.tracking-guide-modal__description { text-align: left; }
+.tracking-guide-modal__description { color: #667781; font: 14px/1.45 Arial, sans-serif; margin: 0 0 20px; max-width: 420px; }
+.tracking-guide-modal__rules { border-top: 1px solid #e9edef; display: grid; gap: 10px; padding: 16px 0; }
+.tracking-guide-modal__rule { align-items: center; color: #273239; display: flex; font: 600 14px/1.35 Arial, sans-serif; gap: 10px; }
+.tracking-guide-modal__rule svg { color: #128c7e; flex: 0 0 auto; }
 .tracking-guide-modal__actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
 .tracking-guide-modal__actions button { border-radius: 8px; cursor: pointer; font: 700 14px Arial, sans-serif; min-height: 44px; padding: 10px 16px; }
-.tracking-guide-modal__cancel { background: #fff; border: 1px solid #cbd9cf; color: #52665a; }
-.tracking-guide-modal__start { background: #315846; border: 1px solid #315846; color: #fff; }
-.tracking-guide-modal__start:hover { background: #426d56; }
+.tracking-guide-modal__cancel { background: #fff; border: 1px solid #c7d0d3; color: #54656d; }
+.tracking-guide-modal__cancel:hover { background: #f5f7f7; border-color: #aebbc0; }
+.tracking-guide-modal__start { background: #128c7e; border: 1px solid #128c7e; color: #fff; }
+.tracking-guide-modal__start:hover { background: #0b7a6f; border-color: #0b7a6f; }
+.tracking-guide-modal__actions button:focus-visible,
+.tracking-guide-modal__close:focus-visible { outline: 3px solid #25d366; outline-offset: 3px; }
 .calibration-modal__content { background: #fff; border-radius: 16px; box-shadow: 0 18px 48px #10251c40; max-width: 680px; padding: 12px; position: relative; text-align: center; width: 100%; }
 .calibration-modal__close { align-items: center; background: transparent; border: 0; border-radius: 50%; color: #718075; cursor: pointer; display: flex; height: 32px; justify-content: center; position: absolute; right: 8px; top: 8px; width: 32px; z-index: 2; }
 .calibration-modal__close:hover { background: #eef3ed; color: #18352a; }
 .calibration-modal__body { align-items: stretch; display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr) 150px; text-align: left; }
 .calibration-modal__preview .camera-panel { aspect-ratio: 16 / 9; border-radius: 14px; margin: 0; min-height: 0; }
-.camera-status-sidebar { background: #f4f7f4; border: 1px solid #dfe7df; border-radius: 10px; display: flex; flex-direction: column; gap: 5px; justify-content: center; padding: 7px; }
+.camera-status-sidebar { background: #fff; border: 1px solid #e1e6e8; border-radius: 10px; display: flex; flex-direction: column; gap: 5px; justify-content: center; padding: 7px; }
 .camera-status-sidebar__item { align-items: center; border-radius: 8px; color: #718075; display: flex; font: 600 11px/1.2 Arial, sans-serif; gap: 6px; min-height: 42px; padding: 7px; }
 .camera-status-sidebar__item svg { flex: 0 0 auto; }
 .camera-status-sidebar__item--active { background: #dcefe2; color: #1f6b3a; }

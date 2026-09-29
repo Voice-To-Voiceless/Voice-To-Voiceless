@@ -114,7 +114,7 @@
     margin:0;
 }
 
-.communication-card[data-action-id] { border-left:4px solid #78909c; }
+.communication-card[data-action-id] { border-left:4px solid #075E54; }
 
 .communication-card[data-action-id="yes"] .communication-card__icon { background:#dcebe2; }
 .communication-card[data-action-id="no"] .communication-card__icon { background:#eee0e0; }
@@ -126,7 +126,7 @@
 .communication-card[data-action-id="sleep"] .communication-card__icon { background:#e2e8ed; }
 .communication-card[data-action-id="talk"] .communication-card__icon { background:#ebdfe7; }
 
-html[data-theme="dark"] .communication-card[data-action-id] { border-left-color:#587276; }
+html[data-theme="dark"] .communication-card[data-action-id] { border-left-color:#075E54; }
 
 html[data-theme="dark"] .communication-card[data-action-id="yes"] .communication-card__icon { background:#214a39; }
 html[data-theme="dark"] .communication-card[data-action-id="no"] .communication-card__icon { background:#784350; }

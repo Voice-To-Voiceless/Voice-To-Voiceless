@@ -1,7 +1,5 @@
 .app-layout{
-    background:
-        radial-gradient(circle at 72% 0%, rgba(218, 235, 225, .85), transparent 34%),
-        linear-gradient(135deg, #f4f7f2 0%, #e9f0eb 100%);
+    background:#ffffff;
     display:grid;
     grid-template-columns:220px minmax(0, 1fr);
     gap:0;
