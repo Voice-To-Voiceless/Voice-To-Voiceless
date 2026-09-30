@@ -15,6 +15,7 @@ import { useLanguage } from '../i18n';
 import { CalibrationModal, NurseAlertPopup, TrackingGuideModal } from './components/TrackingModals';
 
 const TABLET_PATIENT_ID = 'patient-001';
+const ATTENTION_NOTIFICATION_DELAY_MS = 3500;
 
 type BrowserTrackingAppProps = {
   enableDiagnostics?: boolean;
@@ -31,6 +32,8 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   const [showDebugOverlay, setShowDebugOverlay] = useState(() => enableDebugOverlay && readStoredDebugOverlay());
   const [visibleActionIds, setVisibleActionIds] = useState<ActionId[]>(readStoredVisibleActions);
   const [replying, setReplying] = useState(false);
+  const [attentionElapsedMs, setAttentionElapsedMs] = useState(0);
+  const [attentionNotificationSent, setAttentionNotificationSent] = useState(false);
   const [showTrackingGuide, setShowTrackingGuide] = useState(false);
   const [activePage, setActivePage] = useState<'Home' | 'Accessibility' | 'Settings'>('Home');
   const { t } = useLanguage();
@@ -49,15 +52,24 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
     if (recognition.snapshot.state !== 'attention_required') {
       attentionStartedAtRef.current = null;
       attentionNotificationSentRef.current = false;
+      setAttentionElapsedMs(0);
+      setAttentionNotificationSent(false);
       return;
     }
 
     attentionStartedAtRef.current ??= Date.now();
     const elapsed = Date.now() - attentionStartedAtRef.current;
-    const remaining = Math.max(0, 5000 - elapsed);
+    setAttentionElapsedMs(elapsed);
+    const remaining = Math.max(0, ATTENTION_NOTIFICATION_DELAY_MS - elapsed);
+    const progressTimer = window.setInterval(() => {
+      if (attentionStartedAtRef.current !== null) {
+        setAttentionElapsedMs(Date.now() - attentionStartedAtRef.current);
+      }
+    }, 100);
     const timeout = window.setTimeout(() => {
       if (attentionNotificationSentRef.current || recognition.snapshot.state !== 'attention_required') return;
       attentionNotificationSentRef.current = true;
+      setAttentionNotificationSent(true);
       createNotification({
         source: 'face_recognition',
         type: 'attention_required',
@@ -67,10 +79,14 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
         recipient: 'nurse',
       }).catch(() => {
         attentionNotificationSentRef.current = false;
+        setAttentionNotificationSent(false);
       });
     }, remaining);
 
-    return () => window.clearTimeout(timeout);
+    return () => {
+      window.clearTimeout(timeout);
+      window.clearInterval(progressTimer);
+    };
   }, [recognition.snapshot.state]);
 
   useEffect(() => {
@@ -192,7 +208,17 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
         passKind={tracking.snapshot.calibrationPassKind}
       />
       {showDebugOverlay && <DebugOverlay rawGaze={tracking.snapshot.rawGaze} calibratedGaze={tracking.snapshot.calibratedGaze} showTarget={showTargetIndicator} l2csYaw={tracking.snapshot.l2csYaw} l2csPitch={tracking.snapshot.l2csPitch} provider={tracking.snapshot.l2csProvider} latencyMs={tracking.snapshot.l2csInferenceLatencyMs} estimatesPerSecond={tracking.snapshot.l2csEstimatesPerSecond} poseStatus={tracking.snapshot.poseStatus} l2csCropPreview={tracking.snapshot.l2csCropPreview} />}
-      <CalibrationModal tracking={tracking} recognition={recognition} videoRef={videoRef} faceDetected={faceDetected} trackingActive={trackingActive} recognitionActive={recognitionActive} t={t} />
+      <CalibrationModal
+        tracking={tracking}
+        recognition={recognition}
+        videoRef={videoRef}
+        faceDetected={faceDetected}
+        trackingActive={trackingActive}
+        recognitionActive={recognitionActive}
+        attentionNotificationRemainingMs={Math.max(0, ATTENTION_NOTIFICATION_DELAY_MS - attentionElapsedMs)}
+        attentionNotificationSent={attentionNotificationSent}
+        t={t}
+      />
 
       <CommunicationBoard
         actions={localizedActions.filter(action => visibleActionIds.includes(action.id)).slice(0, 9)}
