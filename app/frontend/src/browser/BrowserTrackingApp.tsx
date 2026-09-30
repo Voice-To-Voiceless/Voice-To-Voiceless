@@ -179,7 +179,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
       await createNotification({
         source: 'patient',
         type: 'patient_action',
-        severity: actionId === 'pain' ? 'critical' : 'info',
+        severity: actionId === 'pain' || actionId === 'medication' ? 'critical' : 'info',
         message: t(actionId),
         patient_metadata: { patient_id: TABLET_PATIENT_ID },
         recipient: 'nurse',

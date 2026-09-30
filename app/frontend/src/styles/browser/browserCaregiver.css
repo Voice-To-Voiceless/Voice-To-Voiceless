@@ -183,6 +183,10 @@ html[data-theme="dark"] .caregiver-send-button { background: #34445d; }
 .phone-notification-filters button.phone-clear-notifications { background: transparent; border-radius: 0; color: #35d99a; min-height: 0; padding: 5px 3px; }
 .phone-notification-filters button.phone-clear-notifications:hover { color: #7af2c0; text-decoration: none; }
 .phone-notification-filters button span { align-items: center; background: #ed665b; border-radius: 50%; color: #fff; display: inline-flex; font-size: 9px; height: 15px; justify-content: center; width: 15px; }
+.phone-notification-filters button.phone-filter-emergency { background: #fff0ef; color: #b42318; }
+.phone-notification-filters button.phone-filter-emergency span { background: #ed665b; color: #fff; }
+.phone-notification-filters button.phone-filter-emergency.is-selected { background: #c62828; color: #fff; }
+.phone-notification-filters button.phone-filter-emergency.is-selected span { background: #ffffff38; color: #fff; }
 .phone-notification-list { display: flex; flex-direction: column; gap: 9px; }
 .phone-notification-card { align-items: center; border: 1px solid transparent; border-radius: 14px; box-shadow: 0 3px 12px #17352b0d; cursor: pointer; display: flex; gap: 11px; min-height: 72px; padding: 11px 12px; text-align: left; width: 100%; }
 .phone-notification-card--critical { background: #ffd2cf; border: 1px solid #e1e4e7; box-shadow: 0 3px 12px #17352b0d; color: #111111; }
