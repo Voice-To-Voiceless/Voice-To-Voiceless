@@ -13,6 +13,7 @@ const TRAINING_SAMPLE_SPACING_MS = 400;
 
 export interface ExternalCalibrationBackend {
   recordTrainingSample(sample: CalibrationSample): boolean;
+  hasEnoughTrainingSamples(target: CalibrationSample['target']): boolean;
   clearTrainingData(): Promise<void>;
   fitTraining(samples: CalibrationSample[]): GazeCalibrationMapperLike | null;
   fitWithValidationDetailed(training: CalibrationSample[], validation: CalibrationSample[]): { mapper: GazeCalibrationMapperLike | null };
@@ -44,6 +45,9 @@ export function createWebGazerCalibrationBackend(adapter: BrowserWebGazerAdapter
         lastRecordedAt.set(key, now);
       }
       return recorded;
+    },
+    hasEnoughTrainingSamples(target) {
+      return (sampleCounts.get(`${target.x}:${target.y}`) ?? 0) >= TRAINING_SAMPLES_PER_TARGET;
     },
     fitTraining(samples) {
       const targets = new Set(samples.map(sample => `${sample.target.x}:${sample.target.y}`));

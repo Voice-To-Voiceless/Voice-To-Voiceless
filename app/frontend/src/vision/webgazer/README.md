@@ -6,6 +6,8 @@ WebGazer shares the app's camera stream and existing nine-dot calibration UI. Ac
 
 RidgeReg retains only 50 click samples, so training records at most five spaced samples per target (45 total). The debug gaze marker uses the screen coordinates directly; the camera preview alone is mirrored.
 
+WebGazer dots settle for at least 750 ms and wait for stable gaze and head pose. Training dots advance after five spaced model samples; validation dots advance after 20 predictions form a stable window. Unstable dots keep recording up to the existing 3-second limit. The nine targets, held-out pass, and RMS threshold stay unchanged.
+
 The MediaPipe Face Mesh assets used by WebGazer are copied from its package into `public/webgazer/face_mesh` by Vite. The generated public copy is ignored by Git.
 
 This is an experiment, not a validated replacement. Compare held-out accuracy and selection latency against L2CS on the same camera before adopting it for assistive use. WebGazer is GPL-3.0-or-later, so confirm the project's distribution/licensing requirements before release.
