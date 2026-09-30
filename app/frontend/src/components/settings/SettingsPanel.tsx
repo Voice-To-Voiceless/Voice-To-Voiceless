@@ -12,7 +12,6 @@ type AppSettings = {
   darkMode: boolean;
   cameraId: string;
   visibleActions: ActionId[];
-  showTargetIndicator: boolean;
   debugOverlay: boolean;
 };
 
@@ -21,7 +20,6 @@ const DEFAULT_SETTINGS: AppSettings = {
   darkMode: false,
   cameraId: '',
   visibleActions: DEFAULT_VISIBLE_ACTIONS,
-  showTargetIndicator: true,
   debugOverlay: true,
 };
 
@@ -113,7 +111,6 @@ export default function SettingsPanel() {
 
         <SettingsCard icon={<Moon size={19} />} title={t('appearance')} description={t('appearanceDescription')}>
           <SettingsToggle label={t('darkMode')} checked={settings.darkMode} onChange={value => updateSetting('darkMode', value)} />
-          <SettingsToggle label={t('showTargetIndicator')} checked={settings.showTargetIndicator} onChange={value => updateSetting('showTargetIndicator', value)} />
           <SettingsToggle label={t('debugOverlay')} checked={settings.debugOverlay} onChange={value => updateSetting('debugOverlay', value)} />
         </SettingsCard>
 
@@ -153,10 +150,6 @@ function readSettings(): AppSettings {
   } catch {
     return DEFAULT_SETTINGS;
   }
-}
-
-export function readStoredTargetIndicator(): boolean {
-  return readSettings().showTargetIndicator;
 }
 
 export function readStoredDebugOverlay(): boolean {
