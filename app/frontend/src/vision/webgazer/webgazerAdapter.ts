@@ -42,7 +42,7 @@ export class BrowserWebGazerAdapter {
       webgazer = globalWindow.webgazer;
     }
     if (!webgazer) throw new Error('WebGazer loaded without exposing its API.');
-    webgazer.params.faceMeshSolutionPath = new URL(`${import.meta.env.BASE_URL}webgazer/face_mesh`, window.location.origin).toString();
+    webgazer.params.faceMeshSolutionPath = new URL('webgazer/face_mesh', document.baseURI).toString();
     this.runtime = webgazer
       .saveDataAcrossSessions(false)
       .setRegression('ridge')

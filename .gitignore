@@ -31,5 +31,4 @@ datasets/*
 
 # Virtual environment
 app/.venv/
-app/frontend/public/onnxruntime/
 app/frontend/public/webgazer/

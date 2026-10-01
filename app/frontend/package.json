@@ -16,7 +16,6 @@
     "@mediapipe/tasks-vision": "^1.0.1",
     "@react-native/new-app-screen": "0.87.1",
     "lucide-react": "^1.45.0",
-    "onnxruntime-web": "^1.20.1",
     "qrcode": "^1.5.4",
     "react": "19.2.3",
     "react-dom": "19.2.3",

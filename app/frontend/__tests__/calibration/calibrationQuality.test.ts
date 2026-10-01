@@ -22,16 +22,6 @@ test('accepts a valid calibration frame', () => {
   expect(evaluateCalibrationSampleQuality(validInput)).toEqual({ accepted: true, rejectionReasons: [] });
 });
 
-test('does not require iris geometry or binocular agreement for L2CS frames', () => {
-  expect(evaluateCalibrationSampleQuality({
-    ...validInput,
-    l2csAvailable: true,
-    leftConfidence: 0,
-    rightConfidence: 0,
-    diagnostics: { ...validInput.diagnostics, leftPosition: null, rightPosition: null, eyeDisagreement: Number.NaN },
-  })).toEqual({ accepted: true, rejectionReasons: [] });
-});
-
 test.each([
   ['pose unavailable', { pose: null }],
   ['low confidence', { leftConfidence: 0.4 }],

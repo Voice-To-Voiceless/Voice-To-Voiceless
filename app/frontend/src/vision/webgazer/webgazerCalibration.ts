@@ -21,7 +21,6 @@ export interface ExternalCalibrationBackend {
 
 const identityMapper: GazeCalibrationMapperLike = {
   map(gaze: NormalizedGazePoint) { return gaze; },
-  requiresL2CS() { return false; },
 };
 
 /** Routes training labels to WebGazer; validation samples are only scored. */
@@ -55,11 +54,11 @@ export function createWebGazerCalibrationBackend(adapter: BrowserWebGazerAdapter
       return targets.size === 9 && enoughModelSamples ? identityMapper : null;
     },
     fitWithValidationDetailed(training, validation) {
-      const validationDiagnostics = evaluateSamples(validation, true);
       const completeTrainingCoverage = new Set(training.map(sample => `${sample.target.x}:${sample.target.y}`)).size === 9;
-      const accepted = completeTrainingCoverage && validationDiagnostics.rejectionReason === null;
+      const completeValidationCoverage = new Set(validation.map(sample => `${sample.target.x}:${sample.target.y}`)).size === 9;
+      const finiteValidationSamples = validation.length > 0 && validation.every(sample => Number.isFinite(sample.gaze.x) && Number.isFinite(sample.gaze.y));
       return {
-        mapper: accepted ? identityMapper : null,
+        mapper: completeTrainingCoverage && completeValidationCoverage && finiteValidationSamples ? identityMapper : null,
       };
     },
   };

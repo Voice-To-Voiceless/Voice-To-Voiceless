@@ -8,7 +8,6 @@ export type CalibrationTarget = { x: number; y: number };
 export type CalibrationSample = { gaze: CalibrationTarget; target: CalibrationTarget; features?: RidgeCalibrationFeatures };
 export interface GazeCalibrationMapperLike {
   map(gaze: NormalizedGazePoint, features?: RidgeCalibrationFeatures): NormalizedGazePoint;
-  requiresL2CS(): boolean;
 }
 export type CalibrationFitDiagnostics = {
   accepted: boolean;
@@ -82,11 +81,6 @@ export class GazeCalibrationMapper implements GazeCalibrationMapperLike {
     return { ...gaze, x: clamp(point.x), y: clamp(point.y) };
   }
 
-  public requiresL2CS(): boolean {
-    return this.ridgeModel !== null && (
-      this.ridgeModel.x.names.includes('l2csYaw') || this.ridgeModel.y.names.includes('l2csPitch')
-    );
-  }
 }
 
 type GridNode = { gazeX: number; gazeY: number; targetX: number; targetY: number };
@@ -102,8 +96,7 @@ function hasCompleteFeatures(samples: CalibrationSample[]): samples is Required<
     return features !== undefined
       && Number.isFinite(features.yaw) && Number.isFinite(features.pitch)
       && Number.isFinite(features.faceCenterX) && Number.isFinite(features.faceCenterY)
-      && (features.l2csYaw === undefined || Number.isFinite(features.l2csYaw))
-      && (features.l2csPitch === undefined || Number.isFinite(features.l2csPitch));
+      ;
   });
 }
 

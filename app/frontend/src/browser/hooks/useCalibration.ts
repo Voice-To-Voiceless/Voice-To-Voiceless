@@ -13,11 +13,8 @@ export const CALIBRATION_TARGETS = [
 ];
 
 export const CALIBRATION_SETTLE_DURATION_MS = 1800;
-// Keep calibration practical while allowing the current L2CS stream to collect
-// as many accepted samples as its ~4 estimates/s throughput permits.
 export const CALIBRATION_SAMPLE_DURATION_MS = 3000;
 export const CALIBRATION_MAX_RECORDING_DURATION_MS = CALIBRATION_SAMPLE_DURATION_MS;
-const L2CS_MINIMUM_ACCEPTED_SAMPLES_PER_TARGET = 10;
 const WEBGAZER_MIN_SETTLE_DURATION_MS = 750;
 const WEBGAZER_MAX_SETTLE_DURATION_MS = CALIBRATION_SETTLE_DURATION_MS;
 const WEBGAZER_SETTLE_STABLE_DURATION_MS = 250;
@@ -70,15 +67,15 @@ function updateSettleStability(buffer: CalibrationBuffer, gaze: NormalizedGazePo
   if (gaze.timestamp <= buffer.lastSettleSampleTimestamp) return;
   buffer.lastSettleSampleTimestamp = gaze.timestamp;
   const pose = diagnosticPoints?.poseSource;
-  if (!diagnosticPoints?.quality.accepted || !pose || pose.yaw === null || pose.pitch === null) {
+  if (!diagnosticPoints?.quality.accepted) {
     buffer.settleAnchor = null;
     buffer.settleStableSince = null;
     return;
   }
   const candidate: SettleAnchor = {
     gazeX: gaze.x, gazeY: gaze.y,
-    faceCenterX: pose.faceCenterX ?? 0, faceCenterY: pose.faceCenterY ?? 0,
-    yaw: pose.yaw, pitch: pose.pitch,
+    faceCenterX: pose?.faceCenterX ?? 0, faceCenterY: pose?.faceCenterY ?? 0,
+    yaw: pose?.yaw ?? 0, pitch: pose?.pitch ?? 0,
   };
   const anchor = buffer.settleAnchor;
   const moved = anchor !== null && (
@@ -197,7 +194,7 @@ export function useCalibration(modelTestingSession?: ModelTestingSession, calibr
       const sample = { gaze, target, features: diagnosticPoints?.features };
       const quality = diagnosticPoints?.quality;
       if (quality) modelTestingSession?.recordQualityDecision(index, quality);
-      const acceptedSample = (!quality || quality.accepted) && gaze.timestamp > lastSampleTimestampRef.current;
+      const acceptedSample = (!quality || quality.accepted) && timestamp > lastSampleTimestampRef.current;
       const recordedByBackend = acceptedSample && passKindRef.current === 'training' && backend
         ? backend.recordTrainingSample(sample)
         : acceptedSample;
@@ -205,7 +202,7 @@ export function useCalibration(modelTestingSession?: ModelTestingSession, calibr
         return { target, status: 'Waiting for WebGazer to detect your eyes.', complete: false, settleProgress: 1, resetSmoother: false };
       }
       if (recordedByBackend) {
-        lastSampleTimestampRef.current = gaze.timestamp;
+        lastSampleTimestampRef.current = timestamp;
         dataRef.current.point.push(sample);
         dataRef.current.all.push(sample);
         if (!dataRef.current.poseSource) dataRef.current.poseSource = diagnosticPoints?.poseSource ?? null;
@@ -230,17 +227,12 @@ export function useCalibration(modelTestingSession?: ModelTestingSession, calibr
     if (recordingElapsed < CALIBRATION_SAMPLE_DURATION_MS && !earlyTrainingComplete && !earlyValidationComplete) {
       return { target, status: 'Hold steady. Recording your gaze.', complete: false, settleProgress: 1, resetSmoother: false };
     }
-    const usesL2CS = dataRef.current.point.some(sample => sample.features?.l2csYaw !== undefined && sample.features?.l2csPitch !== undefined);
-    const minimumAcceptedSamples = backend
-      ? 6
-      : usesL2CS
-      ? L2CS_MINIMUM_ACCEPTED_SAMPLES_PER_TARGET
-      : DEFAULT_CALIBRATION_QUALITY_POLICY.minimumAcceptedSamplesPerTarget;
+    const minimumAcceptedSamples = backend ? 6 : DEFAULT_CALIBRATION_QUALITY_POLICY.minimumAcceptedSamplesPerTarget;
     const backendTrainingIncomplete = adaptiveWebGazer && passKindRef.current === 'training' && !enoughTrainingSamples;
     if (dataRef.current.point.length < minimumAcceptedSamples || backendTrainingIncomplete) {
       resetTargetBuffer(dataRef.current, timestamp);
-      modelTestingSession?.exportDiagnostics();
-      modelTestingSession?.discardCurrentPass();
+      modelTestingSession?.exportDiagnostics?.();
+      modelTestingSession?.discardCurrentPass?.();
       mapperRef.current = null;
       activeRef.current = false;
       readyRef.current = false;
@@ -261,7 +253,7 @@ export function useCalibration(modelTestingSession?: ModelTestingSession, calibr
           mapperRef.current = GazeCalibrationMapper.fitWithValidation(trainingSamplesRef.current, dataRef.current.all)?.mapper ?? null;
         }
       }
-      if (passKindRef.current === 'training' && mapperRef.current) {
+      if (passKindRef.current === 'training' && mapperRef.current && modelTestingSession) {
         modelTestingSession?.completePass();
         modelTestingSession?.startPass([...CALIBRATION_TARGET_ORDERS[1]]);
         passKindRef.current = 'validation';
