@@ -12,7 +12,7 @@ import { CalibrationTarget } from './components/CalibrationTarget';
 import { DebugOverlay } from './components/DebugOverlay';
 import { createNotification, getNotifications, markNotificationRead, subscribeToNotifications, type PatientNotification } from '../services/notifications';
 import { useLanguage } from '../i18n';
-import { CalibrationModal, NurseAlertPopup, TrackingGuideModal } from './components/TrackingModals';
+import { CalibrationModal, ConfidencePopup, NurseAlertPopup, TrackingGuideModal } from './components/TrackingModals';
 
 const TABLET_PATIENT_ID = 'patient-001';
 const ATTENTION_NOTIFICATION_DELAY_MS = 3500;
@@ -34,6 +34,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   const [attentionElapsedMs, setAttentionElapsedMs] = useState(0);
   const [attentionNotificationSent, setAttentionNotificationSent] = useState(false);
   const [showTrackingGuide, setShowTrackingGuide] = useState(false);
+  const [showConfidencePopup, setShowConfidencePopup] = useState(false);
   const [activePage, setActivePage] = useState<'Home' | 'Accessibility' | 'Settings'>('Home');
   const { t } = useLanguage();
   const actionNotificationsInFlight = useRef(new Set<ActionId>());
@@ -46,6 +47,10 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   const trackingActive = tracking.snapshot.active;
   const recognitionActive = recognition.snapshot.active;
   const localizedActions = COMMUNICATION_ACTIONS.map(action => ({ ...action, label: t(action.id) }));
+
+  useEffect(() => {
+    if (tracking.snapshot.calibrationConfidence !== null) setShowConfidencePopup(true);
+  }, [tracking.snapshot.calibrationConfidence]);
 
   useEffect(() => {
     if (recognition.snapshot.state !== 'attention_required') {
@@ -218,6 +223,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
         attentionNotificationSent={attentionNotificationSent}
         t={t}
       />
+      {showConfidencePopup && tracking.snapshot.calibrationConfidence !== null && <ConfidencePopup score={tracking.snapshot.calibrationConfidence} t={t} onClose={() => setShowConfidencePopup(false)} />}
 
       <CommunicationBoard
         actions={localizedActions.filter(action => visibleActionIds.includes(action.id)).slice(0, 9)}

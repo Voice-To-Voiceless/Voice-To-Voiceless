@@ -12,7 +12,7 @@ import { evaluateCalibrationSampleQuality } from '../../vision/calibration/calib
 import { BrowserWebGazerAdapter } from '../../vision/webgazer/webgazerAdapter';
 import { createWebGazerCalibrationBackend } from '../../vision/webgazer/webgazerCalibration';
 
-const initialSnapshot: TrackingSnapshot = { active: false, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0, calibrating: false, calibrationIndex: 0, calibrationTarget: null, calibrationProgress: 0, calibrationPassKind: null, calibrationFailed: false, calibrationFailure: null, calibrationReady: false, trackingPauseReason: null };
+const initialSnapshot: TrackingSnapshot = { active: false, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0, calibrating: false, calibrationIndex: 0, calibrationTarget: null, calibrationProgress: 0, calibrationPassKind: null, calibrationFailed: false, calibrationFailure: null, calibrationReady: false, calibrationConfidence: null, trackingPauseReason: null };
 
 export function useBrowserTracking(
   videoRef: React.RefObject<HTMLVideoElement | null>,
@@ -126,6 +126,7 @@ export function useBrowserTracking(
           calibrationFailed: Boolean(result.failed) || (result.complete && !calibrationReadyRef.current),
           calibrationFailure: result.failed || (result.complete && !calibrationReadyRef.current) ? result.status : null,
           calibrationReady: calibrationReadyRef.current,
+          calibrationConfidence: result.confidenceScore ?? value.calibrationConfidence,
         }));
         if (result.resetSmoother) {
           smootherRef.current.reset();
@@ -195,7 +196,7 @@ export function useBrowserTracking(
     fallbackLoggedRef.current = false;
     resetInteraction();
     joystickRef.current.reset();
-    setSnapshot(value => ({ ...value, calibrating: true, calibrationIndex: 0, calibrationTarget: calibrationTargetsRef.current[0], calibrationProgress: 0, calibrationPassKind: calibrationPassKindRef.current, calibrationFailed: false, calibrationFailure: null, calibrationReady: false, gazePoint: null }));
+    setSnapshot(value => ({ ...value, calibrating: true, calibrationIndex: 0, calibrationTarget: calibrationTargetsRef.current[0], calibrationProgress: 0, calibrationPassKind: calibrationPassKindRef.current, calibrationFailed: false, calibrationFailure: null, calibrationReady: false, calibrationConfidence: null, gazePoint: null }));
     setStatus('Calibration started. Look at the yellow dot.');
   }, [calibrationPassKindRef, calibrationTargetsRef, modelTestingSession, resetInteraction, startCalibration]);
   const cancelCalibration = useCallback(() => {

@@ -94,6 +94,21 @@ export function CalibrationModal({ tracking, recognition, videoRef, faceDetected
   </section>;
 }
 
+export function ConfidencePopup({ score, t, onClose }: { score: number; t: Translator; onClose: () => void }) {
+  const confidenceColor = score <= 33 ? '#d9534f' : score < 70 ? '#d9a441' : '#65a776';
+
+  return <section className="confidence-popup" role="dialog" aria-modal="true" aria-labelledby="confidence-popup-title">
+    <div className="confidence-popup__content">
+      <button type="button" className="confidence-popup__close" aria-label={t('close')} title={t('close')} onClick={onClose}><X size={20} aria-hidden="true" /></button>
+      <p className="eyebrow">{t('calibrationConfidence')}</p>
+      <h2 id="confidence-popup-title">{t('calibrationConfidenceDescription')}</h2>
+      <div className="confidence-popup__circle" style={{ '--confidence-score': `${score}%`, '--confidence-color': confidenceColor } as React.CSSProperties} aria-label={`${score}%`}>
+        <strong>{score}%</strong>
+      </div>
+    </div>
+  </section>;
+}
+
 function StatusItem({ icon, label, active }: { icon: React.ReactNode; label: string; active: boolean }) {
   return <div className={`camera-status-sidebar__item${active ? ' camera-status-sidebar__item--active' : ''}`}>{icon}<span>{label}</span></div>;
 }

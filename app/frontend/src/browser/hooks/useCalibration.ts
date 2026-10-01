@@ -3,6 +3,7 @@ import { GazeCalibrationMapper, CalibrationSample } from '../../vision/calibrati
 import { NormalizedGazePoint } from '../../vision/types/gazeTypes';
 import { CalibrationDiagnosticPoints, CalibrationPassKind, ModelTestingSession } from '../../modelTesting/modelTestingSession';
 import { DEFAULT_CALIBRATION_QUALITY_POLICY } from '../../vision/calibration/calibrationQuality';
+import { MAX_VALIDATION_RMS } from '../../vision/calibration/gazeCalibration';
 import { GazeCalibrationMapperLike } from '../../vision/calibration/gazeCalibration';
 import { ExternalCalibrationBackend } from '../../vision/webgazer/webgazerCalibration';
 
@@ -21,6 +22,7 @@ const WEBGAZER_SETTLE_STABLE_DURATION_MS = 250;
 const WEBGAZER_MIN_TRAINING_DURATION_MS = 1600;
 const WEBGAZER_MIN_VALIDATION_DURATION_MS = 1200;
 const WEBGAZER_MIN_VALIDATION_SAMPLES = 20;
+const CONFIDENCE_DISPLAY_MAX_ERROR = MAX_VALIDATION_RMS * 2;
 export const CALIBRATION_INTERLEAVED_TARGETS = [CALIBRATION_TARGETS[4], CALIBRATION_TARGETS[1], CALIBRATION_TARGETS[7], CALIBRATION_TARGETS[3], CALIBRATION_TARGETS[5], CALIBRATION_TARGETS[0], CALIBRATION_TARGETS[2], CALIBRATION_TARGETS[6], CALIBRATION_TARGETS[8]] as const;
 export const CALIBRATION_TARGET_ORDERS = [
   CALIBRATION_INTERLEAVED_TARGETS,
@@ -35,6 +37,7 @@ type CalibrationResult = {
   settleProgress: number;
   resetSmoother: boolean;
   failed?: boolean;
+  confidenceScore?: number;
 };
 
 type SettleAnchor = { gazeX: number; gazeY: number; faceCenterX: number; faceCenterY: number; yaw: number; pitch: number };
@@ -272,6 +275,13 @@ export function useCalibration(modelTestingSession?: ModelTestingSession, calibr
       }
       modelTestingSession?.completePass();
       if (completedPassKind === 'validation') modelTestingSession?.exportDiagnostics();
+      const validationDiagnostics = completedPassKind === 'validation'
+        ? modelTestingSession?.getDiagnosticsSnapshot().calibrationFitComparison.separatePassValidation.webgazer
+        : null;
+      const validationError = validationDiagnostics?.p95Residual ?? validationDiagnostics?.rmsResidual ?? null;
+      const confidenceScore = validationError === null
+        ? 0
+        : Math.round(Math.max(0, Math.min(1, 1 - validationError / CONFIDENCE_DISPLAY_MAX_ERROR)) * 100);
       activeRef.current = false;
       readyRef.current = mapperRef.current !== null;
       console.info('[gaze-calibration] completed', {
@@ -286,6 +296,7 @@ export function useCalibration(modelTestingSession?: ModelTestingSession, calibr
         complete: true,
         settleProgress: 0,
         resetSmoother: false,
+        confidenceScore: completedPassKind === 'validation' ? confidenceScore : undefined,
       };
     }
     resetTargetBuffer(dataRef.current, timestamp);

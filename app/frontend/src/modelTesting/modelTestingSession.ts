@@ -7,6 +7,7 @@ import {
   getOrdinaryValidationDiagnostics,
   getPassCaptureSummary,
   getPassDiagnostics,
+  getWebGazerValidationDiagnostics,
   getPoseDistributionShift,
   getPassCaptureStatus,
   hasCompleteTargetCoverage,
@@ -28,6 +29,7 @@ type CalibrationDiagnosticsSnapshot = {
     separatePassValidation: {
       ordinary: ReturnType<typeof getOrdinaryValidationDiagnostics>;
       poseConditioned: ReturnType<typeof getAcceptedPoseValidationDiagnostics>;
+        webgazer: ReturnType<typeof getWebGazerValidationDiagnostics>;
     };
     passCaptureStatus: Array<ReturnType<typeof getPassCaptureStatus> & { pass: CalibrationPassKind }>;
   };
@@ -162,6 +164,7 @@ export class ModelTestingSession {
         ),
         separatePassValidation: {
           ordinary: getOrdinaryValidationDiagnostics(training.all, validation?.all ?? []),
+          webgazer: getWebGazerValidationDiagnostics(validation?.all ?? []),
           poseConditioned: getAcceptedPoseValidationDiagnostics(
             training.poseConditioned,
             validation?.poseConditioned ?? [],
