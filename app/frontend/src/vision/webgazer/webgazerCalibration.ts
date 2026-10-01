@@ -1,5 +1,4 @@
-import { CalibrationSample, GazeCalibrationMapperLike, MAX_VALIDATION_RMS } from '../calibration/gazeCalibration';
-import type { ValidationFitDiagnostics } from '../calibration/gazeCalibration';
+import { CalibrationSample, GazeCalibrationMapperLike } from '../calibration/gazeCalibration';
 import type { NormalizedGazePoint } from '../types/gazeTypes';
 import { BrowserWebGazerAdapter } from './webgazerAdapter';
 import { WebGazerScreenPoint } from './webgazerTypes';
@@ -68,40 +67,3 @@ function toViewportPoint(point: WebGazerScreenPoint): WebGazerScreenPoint {
   return { x: point.x * window.innerWidth, y: point.y * window.innerHeight };
 }
 
-function evaluateSamples(samples: CalibrationSample[], applyThreshold: boolean): ValidationFitDiagnostics {
-  const byTarget = new Map<string, CalibrationSample[]>();
-  samples.forEach(sample => {
-    const key = `${sample.target.x}:${sample.target.y}`;
-    byTarget.set(key, [...(byTarget.get(key) ?? []), sample]);
-  });
-  const targetResiduals = [...byTarget.values()].map(group => ({
-    target: group[0]!.target,
-    residual: Math.hypot(
-      median(group.map(sample => sample.gaze.x)) - group[0]!.target.x,
-      median(group.map(sample => sample.gaze.y)) - group[0]!.target.y,
-    ),
-  }));
-  const residuals = targetResiduals.map(result => result.residual);
-  const sorted = [...residuals].sort((left, right) => left - right);
-  const rmsResidual = residuals.length > 0
-    ? Math.sqrt(residuals.reduce((sum, residual) => sum + residual ** 2, 0) / residuals.length)
-    : null;
-  const rejectionReason = residuals.length === 0
-    ? 'no validation samples'
-    : applyThreshold && rmsResidual! > MAX_VALIDATION_RMS
-      ? 'validation residual exceeds threshold'
-      : null;
-  return {
-    rmsResidual,
-    p95Residual: sorted.length > 0 ? sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * 0.95) - 1)]! : null,
-    maxResidual: sorted.length > 0 ? sorted[sorted.length - 1]! : null,
-    targetResiduals,
-    rejectionReason,
-  };
-}
-
-function median(values: number[]): number {
-  const sorted = [...values].sort((left, right) => left - right);
-  const middle = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0 ? (sorted[middle - 1]! + sorted[middle]!) / 2 : sorted[middle]!;
-}

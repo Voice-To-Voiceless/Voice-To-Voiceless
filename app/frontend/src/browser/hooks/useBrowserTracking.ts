@@ -58,7 +58,7 @@ export function useBrowserTracking(
     frameRef.current = null;
     activeRef.current = false;
     processingRef.current = false;
-    void webgazerRef.current?.stop();
+    webgazerRef.current?.stop().catch(() => undefined);
     webgazerRef.current = null;
     calibrationBackendRef.current = null;
     closeEyeTrackingCamera(streamRef.current);
@@ -99,7 +99,6 @@ export function useBrowserTracking(
       }
       const smoothed = smootherRef.current.update(gaze);
       if (calibrationActiveRef.current) {
-        const targetIndex = calibrationIndexRef.current;
         const quality = evaluateCalibrationSampleQuality({
           gaze,
           leftConfidence: 1,
@@ -174,7 +173,7 @@ export function useBrowserTracking(
       processingRef.current = false;
       if (activeRef.current) frameRef.current = requestAnimationFrame(processFrame);
     }
-  }, [boardRef, calibrationActiveRef, calibrationIndexRef, calibrationMapperRef, calibrationPassKindRef, calibrationReadyRef, calibrationTargetsRef, modelTestingSession, onSelect, pauseCalibration, processCalibration, resetCalibration, resetInteraction, videoRef]);
+  }, [boardRef, calibrationActiveRef, calibrationIndexRef, calibrationMapperRef, calibrationPassKindRef, calibrationReadyRef, calibrationTargetsRef, onSelect, pauseCalibration, processCalibration, videoRef]);
   const calibrate = useCallback(async () => {
     if (!activeRef.current) return;
     try {
