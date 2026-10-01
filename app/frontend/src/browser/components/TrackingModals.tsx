@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Bell, Camera, CheckCircle2, Eye, EyeOff, ScanFace, X } from 'lucide-react';
 import CameraPreview from '../../components/camera/CameraPreview';
 import { CameraPanel } from '../../components/camera/CameraPanel';
@@ -9,8 +9,22 @@ import { useLanguage } from '../../i18n';
 type Tracking = ReturnType<typeof useBrowserTracking>;
 type Recognition = ReturnType<typeof useFaceRecognition>;
 type Translator = ReturnType<typeof useLanguage>['t'];
+const GUIDE_AUTO_START_DELAY_MS = 6500;
 
 export function TrackingGuideModal({ t, onClose, onBegin }: { t: Translator; onClose: () => void; onBegin: () => void }) {
+  const [remainingMs, setRemainingMs] = useState(GUIDE_AUTO_START_DELAY_MS);
+
+  useEffect(() => {
+    const startedAt = Date.now();
+    const updateRemaining = () => setRemainingMs(Math.max(0, GUIDE_AUTO_START_DELAY_MS - (Date.now() - startedAt)));
+    const timer = window.setTimeout(onBegin, GUIDE_AUTO_START_DELAY_MS);
+    const progressTimer = window.setInterval(updateRemaining, 100);
+    return () => {
+      window.clearTimeout(timer);
+      window.clearInterval(progressTimer);
+    };
+  }, [onBegin]);
+
   return <section className="tracking-guide-modal" role="dialog" aria-modal="true" aria-labelledby="tracking-guide-title">
     <div className="tracking-guide-modal__content">
       <button type="button" className="tracking-guide-modal__close" aria-label={t('close')} title={t('close')} onClick={onClose}><X size={20} aria-hidden="true" /></button>
@@ -23,6 +37,10 @@ export function TrackingGuideModal({ t, onClose, onBegin }: { t: Translator; onC
         <GuideRule icon={<Eye size={18} />} text={t('eyeTrackingGuideEyesVisible')} />
         <GuideRule icon={<EyeOff size={18} />} text={t('eyeTrackingGuideFollowTarget')} />
         <GuideRule icon={<CheckCircle2 size={18} />} text={t('eyeTrackingGuideHoldStill')} />
+      </div>
+      <div className="tracking-guide-modal__countdown" aria-live="polite">
+        <div className="tracking-guide-modal__countdown-label"><span>{t('autoStartIn')}</span><strong>{(remainingMs / 1000).toFixed(1)}s</strong></div>
+        <div className="tracking-guide-modal__countdown-track" aria-hidden="true"><span style={{ width: `${((GUIDE_AUTO_START_DELAY_MS - remainingMs) / GUIDE_AUTO_START_DELAY_MS) * 100}%` }} /></div>
       </div>
       <div className="tracking-guide-modal__actions">
         <button type="button" className="tracking-guide-modal__cancel" onClick={onClose}>{t('cancel')}</button>
@@ -71,6 +89,21 @@ export function CalibrationModal({ tracking, recognition, videoRef, faceDetected
         {(tracking.snapshot.calibrating || tracking.snapshot.calibrationFailed) && <span>{tracking.snapshot.calibrationIndex + 1}/9</span>}
         <strong>{recognitionActive ? t('faceRecognitionLive') : tracking.status}</strong>
         {tracking.snapshot.calibrationFailed && <div className="calibration-modal__actions"><button type="button" onClick={tracking.calibrate}>{t('retry')}</button><button type="button" onClick={tracking.cancelCalibration}>{t('cancel')}</button></div>}
+      </div>
+    </div>
+  </section>;
+}
+
+export function ConfidencePopup({ score, t, onClose }: { score: number; t: Translator; onClose: () => void }) {
+  const confidenceColor = score <= 33 ? '#d9534f' : score < 70 ? '#d9a441' : '#65a776';
+
+  return <section className="confidence-popup" role="dialog" aria-modal="true" aria-labelledby="confidence-popup-title">
+    <div className="confidence-popup__content">
+      <button type="button" className="confidence-popup__close" aria-label={t('close')} title={t('close')} onClick={onClose}><X size={20} aria-hidden="true" /></button>
+      <p className="eyebrow">{t('calibrationConfidence')}</p>
+      <h2 id="confidence-popup-title">{t('calibrationConfidenceDescription')}</h2>
+      <div className="confidence-popup__circle" style={{ '--confidence-score': `${score}%`, '--confidence-color': confidenceColor } as React.CSSProperties} aria-label={`${score}%`}>
+        <strong>{score}%</strong>
       </div>
     </div>
   </section>;

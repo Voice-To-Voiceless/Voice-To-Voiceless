@@ -18,6 +18,7 @@ export type TrackingSnapshot = {
   calibrationFailed: boolean;
   calibrationFailure: string | null;
   calibrationReady: boolean;
+  calibrationConfidence: number | null;
   trackingPauseReason: 'face-drift' | 'face-lost' | 'invalid-pose' | 'invalid-gaze' | null;
 };
 

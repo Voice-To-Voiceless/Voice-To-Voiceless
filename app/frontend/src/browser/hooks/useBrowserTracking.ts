@@ -12,7 +12,7 @@ import { evaluateCalibrationSampleQuality } from '../../vision/calibration/calib
 import { BrowserWebGazerAdapter } from '../../vision/webgazer/webgazerAdapter';
 import { createWebGazerCalibrationBackend } from '../../vision/webgazer/webgazerCalibration';
 
-const initialSnapshot: TrackingSnapshot = { active: false, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0, calibrating: false, calibrationIndex: 0, calibrationTarget: null, calibrationProgress: 0, calibrationPassKind: null, calibrationFailed: false, calibrationFailure: null, calibrationReady: false, trackingPauseReason: null };
+const initialSnapshot: TrackingSnapshot = { active: false, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0, calibrating: false, calibrationIndex: 0, calibrationTarget: null, calibrationProgress: 0, calibrationPassKind: null, calibrationFailed: false, calibrationFailure: null, calibrationReady: false, calibrationConfidence: null, trackingPauseReason: null };
 
 export function useBrowserTracking(
   videoRef: React.RefObject<HTMLVideoElement | null>,
@@ -32,6 +32,7 @@ export function useBrowserTracking(
   const dwellRef = useRef(new DwellSelector(1200));
   const webgazerRef = useRef<BrowserWebGazerAdapter | null>(null);
   const calibrationBackendRef = useRef<ReturnType<typeof createWebGazerCalibrationBackend> | null>(null);
+  const startRef = useRef<(() => Promise<void>) | null>(null);
   const {
     activeRef: calibrationActiveRef,
     indexRef: calibrationIndexRef,
@@ -125,6 +126,7 @@ export function useBrowserTracking(
           calibrationFailed: Boolean(result.failed) || (result.complete && !calibrationReadyRef.current),
           calibrationFailure: result.failed || (result.complete && !calibrationReadyRef.current) ? result.status : null,
           calibrationReady: calibrationReadyRef.current,
+          calibrationConfidence: result.confidenceScore ?? value.calibrationConfidence,
         }));
         if (result.resetSmoother) {
           smootherRef.current.reset();
@@ -175,7 +177,10 @@ export function useBrowserTracking(
     }
   }, [boardRef, calibrationActiveRef, calibrationIndexRef, calibrationMapperRef, calibrationPassKindRef, calibrationReadyRef, calibrationTargetsRef, onSelect, pauseCalibration, processCalibration, videoRef]);
   const calibrate = useCallback(async () => {
-    if (!activeRef.current) return;
+    if (!activeRef.current) {
+      await startRef.current?.();
+      return;
+    }
     try {
       if (modelTestingSession?.nextPassKind !== 'validation') {
         await calibrationBackendRef.current?.clearTrainingData();
@@ -191,7 +196,7 @@ export function useBrowserTracking(
     fallbackLoggedRef.current = false;
     resetInteraction();
     joystickRef.current.reset();
-    setSnapshot(value => ({ ...value, calibrating: true, calibrationIndex: 0, calibrationTarget: calibrationTargetsRef.current[0], calibrationProgress: 0, calibrationPassKind: calibrationPassKindRef.current, calibrationFailed: false, calibrationFailure: null, calibrationReady: false, gazePoint: null }));
+    setSnapshot(value => ({ ...value, calibrating: true, calibrationIndex: 0, calibrationTarget: calibrationTargetsRef.current[0], calibrationProgress: 0, calibrationPassKind: calibrationPassKindRef.current, calibrationFailed: false, calibrationFailure: null, calibrationReady: false, calibrationConfidence: null, gazePoint: null }));
     setStatus('Calibration started. Look at the yellow dot.');
   }, [calibrationPassKindRef, calibrationTargetsRef, modelTestingSession, resetInteraction, startCalibration]);
   const cancelCalibration = useCallback(() => {
@@ -220,6 +225,7 @@ export function useBrowserTracking(
       setStatus('Tracking unavailable. Touch remains available.');
     }
   }, [calibrate, processFrame, resetInteraction, stop, videoRef]);
+  startRef.current = start;
   useEffect(() => stop, [stop]);
   return { snapshot, status, error, start, stop, calibrate, cancelCalibration };
 }

@@ -52,6 +52,23 @@ export function getOrdinaryValidationDiagnostics(training: CalibrationSample[], 
   };
 }
 
+export function getWebGazerValidationDiagnostics(validation: CalibrationSample[]) {
+  if (validation.length === 0) return { rmsResidual: null, p95Residual: null, maxResidual: null, targetResiduals: [] };
+  const residuals = validation.map(sample => Math.hypot(sample.gaze.x - sample.target.x, sample.gaze.y - sample.target.y));
+  const rmsResidual = Math.sqrt(residuals.reduce((sum, residual) => sum + residual ** 2, 0) / residuals.length);
+  return {
+    rmsResidual,
+    p95Residual: percentile(residuals, 0.95),
+    maxResidual: Math.max(...residuals),
+    rejectionReason: rmsResidual > MAX_VALIDATION_RMS ? 'validation residual exceeds threshold' : null,
+    targetResiduals: [...new Set(validation.map(sample => `${sample.target.x}:${sample.target.y}`))].map(key => {
+      const group = validation.filter(sample => `${sample.target.x}:${sample.target.y}` === key);
+      const groupResiduals = group.map(sample => Math.hypot(sample.gaze.x - sample.target.x, sample.gaze.y - sample.target.y));
+      return { target: group[0].target, residual: Math.sqrt(groupResiduals.reduce((sum, residual) => sum + residual ** 2, 0) / groupResiduals.length) };
+    }),
+  };
+}
+
 function percentile(values: number[], percentileValue: number): number {
   const sorted = [...values].sort((left, right) => left - right);
   return sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * percentileValue) - 1)];

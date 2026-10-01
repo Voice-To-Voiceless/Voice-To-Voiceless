@@ -61,14 +61,11 @@ export class BrowserWebGazerAdapter {
 
     await this.runtime.clearData();
     const mediaDevices = navigator.mediaDevices;
-    const originalGetUserMedia = mediaDevices.getUserMedia;
-    const requestCamera = originalGetUserMedia.bind(mediaDevices);
-    let streamProvided = false;
-    mediaDevices.getUserMedia = async () => {
-      if (streamProvided) return requestCamera({ video: true, audio: false });
-      streamProvided = true;
-      return this.stream;
-    };
+    const originalGetUserMedia = Object.getOwnPropertyDescriptor(mediaDevices, 'getUserMedia');
+    Object.defineProperty(mediaDevices, 'getUserMedia', {
+      configurable: true,
+      value: async () => this.stream.clone(),
+    });
     try {
       await this.runtime.begin();
     } catch (error) {
@@ -76,7 +73,8 @@ export class BrowserWebGazerAdapter {
       this.runtime = null;
       throw error;
     } finally {
-      mediaDevices.getUserMedia = originalGetUserMedia;
+      if (originalGetUserMedia) Object.defineProperty(mediaDevices, 'getUserMedia', originalGetUserMedia);
+      else delete (mediaDevices as { getUserMedia?: unknown }).getUserMedia;
     }
     this.runtime.removeMouseEventListeners();
   }
