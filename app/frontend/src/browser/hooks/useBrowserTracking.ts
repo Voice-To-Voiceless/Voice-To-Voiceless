@@ -32,6 +32,7 @@ export function useBrowserTracking(
   const dwellRef = useRef(new DwellSelector(1200));
   const webgazerRef = useRef<BrowserWebGazerAdapter | null>(null);
   const calibrationBackendRef = useRef<ReturnType<typeof createWebGazerCalibrationBackend> | null>(null);
+  const startRef = useRef<(() => Promise<void>) | null>(null);
   const {
     activeRef: calibrationActiveRef,
     indexRef: calibrationIndexRef,
@@ -175,7 +176,10 @@ export function useBrowserTracking(
     }
   }, [boardRef, calibrationActiveRef, calibrationIndexRef, calibrationMapperRef, calibrationPassKindRef, calibrationReadyRef, calibrationTargetsRef, onSelect, pauseCalibration, processCalibration, videoRef]);
   const calibrate = useCallback(async () => {
-    if (!activeRef.current) return;
+    if (!activeRef.current) {
+      await startRef.current?.();
+      return;
+    }
     try {
       if (modelTestingSession?.nextPassKind !== 'validation') {
         await calibrationBackendRef.current?.clearTrainingData();
@@ -220,6 +224,7 @@ export function useBrowserTracking(
       setStatus('Tracking unavailable. Touch remains available.');
     }
   }, [calibrate, processFrame, resetInteraction, stop, videoRef]);
+  startRef.current = start;
   useEffect(() => stop, [stop]);
   return { snapshot, status, error, start, stop, calibrate, cancelCalibration };
 }
