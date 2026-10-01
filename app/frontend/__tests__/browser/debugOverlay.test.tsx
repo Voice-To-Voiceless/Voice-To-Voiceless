@@ -19,7 +19,7 @@ test('renders raw and calibrated markers as detachable debug output', async () =
   });
 
   const root = renderer!.root;
-  expect(root.findByProps({ 'aria-label': 'Raw gaze' }).props.style).toEqual({ left: '75%', top: '30%' });
+  expect(root.findByProps({ 'aria-label': 'Raw gaze' }).props.style).toEqual({ left: '25%', top: '30%' });
   expect(root.findByProps({ 'aria-label': 'Calibrated gaze' }).props.style).toEqual({ left: '70%', top: '80%' });
   expect(root.findByProps({ 'aria-label': 'Eye tracking debug overlay' })).toBeDefined();
 });

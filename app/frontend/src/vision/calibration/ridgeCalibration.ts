@@ -9,8 +9,6 @@ export type RidgeCalibrationFeatures = {
   eyeScale: number;
   faceCenterX: number;
   faceCenterY: number;
-  l2csYaw?: number;
-  l2csPitch?: number;
 };
 
 type RidgeSample = { features: RidgeCalibrationFeatures; target: { x: number; y: number } };
@@ -20,21 +18,16 @@ type LinearModel = { names: Array<keyof RidgeCalibrationFeatures>; mean: number[
 
 // Keep the mapper anchored to gaze geometry. Pose and scale remain available for diagnostics,
 // but their frame-to-frame drift should not move the calibrated point directly.
-export const RIDGE_X_FEATURES: Array<keyof RidgeCalibrationFeatures> = ['l2csYaw', 'yaw', 'faceCenterX'];
-export const RIDGE_Y_FEATURES: Array<keyof RidgeCalibrationFeatures> = ['l2csPitch', 'pitch', 'faceCenterY'];
-const LEGACY_X_FEATURES: Array<keyof RidgeCalibrationFeatures> = ['leftIrisX', 'rightIrisX', 'faceCenterX'];
-const LEGACY_Y_FEATURES: Array<keyof RidgeCalibrationFeatures> = ['leftIrisY', 'rightIrisY', 'faceCenterY'];
+export const RIDGE_X_FEATURES: Array<keyof RidgeCalibrationFeatures> = ['leftIrisX', 'rightIrisX', 'faceCenterX'];
+export const RIDGE_Y_FEATURES: Array<keyof RidgeCalibrationFeatures> = ['leftIrisY', 'rightIrisY', 'faceCenterY'];
 const RIDGE_LAMBDAS = [0.001, 0.01, 0.1, 1, 10];
 
 export function fitRidgeCalibration(samples: RidgeSample[]): RidgeModel | null {
   if (samples.length < 20 || samples.some(sample => !isFiniteSample(sample))) return null;
   const aggregated = aggregateSamples(samples);
-  const hasL2CSFeatures = samples.every(sample => sample.features.l2csYaw !== undefined && sample.features.l2csPitch !== undefined);
-  const xFeatures = hasL2CSFeatures ? RIDGE_X_FEATURES : LEGACY_X_FEATURES;
-  const yFeatures = hasL2CSFeatures ? RIDGE_Y_FEATURES : LEGACY_Y_FEATURES;
-  const lambda = chooseLambdaLeaveOneTargetOut(aggregated, xFeatures, yFeatures);
-  const x = fitAxis(aggregated, xFeatures, 'x', lambda);
-  const y = fitAxis(aggregated, yFeatures, 'y', lambda);
+  const lambda = chooseLambdaLeaveOneTargetOut(aggregated, RIDGE_X_FEATURES, RIDGE_Y_FEATURES);
+  const x = fitAxis(aggregated, RIDGE_X_FEATURES, 'x', lambda);
+  const y = fitAxis(aggregated, RIDGE_Y_FEATURES, 'y', lambda);
   return x && y ? { x, y } : null;
 }
 
@@ -102,8 +95,6 @@ function solve(matrix: number[][], vector: number[]): number[] | null {
 function dot(left: number[], right: number[]): number { return left.reduce((sum, value, index) => sum + value * right[index], 0); }
 
 function featureValue(features: RidgeCalibrationFeatures, name: keyof RidgeCalibrationFeatures): number {
-  if (name === 'l2csYaw') return features.l2csYaw ?? Number.NaN;
-  if (name === 'l2csPitch') return features.l2csPitch ?? Number.NaN;
   return features[name] as number;
 }
 

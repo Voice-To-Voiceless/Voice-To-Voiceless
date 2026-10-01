@@ -3,6 +3,7 @@ module.exports = {
 
     moduleNameMapper: {
         "\\.(css|less|scss|sass)$": "identity-obj-proxy",
+        "^webgazer/dist/webgazer\\.js\\?url$": "<rootDir>/test-utils/webgazerBundleUrlMock.js",
     },
 
     moduleFileExtensions: [

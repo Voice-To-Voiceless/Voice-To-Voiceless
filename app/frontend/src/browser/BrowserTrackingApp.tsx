@@ -206,7 +206,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
         passKind={tracking.snapshot.calibrationPassKind}
         showTargetIndicator
       />
-      {showDebugOverlay && <DebugOverlay rawGaze={tracking.snapshot.rawGaze} calibratedGaze={tracking.snapshot.calibratedGaze} showTarget l2csYaw={tracking.snapshot.l2csYaw} l2csPitch={tracking.snapshot.l2csPitch} provider={tracking.snapshot.l2csProvider} latencyMs={tracking.snapshot.l2csInferenceLatencyMs} estimatesPerSecond={tracking.snapshot.l2csEstimatesPerSecond} poseStatus={tracking.snapshot.poseStatus} l2csCropPreview={tracking.snapshot.l2csCropPreview} />}
+      {showDebugOverlay && <DebugOverlay rawGaze={tracking.snapshot.rawGaze} calibratedGaze={tracking.snapshot.calibratedGaze} showTarget />}
       <CalibrationModal
         tracking={tracking}
         recognition={recognition}

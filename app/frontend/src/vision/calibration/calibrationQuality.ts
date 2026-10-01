@@ -19,12 +19,10 @@ export type CalibrationQualityRejectionReason =
 
 export type CalibrationQualityInput = {
   gaze: NormalizedGazePoint;
-  leftConfidence: number;
-  rightConfidence: number;
-  diagnostics: GazeDiagnostics;
-  pose: { yaw: number; pitch: number; eyeScale?: number; interEyeDistance?: number } | null;
-  l2csAvailable?: boolean;
-  temporalStable?: boolean;
+  leftConfidence?: number;
+  rightConfidence?: number;
+  diagnostics?: GazeDiagnostics;
+  pose?: { yaw: number; pitch: number; eyeScale?: number; interEyeDistance?: number } | null;
 };
 
 export type CalibrationSampleQuality = {
@@ -43,11 +41,10 @@ export function evaluateCalibrationSampleQuality(
   if (!isFiniteNumber(input.gaze.x) || !isFiniteNumber(input.gaze.y) || !isFiniteNumber(input.gaze.confidence)) {
     rejectionReasons.push('non-finite value');
   }
-  if (input.l2csAvailable && input.temporalStable === false) rejectionReasons.push('temporal filter rejection');
-  if (input.pose === null || !isFiniteNumber(input.pose.yaw) || !isFiniteNumber(input.pose.pitch)) {
+  if (input.pose !== undefined && (input.pose === null || !isFiniteNumber(input.pose.yaw) || !isFiniteNumber(input.pose.pitch))) {
     rejectionReasons.push('pose unavailable');
   }
-  if (!input.l2csAvailable && (
+  if (input.leftConfidence !== undefined && input.rightConfidence !== undefined && (
     !isFiniteNumber(input.leftConfidence) ||
     !isFiniteNumber(input.rightConfidence) ||
     input.leftConfidence < policy.minimumConfidence ||
@@ -55,10 +52,10 @@ export function evaluateCalibrationSampleQuality(
   )) {
     rejectionReasons.push('low confidence');
   }
-  if (!input.l2csAvailable && (input.diagnostics.leftPosition === null || input.diagnostics.rightPosition === null)) {
+  if (input.diagnostics && (input.diagnostics.leftPosition === null || input.diagnostics.rightPosition === null)) {
     rejectionReasons.push('invalid eye geometry');
   }
-  if (!input.l2csAvailable && (
+  if (input.diagnostics && (
     !isFiniteNumber(input.diagnostics.leftAperture) ||
     !isFiniteNumber(input.diagnostics.rightAperture) ||
     input.diagnostics.leftAperture < policy.minimumAperture ||
@@ -66,7 +63,7 @@ export function evaluateCalibrationSampleQuality(
   )) {
     rejectionReasons.push('insufficient aperture');
   }
-  if (!input.l2csAvailable && (
+  if (input.diagnostics && (
     !isFiniteNumber(input.diagnostics.eyeDisagreement) ||
     (input.diagnostics.eyeDisagreement ?? Infinity) > policy.maximumEyeDisagreement
   )) {
