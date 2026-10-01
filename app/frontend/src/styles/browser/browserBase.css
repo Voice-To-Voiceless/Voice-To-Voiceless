@@ -100,6 +100,11 @@ h2 { font-size: 1.4rem; margin: 0; }
 .tracking-guide-modal__rules { border-top: 1px solid #e1e9e1; display: grid; gap: 10px; padding: 16px 0; }
 .tracking-guide-modal__rule { align-items: center; color: #315846; display: flex; font: 600 14px/1.35 Arial, sans-serif; gap: 10px; }
 .tracking-guide-modal__rule svg { color: #1f6b3a; flex: 0 0 auto; }
+.tracking-guide-modal__countdown { background: #f4f7f4; border: 1px solid #dfe7df; border-radius: 10px; margin-top: 4px; padding: 10px 12px; }
+.tracking-guide-modal__countdown-label { align-items: center; color: #68766c; display: flex; font: 600 12px Arial, sans-serif; justify-content: space-between; }
+.tracking-guide-modal__countdown-label strong { color: #1f6b3a; font-size: 13px; }
+.tracking-guide-modal__countdown-track { background: #dcefe2; border-radius: 999px; height: 6px; margin-top: 8px; overflow: hidden; }
+.tracking-guide-modal__countdown-track span { background: #65a776; border-radius: inherit; display: block; height: 100%; transition: width .1s linear; }
 .tracking-guide-modal__actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
 .tracking-guide-modal__actions button { border-radius: 8px; cursor: pointer; font: 700 14px Arial, sans-serif; min-height: 44px; padding: 10px 16px; }
 .tracking-guide-modal__cancel { background: #fff; border: 1px solid #cbd9cf; color: #52665a; }
