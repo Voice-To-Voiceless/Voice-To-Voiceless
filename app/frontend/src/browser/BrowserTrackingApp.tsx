@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import AppLayout from '../components/layout/AppLayout';
 import AccessibilityPanel, { applyStoredAccessibilitySettings } from '../components/accessibility/AccessibilityPanel';
-import SettingsPanel, { applyStoredTheme, readStoredDebugOverlay, readStoredTargetIndicator, readStoredVisibleActions } from '../components/settings/SettingsPanel';
+import SettingsPanel, { applyStoredTheme, readStoredDebugOverlay, readStoredVisibleActions } from '../components/settings/SettingsPanel';
 import CommunicationBoard from '../components/communication/CommunicationBoard';
 import { ActionId, COMMUNICATION_ACTIONS } from '../types/communication';
 import { createModelTestingSession } from '../modelTesting/modelTestingSession';
@@ -28,7 +28,6 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   const boardRef = useRef<HTMLDivElement>(null);
   const [modelTestingSession] = useState(() => createModelTestingSession({ enableDiagnostics }));
   const [nurseAlert, setNurseAlert] = useState<PatientNotification | null>(null);
-  const [showTargetIndicator, setShowTargetIndicator] = useState(readStoredTargetIndicator);
   const [showDebugOverlay, setShowDebugOverlay] = useState(() => enableDebugOverlay && readStoredDebugOverlay());
   const [visibleActionIds, setVisibleActionIds] = useState<ActionId[]>(readStoredVisibleActions);
   const [replying, setReplying] = useState(false);
@@ -93,7 +92,6 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
     applyStoredAccessibilitySettings();
     applyStoredTheme();
     const updateStoredSettings = () => {
-      setShowTargetIndicator(readStoredTargetIndicator());
       setShowDebugOverlay(enableDebugOverlay && readStoredDebugOverlay());
       setVisibleActionIds(readStoredVisibleActions());
     };
@@ -181,7 +179,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
       await createNotification({
         source: 'patient',
         type: 'patient_action',
-        severity: actionId === 'pain' ? 'critical' : 'info',
+        severity: actionId === 'pain' || actionId === 'medication' ? 'critical' : 'info',
         message: t(actionId),
         patient_metadata: { patient_id: TABLET_PATIENT_ID },
         recipient: 'nurse',
@@ -206,8 +204,9 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
         target={tracking.snapshot.calibrationTarget}
         progress={tracking.snapshot.calibrationProgress}
         passKind={tracking.snapshot.calibrationPassKind}
+        showTargetIndicator
       />
-      {showDebugOverlay && <DebugOverlay rawGaze={tracking.snapshot.rawGaze} calibratedGaze={tracking.snapshot.calibratedGaze} showTarget={showTargetIndicator} l2csYaw={tracking.snapshot.l2csYaw} l2csPitch={tracking.snapshot.l2csPitch} provider={tracking.snapshot.l2csProvider} latencyMs={tracking.snapshot.l2csInferenceLatencyMs} estimatesPerSecond={tracking.snapshot.l2csEstimatesPerSecond} poseStatus={tracking.snapshot.poseStatus} l2csCropPreview={tracking.snapshot.l2csCropPreview} />}
+      {showDebugOverlay && <DebugOverlay rawGaze={tracking.snapshot.rawGaze} calibratedGaze={tracking.snapshot.calibratedGaze} showTarget l2csYaw={tracking.snapshot.l2csYaw} l2csPitch={tracking.snapshot.l2csPitch} provider={tracking.snapshot.l2csProvider} latencyMs={tracking.snapshot.l2csInferenceLatencyMs} estimatesPerSecond={tracking.snapshot.l2csEstimatesPerSecond} poseStatus={tracking.snapshot.poseStatus} l2csCropPreview={tracking.snapshot.l2csCropPreview} />}
       <CalibrationModal
         tracking={tracking}
         recognition={recognition}

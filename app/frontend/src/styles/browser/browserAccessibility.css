@@ -1,4 +1,4 @@
-.accessibility-panel { margin: auto; max-width: 920px; padding: 20px 8px 28px; width: 100%; }
+.accessibility-panel { margin: auto; max-width: 1200px; padding: 20px 8px 28px; width: 100%; }
 .accessibility-panel__intro { align-items: flex-start; display: flex; gap: 16px; justify-content: space-between; margin-bottom: 24px; }
 .accessibility-panel__intro h1 { color: #18352a; font-size: clamp(2rem, 5vw, 3rem); margin: 5px 0 8px; }
 .accessibility-panel__intro p { color: #68766c; font: 15px/1.5 Arial, sans-serif; max-width: 560px; }
@@ -37,7 +37,7 @@
 .accessibility-toggle input:checked + .toggle-track::after { transform: translateX(18px); }
 .accessibility-action { margin-top: 8px; width: 100%; }
 .accessibility-status { align-items: center; color: #4f765b; display: flex; font: 12px Arial, sans-serif; gap: 7px; margin-top: 16px; }
-.settings-panel { margin: auto; max-width: 920px; padding: 20px 8px 28px; width: 100%; }
+.settings-panel { margin: auto; max-width: 1200px; padding: 20px 8px 28px; width: 100%; }
 .settings-panel__intro { align-items: flex-start; display: flex; gap: 16px; justify-content: space-between; margin-bottom: 24px; }
 .settings-panel__intro h1 { color: #18352a; font-size: clamp(2rem, 5vw, 3rem); margin: 5px 0 8px; }
 .settings-panel__intro p { color: #68766c; font: 15px/1.5 Arial, sans-serif; max-width: 560px; }

@@ -50,3 +50,18 @@ html[data-theme="dark"] .app-layout {
     radial-gradient(circle at 78% 0%, rgba(74, 117, 151, .18), transparent 34%),
     linear-gradient(135deg, #111922 0%, #0e141b 100%);
 }
+
+/* Compensate for desktop browsers whose zoom leaves a very large CSS viewport. */
+@media (min-width: 1800px) {
+    .app-layout {
+        zoom: 1.42;
+        height: 70.4226vh;
+    }
+}
+
+@media (min-width: 2400px) {
+    .app-layout {
+        zoom: 1.42;
+        height: 70.4226vh;
+    }
+}
