@@ -12,7 +12,7 @@ import { evaluateCalibrationSampleQuality } from '../../vision/calibration/calib
 import { BrowserWebGazerAdapter } from '../../vision/webgazer/webgazerAdapter';
 import { createWebGazerCalibrationBackend } from '../../vision/webgazer/webgazerCalibration';
 
-const initialSnapshot: TrackingSnapshot = { active: false, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0, calibrating: false, calibrationIndex: 0, calibrationTarget: null, calibrationProgress: 0, calibrationPassKind: null, calibrationFailed: false, calibrationFailure: null, calibrationReady: false, calibrationConfidence: null, trackingPauseReason: null };
+const initialSnapshot: TrackingSnapshot = { active: false, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0, calibrating: false, calibrationIndex: 0, calibrationTarget: null, calibrationProgress: 0, calibrationPassKind: null, calibrationFailed: false, calibrationFailure: null, calibrationReady: false, calibrationConfidence: null, calibrationPending: false, trackingPauseReason: null };
 
 export function useBrowserTracking(
   videoRef: React.RefObject<HTMLVideoElement | null>,
@@ -44,6 +44,8 @@ export function useBrowserTracking(
     reset: resetCalibration,
     pause: pauseCalibration,
     process: processCalibration,
+    accept: acceptCalibrationRun,
+    getPendingData: getPendingCalibrationData,
   } = useCalibration(modelTestingSession, calibrationBackendRef);
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [status, setStatus] = useState('Camera is off. Start tracking to begin.');
@@ -126,6 +128,7 @@ export function useBrowserTracking(
           calibrationFailed: Boolean(result.failed) || (result.complete && !calibrationReadyRef.current),
           calibrationFailure: result.failed || (result.complete && !calibrationReadyRef.current) ? result.status : null,
           calibrationReady: calibrationReadyRef.current,
+          calibrationPending: Boolean(result.pending),
           calibrationConfidence: result.confidenceScore ?? value.calibrationConfidence,
         }));
         if (result.resetSmoother) {
@@ -203,6 +206,15 @@ export function useBrowserTracking(
     resetCalibration();
     setSnapshot(value => ({ ...value, calibrating: false, calibrationTarget: null, calibrationProgress: 0, calibrationPassKind: null, calibrationFailed: false, calibrationFailure: null }));
   }, [resetCalibration]);
+  const acceptCalibration = useCallback(() => {
+    if (!acceptCalibrationRun()) return;
+    setSnapshot(value => ({ ...value, calibrationReady: true, calibrationPending: false }));
+    setStatus('Calibration ready. Look at a communication action.');
+  }, []);
+  const getPendingCalibration = useCallback(() => ({
+    data: getPendingCalibrationData(),
+    trainingData: calibrationBackendRef.current?.exportTrainingData() ?? null,
+  }), [getPendingCalibrationData]);
   const start = useCallback(async () => {
     if (activeRef.current || !videoRef.current) return;
     setError(null);
@@ -227,7 +239,7 @@ export function useBrowserTracking(
   }, [calibrate, processFrame, resetInteraction, stop, videoRef]);
   startRef.current = start;
   useEffect(() => stop, [stop]);
-  return { snapshot, status, error, start, stop, calibrate, cancelCalibration };
+  return { snapshot, status, error, start, stop, calibrate, cancelCalibration, acceptCalibration, getPendingCalibration };
 }
 
 export function gazeFromWebGazer(gaze: { x: number; y: number; timestamp: number }) {

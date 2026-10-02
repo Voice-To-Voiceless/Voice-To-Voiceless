@@ -3,6 +3,8 @@ import type webgazerRuntime from 'webgazer';
 import webgazerBundleUrl from 'webgazer/dist/webgazer.js?url';
 
 type WebGazerRuntime = typeof webgazerRuntime;
+type WebGazerRegression = { getData: () => unknown; setData: (data: unknown) => void };
+type SerializedTypedArray = { __v2vl_type: 'typed-array'; constructor: string; values: number[] };
 
 /** Owns WebGazer and feeds it the app's existing camera stream. */
 export class BrowserWebGazerAdapter {
@@ -103,6 +105,19 @@ export class BrowserWebGazerAdapter {
     await this.runtime?.clearData();
   }
 
+  public exportTrainingData(): unknown {
+    const regression = this.runtime?.getRegression()[0] as WebGazerRegression | undefined;
+    return serializeWebGazerValue(regression?.getData() ?? []);
+  }
+
+  public async importTrainingData(data: unknown): Promise<void> {
+    const decoded = deserializeWebGazerValue(data);
+    if (!Array.isArray(decoded)) throw new Error('Invalid WebGazer regression data.');
+    const regression = this.runtime?.getRegression()[0] as WebGazerRegression | undefined;
+    if (!regression) throw new Error('WebGazer regression model is unavailable.');
+    regression.setData(decoded);
+  }
+
   public async stop(): Promise<void> {
     const runtime = this.runtime;
     this.runtime = null;
@@ -112,6 +127,46 @@ export class BrowserWebGazerAdapter {
     if (!runtime) return;
     cleanupRuntime(runtime);
   }
+}
+
+function serializeWebGazerValue(value: unknown): unknown {
+  if (ArrayBuffer.isView(value)) {
+    return {
+      __v2vl_type: 'typed-array',
+      constructor: value.constructor.name,
+      values: Array.from(value as unknown as ArrayLike<number>),
+    } satisfies SerializedTypedArray;
+  }
+  if (Array.isArray(value)) return value.map(serializeWebGazerValue);
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, nested]) => [key, serializeWebGazerValue(nested)]));
+  }
+  return value;
+}
+
+function deserializeWebGazerValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(deserializeWebGazerValue);
+  if (value !== null && typeof value === 'object') {
+    const candidate = value as Partial<SerializedTypedArray>;
+    if (candidate.__v2vl_type === 'typed-array' && Array.isArray(candidate.values)) {
+      const constructors: Record<string, new (values: number[]) => ArrayLike<number>> = {
+        Float32Array,
+        Float64Array,
+        Int8Array,
+        Int16Array,
+        Int32Array,
+        Uint8Array,
+        Uint8ClampedArray,
+        Uint16Array,
+        Uint32Array,
+      };
+      const TypedArray = constructors[candidate.constructor ?? ''];
+      if (!TypedArray) throw new Error('Unsupported WebGazer typed-array payload.');
+      return new TypedArray(candidate.values);
+    }
+    return Object.fromEntries(Object.entries(value).map(([key, nested]) => [key, deserializeWebGazerValue(nested)]));
+  }
+  return value;
 }
 
 function cleanupRuntime(runtime: WebGazerRuntime): void {

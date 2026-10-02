@@ -50,7 +50,7 @@ export function TrackingGuideModal({ t, onClose, onBegin }: { t: Translator; onC
   </section>;
 }
 
-export function CalibrationModal({ tracking, recognition, videoRef, faceDetected, trackingActive, recognitionActive, attentionNotificationRemainingMs, attentionNotificationSent, t }: {
+export function CalibrationModal({ tracking, recognition, videoRef, faceDetected, trackingActive, recognitionActive, attentionNotificationRemainingMs, attentionNotificationSent, calibrationSaveError, onSave, t }: {
   tracking: Tracking;
   recognition: Recognition;
   videoRef: React.RefObject<HTMLVideoElement | null>;
@@ -59,9 +59,11 @@ export function CalibrationModal({ tracking, recognition, videoRef, faceDetected
   recognitionActive: boolean;
   attentionNotificationRemainingMs?: number;
   attentionNotificationSent?: boolean;
+  calibrationSaveError?: string | null;
+  onSave: () => void;
   t: Translator;
 }) {
-  const isCalibration = tracking.snapshot.calibrationTarget !== null || tracking.snapshot.calibrating || tracking.snapshot.calibrationFailed;
+  const isCalibration = tracking.snapshot.calibrationTarget !== null || tracking.snapshot.calibrating || tracking.snapshot.calibrationFailed || tracking.snapshot.calibrationPending;
   return <section className={`calibration-modal${isCalibration || recognitionActive ? '' : ' calibration-modal--hidden'}`} role="dialog" aria-modal="true" aria-label={tracking.snapshot.calibrating ? t('cameraCalibration') : t('faceRecognition')}>
     <div className="calibration-modal__content">
       <button type="button" className="calibration-modal__close" aria-label={t('closeCameraPopup')} title={t('close')} onClick={isCalibration ? tracking.cancelCalibration : recognition.stop}><X size={20} aria-hidden="true" /></button>
@@ -89,6 +91,8 @@ export function CalibrationModal({ tracking, recognition, videoRef, faceDetected
         {(tracking.snapshot.calibrating || tracking.snapshot.calibrationFailed) && <span>{tracking.snapshot.calibrationIndex + 1}/9</span>}
         <strong>{recognitionActive ? t('faceRecognitionLive') : tracking.status}</strong>
         {tracking.snapshot.calibrationFailed && <div className="calibration-modal__actions"><button type="button" onClick={tracking.calibrate}>{t('retry')}</button><button type="button" onClick={tracking.cancelCalibration}>{t('cancel')}</button></div>}
+        {tracking.snapshot.calibrationPending && <div className="calibration-modal__actions"><button type="button" onClick={onSave}>Save and continue</button><button type="button" onClick={tracking.calibrate}>Redo calibration</button><button type="button" onClick={tracking.cancelCalibration}>Cancel</button></div>}
+        {tracking.snapshot.calibrationPending && calibrationSaveError && <p role="alert">{calibrationSaveError}</p>}
       </div>
     </div>
   </section>;

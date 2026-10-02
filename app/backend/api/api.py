@@ -1,5 +1,7 @@
 """HTTP API for notifications and gaze inference."""
 
+from uuid import UUID
+
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -28,6 +30,35 @@ class NurseAlertRequest(BaseModel):
 
 class PatientLinkRequest(BaseModel):
 	code: str = Field(min_length=1, max_length=80)
+
+
+class CalibrationPoint(BaseModel):
+	x: float
+	y: float
+
+
+class CalibrationValidationSample(BaseModel):
+	prediction: CalibrationPoint
+	target: CalibrationPoint
+	target_index: int = Field(ge=0, le=8)
+	accepted: bool = True
+
+
+class CalibrationProfileRequest(BaseModel):
+	setup_key: str = Field(min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$")
+	engine: str = Field(min_length=1, max_length=30)
+	engine_version: str = Field(min_length=1, max_length=40)
+	payload_version: int = Field(gt=0)
+	score_version: int = Field(gt=0)
+	accuracy_score: int = Field(ge=55, le=100)
+	training_data: dict[str, object]
+	setup_metadata: dict[str, object]
+	pose_reference: dict[str, object]
+	validation_samples: list[CalibrationValidationSample] = Field(min_length=1)
+
+
+class CalibrationVerificationRequest(BaseModel):
+	score: int = Field(ge=0, le=100)
 
 
 def create_app(services: ApplicationServices | None = None) -> FastAPI:
@@ -71,6 +102,37 @@ def create_app(services: ApplicationServices | None = None) -> FastAPI:
 		if patient is None:
 			raise HTTPException(status_code=404, detail="Invalid patient code")
 		return patient.to_dict()
+
+	@app.get("/api/v1/patients/{patient_id}/calibration-profiles/{installation_id}/{setup_key}")
+	async def get_calibration_profile(patient_id: str, installation_id: UUID, setup_key: str) -> dict[str, object]:
+		profile = dependencies.calibration_profile_service.get(patient_id, installation_id, setup_key)
+		if profile is None:
+			raise HTTPException(status_code=404, detail="Calibration profile not found")
+		return profile
+
+	@app.put("/api/v1/patients/{patient_id}/calibration-profiles/{installation_id}/{setup_key}")
+	async def save_calibration_profile(patient_id: str, installation_id: UUID, setup_key: str, request: CalibrationProfileRequest) -> dict[str, object]:
+		if request.setup_key != setup_key:
+			raise HTTPException(status_code=400, detail="setup_key does not match request path")
+		try:
+			outcome, profile = dependencies.calibration_profile_service.save(patient_id, installation_id, request.model_dump())
+		except LookupError as error:
+			raise HTTPException(status_code=404, detail=str(error)) from error
+		except ValueError as error:
+			raise HTTPException(status_code=422, detail=str(error)) from error
+		return {"outcome": outcome, "profile": profile}
+
+	@app.delete("/api/v1/patients/{patient_id}/calibration-profiles/{installation_id}/{setup_key}", status_code=204)
+	async def delete_calibration_profile(patient_id: str, installation_id: UUID, setup_key: str) -> None:
+		if not dependencies.calibration_profile_service.delete(patient_id, installation_id, setup_key):
+			raise HTTPException(status_code=404, detail="Calibration profile not found")
+
+	@app.patch("/api/v1/patients/{patient_id}/calibration-profiles/{installation_id}/{setup_key}")
+	async def verify_calibration_profile(patient_id: str, installation_id: UUID, setup_key: str, request: CalibrationVerificationRequest) -> dict[str, object]:
+		profile = dependencies.calibration_profile_service.verify(patient_id, installation_id, setup_key, request.score)
+		if profile is None:
+			raise HTTPException(status_code=404, detail="Calibration profile not found")
+		return profile
 
 	@app.post("/api/v1/notifications", status_code=201)
 	async def create_notification(request: NotificationCreateRequest) -> dict[str, object]:

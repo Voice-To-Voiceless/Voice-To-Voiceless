@@ -16,6 +16,8 @@ export interface ExternalCalibrationBackend {
   clearTrainingData(): Promise<void>;
   fitTraining(samples: CalibrationSample[]): GazeCalibrationMapperLike | null;
   fitWithValidationDetailed(training: CalibrationSample[], validation: CalibrationSample[]): { mapper: GazeCalibrationMapperLike | null };
+  exportTrainingData(): unknown;
+  importTrainingData(data: unknown): Promise<void>;
 }
 
 const identityMapper: GazeCalibrationMapperLike = {
@@ -59,6 +61,13 @@ export function createWebGazerCalibrationBackend(adapter: BrowserWebGazerAdapter
       return {
         mapper: completeTrainingCoverage && completeValidationCoverage && finiteValidationSamples ? identityMapper : null,
       };
+    },
+    exportTrainingData() {
+      return { regression: adapter.exportTrainingData() };
+    },
+    importTrainingData(data) {
+      if (!data || typeof data !== 'object' || !('regression' in data)) throw new Error('Invalid WebGazer calibration data.');
+      return adapter.importTrainingData(data.regression);
     },
   };
 }

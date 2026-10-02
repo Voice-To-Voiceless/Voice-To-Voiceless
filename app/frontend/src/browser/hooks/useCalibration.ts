@@ -38,7 +38,9 @@ type CalibrationResult = {
   resetSmoother: boolean;
   failed?: boolean;
   confidenceScore?: number;
+  pending?: boolean;
 };
+export type PendingCalibrationData = { trainingSamples: CalibrationSample[]; validationSamples: CalibrationSample[] };
 
 type SettleAnchor = { gazeX: number; gazeY: number; faceCenterX: number; faceCenterY: number; yaw: number; pitch: number };
 type CalibrationBuffer = {
@@ -115,6 +117,15 @@ function hasStableValidationWindow(samples: CalibrationSample[]): boolean {
   return Math.hypot(firstCenter.x - secondCenter.x, firstCenter.y - secondCenter.y) <= 0.035 && p75Distance <= 0.07;
 }
 
+function validationP95(samples: CalibrationSample[], mapper: GazeCalibrationMapperLike | null): number | null {
+  if (!mapper || samples.length === 0) return null;
+  const errors = samples.map(sample => {
+    const prediction = mapper.map({ ...sample.gaze, confidence: 1, timestamp: 0 }, sample.features);
+    return Math.hypot(prediction.x - sample.target.x, prediction.y - sample.target.y);
+  }).sort((left, right) => left - right);
+  return errors[Math.max(0, Math.ceil(errors.length * 0.95) - 1)] ?? null;
+}
+
 export function useCalibration(modelTestingSession?: ModelTestingSession, calibrationBackendRef?: { current: ExternalCalibrationBackend | null }) {
   const [state, setState] = useState<CalibrationState>({ active: false, index: 0, ready: false });
   const activeRef = useRef(false);
@@ -124,6 +135,7 @@ export function useCalibration(modelTestingSession?: ModelTestingSession, calibr
   const passKindRef = useRef<CalibrationPassKind>('training');
   const targetsRef = useRef(CALIBRATION_TARGETS);
   const trainingSamplesRef = useRef<CalibrationSample[]>([]);
+  const validationSamplesRef = useRef<CalibrationSample[]>([]);
   const lastSampleTimestampRef = useRef(Number.NEGATIVE_INFINITY);
   const dataRef = useRef(createCalibrationBuffer(0));
 
@@ -250,6 +262,7 @@ export function useCalibration(modelTestingSession?: ModelTestingSession, calibr
           : GazeCalibrationMapper.fit(dataRef.current.all);
         trainingSamplesRef.current = dataRef.current.all;
       } else if (trainingSamplesRef.current.length > 0) {
+        validationSamplesRef.current = [...dataRef.current.all];
         if (backend) {
           mapperRef.current = backend.fitWithValidationDetailed(trainingSamplesRef.current, dataRef.current.all).mapper;
         } else {
@@ -275,15 +288,14 @@ export function useCalibration(modelTestingSession?: ModelTestingSession, calibr
       }
       modelTestingSession?.completePass();
       if (completedPassKind === 'validation') modelTestingSession?.exportDiagnostics();
-      const validationDiagnostics = completedPassKind === 'validation'
-        ? modelTestingSession?.getDiagnosticsSnapshot().calibrationFitComparison.separatePassValidation.webgazer
+      const validationError = completedPassKind === 'validation'
+        ? validationP95(validationSamplesRef.current, mapperRef.current)
         : null;
-      const validationError = validationDiagnostics?.p95Residual ?? validationDiagnostics?.rmsResidual ?? null;
       const confidenceScore = validationError === null
         ? 0
         : Math.round(Math.max(0, Math.min(1, 1 - validationError / CONFIDENCE_DISPLAY_MAX_ERROR)) * 100);
       activeRef.current = false;
-      readyRef.current = mapperRef.current !== null;
+      readyRef.current = false;
       console.info('[gaze-calibration] completed', {
         sampleCount: dataRef.current.all.length,
         targetCount: targetsRef.current.length,
@@ -297,6 +309,7 @@ export function useCalibration(modelTestingSession?: ModelTestingSession, calibr
         settleProgress: 0,
         resetSmoother: false,
         confidenceScore: completedPassKind === 'validation' ? confidenceScore : undefined,
+        pending: completedPassKind === 'validation' && mapperRef.current !== null,
       };
     }
     resetTargetBuffer(dataRef.current, timestamp);
@@ -306,5 +319,23 @@ export function useCalibration(modelTestingSession?: ModelTestingSession, calibr
     return { target, status: null, complete: false, settleProgress: 0, resetSmoother: true };
   }, [calibrationBackendRef, modelTestingSession]);
 
-  return { state, activeRef, indexRef, readyRef, mapper: mapperRef, targetsRef, passKindRef, start, reset, pause, process };
+  const accept = useCallback(() => {
+    if (mapperRef.current === null) return false;
+    readyRef.current = true;
+    setState(value => ({ ...value, ready: true }));
+    return true;
+  }, []);
+
+  const getPendingData = useCallback((): PendingCalibrationData | null => {
+    if (trainingSamplesRef.current.length === 0 || validationSamplesRef.current.length === 0) return null;
+    return {
+      trainingSamples: [...trainingSamplesRef.current],
+      validationSamples: validationSamplesRef.current.map(sample => ({
+        ...sample,
+        gaze: mapperRef.current?.map({ ...sample.gaze, confidence: 1, timestamp: 0 }, sample.features) ?? sample.gaze,
+      })),
+    };
+  }, []);
+
+  return { state, activeRef, indexRef, readyRef, mapper: mapperRef, targetsRef, passKindRef, start, reset, pause, process, accept, getPendingData };
 }

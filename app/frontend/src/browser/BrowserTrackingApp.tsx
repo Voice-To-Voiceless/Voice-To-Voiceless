@@ -9,10 +9,12 @@ import { useBrowserTracking } from './hooks/useBrowserTracking';
 import { useFaceRecognition } from './hooks/useFaceRecognition';
 import { useSelectionFeedback } from './hooks/useSelectionFeedback';
 import { CalibrationTarget } from './components/CalibrationTarget';
+import { CALIBRATION_TARGETS } from './hooks/useCalibration';
 import { DebugOverlay } from './components/DebugOverlay';
 import { createNotification, getNotifications, markNotificationRead, subscribeToNotifications, type PatientNotification } from '../services/notifications';
 import { useLanguage } from '../i18n';
 import { CalibrationModal, ConfidencePopup, NurseAlertPopup, TrackingGuideModal } from './components/TrackingModals';
+import { createCalibrationSetupKey, getCalibrationSetupMetadata, saveCalibrationProfile } from '../services/calibrationProfiles';
 
 const TABLET_PATIENT_ID = 'patient-001';
 const ATTENTION_NOTIFICATION_DELAY_MS = 3500;
@@ -36,6 +38,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   const [showTrackingGuide, setShowTrackingGuide] = useState(false);
   const [showConfidencePopup, setShowConfidencePopup] = useState(false);
   const [activePage, setActivePage] = useState<'Home' | 'Accessibility' | 'Settings'>('Home');
+  const [calibrationSaveError, setCalibrationSaveError] = useState<string | null>(null);
   const { t } = useLanguage();
   const actionNotificationsInFlight = useRef(new Set<ActionId>());
   const attentionStartedAtRef = useRef<number | null>(null);
@@ -47,6 +50,42 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   const trackingActive = tracking.snapshot.active;
   const recognitionActive = recognition.snapshot.active;
   const localizedActions = COMMUNICATION_ACTIONS.map(action => ({ ...action, label: t(action.id) }));
+
+  const saveCalibration = async () => {
+    const pending = tracking.getPendingCalibration();
+    if (!pending.data || pending.trainingData === null || tracking.snapshot.calibrationConfidence === null) {
+      setCalibrationSaveError('Calibration data is incomplete. Please redo calibration.');
+      return;
+    }
+    if (!videoRef.current) {
+      setCalibrationSaveError('Camera setup is unavailable. Please redo calibration.');
+      return;
+    }
+    const setupMetadata = getCalibrationSetupMetadata(videoRef.current);
+    setCalibrationSaveError(null);
+    try {
+      const setupKey = await createCalibrationSetupKey(setupMetadata);
+      await saveCalibrationProfile(TABLET_PATIENT_ID, {
+        setup_key: setupKey,
+        engine: 'webgazer-ridge',
+        engine_version: '3.5.3',
+        payload_version: 1,
+        score_version: 1,
+        accuracy_score: tracking.snapshot.calibrationConfidence,
+        training_data: pending.trainingData as Record<string, unknown>,
+        setup_metadata: setupMetadata,
+        pose_reference: {},
+        validation_samples: pending.data.validationSamples.map(sample => ({
+          prediction: { x: sample.gaze.x, y: sample.gaze.y },
+          target: sample.target,
+          target_index: Math.max(0, CALIBRATION_TARGETS.findIndex(target => target.x === sample.target.x && target.y === sample.target.y)),
+        })),
+      });
+      tracking.acceptCalibration();
+    } catch (error) {
+      setCalibrationSaveError(error instanceof Error ? error.message : 'Calibration could not be saved.');
+    }
+  };
 
   useEffect(() => {
     if (tracking.snapshot.calibrationConfidence !== null) setShowConfidencePopup(true);
@@ -221,6 +260,8 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
         recognitionActive={recognitionActive}
         attentionNotificationRemainingMs={Math.max(0, ATTENTION_NOTIFICATION_DELAY_MS - attentionElapsedMs)}
         attentionNotificationSent={attentionNotificationSent}
+        calibrationSaveError={calibrationSaveError}
+        onSave={saveCalibration}
         t={t}
       />
       {showConfidencePopup && tracking.snapshot.calibrationConfidence !== null && <ConfidencePopup score={tracking.snapshot.calibrationConfidence} t={t} onClose={() => setShowConfidencePopup(false)} />}

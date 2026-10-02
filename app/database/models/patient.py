@@ -11,6 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.models.base import Base
 
 if TYPE_CHECKING:
+    from app.database.models.calibration_profile import CalibrationProfile
     from app.database.models.nurse import Nurse
     from app.database.models.notification import Notification
     from app.database.models.patient_link_code import PatientLinkCode
@@ -34,3 +35,4 @@ class Patient(Base):
     room: Mapped[Room | None] = relationship(back_populates="patients")
     link_codes: Mapped[list[PatientLinkCode]] = relationship(back_populates="patient", cascade="all, delete-orphan")
     notifications: Mapped[list[Notification]] = relationship(back_populates="patient")
+    calibration_profiles: Mapped[list[CalibrationProfile]] = relationship(back_populates="patient", cascade="all, delete-orphan")
