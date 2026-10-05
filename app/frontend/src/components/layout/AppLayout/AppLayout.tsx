@@ -7,6 +7,7 @@ import type { AppLayoutProps } from "./AppLayout.types";
 export default function AppLayout({
     children,
     sidebarNotification,
+    sidebarControls,
     className = "",
     activeSidebarItem = "Home",
     onSidebarNavigate,
@@ -14,7 +15,7 @@ export default function AppLayout({
     return (
         <div className={`app-layout ${className}`.trim()}>
 
-            <Sidebar notification={sidebarNotification} activeItem={activeSidebarItem} onNavigate={onSidebarNavigate} />
+            <Sidebar notification={sidebarNotification} controls={sidebarControls} activeItem={activeSidebarItem} onNavigate={onSidebarNavigate} />
 
             <main className="app-layout__content">
 

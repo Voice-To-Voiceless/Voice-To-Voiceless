@@ -24,11 +24,12 @@ const items = [
 
 type SidebarProps = {
     notification?: ReactNode;
+    controls?: ReactNode;
     activeItem?: "Home" | "Accessibility" | "Settings";
     onNavigate?: (item: "Home" | "Accessibility" | "Settings") => void;
 };
 
-export default function Sidebar({ notification, activeItem = "Home", onNavigate }: SidebarProps) {
+export default function Sidebar({ notification, controls, activeItem = "Home", onNavigate }: SidebarProps) {
     const { t } = useLanguage();
     const [showPatientCode, setShowPatientCode] = useState(false);
     const [showManualCode, setShowManualCode] = useState(false);
@@ -90,12 +91,14 @@ export default function Sidebar({ notification, activeItem = "Home", onNavigate 
                     </button>
                 ))}
 
-                <button className="sidebar__item sidebar__patient-code-button" type="button" onClick={openPatientCode}>
-                    <IdCard size={22} />
-                    <span>{t("patientCode")}</span>
-                </button>
-
             </nav>
+
+            {controls && <div className="sidebar__controls">{controls}</div>}
+
+            <button className="sidebar__item sidebar__patient-code-button" type="button" onClick={openPatientCode}>
+                <IdCard size={22} />
+                <span>{t("patientCode")}</span>
+            </button>
 
             <time className="sidebar__clock" dateTime={new Date().toISOString()}>
                 <span>{t("currentTime")}</span>
