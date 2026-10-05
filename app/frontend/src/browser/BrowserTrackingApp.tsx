@@ -197,7 +197,18 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   };
 
   return (
-    <AppLayout className={`tracking-layout tracking-layout--${layout}`} activeSidebarItem={activePage} onSidebarNavigate={item => {
+    <AppLayout className={`tracking-layout tracking-layout--${layout}`} sidebarControls={activePage === 'Home' ? <>
+      {!trackingActive && <button type="button" className="face-recognition-button" onClick={toggleRecognition}>
+        {recognitionActive ? t('stopFaceRecognition') : t('testFaceRecognition')}
+      </button>}
+      <button type="button" className="tracking-button" onClick={trackingActive ? tracking.stop : startTracking} disabled={recognitionActive}>
+        {trackingActive ? t('stopEyeTracking') : t('startEyeTracking')}
+      </button>
+      {trackingActive && <button type="button" className="calibration-button" onClick={tracking.calibrate} disabled={tracking.snapshot.calibrating || tracking.snapshot.calibrationFailed}>
+        {tracking.snapshot.calibrating ? `${t('calibrating')} ${tracking.snapshot.calibrationIndex + 1}/9` : tracking.snapshot.calibrationReady ? t('recalibrateGaze') : t('calibrateGaze')}
+      </button>}
+      {recognition.error && <span className="sidebar__control-error" role="alert">{recognition.error}</span>}
+    </> : undefined} activeSidebarItem={activePage} onSidebarNavigate={item => {
       if (item === 'Accessibility') setActivePage('Accessibility');
       if (item === 'Settings') setActivePage('Settings');
       if (item === 'Home') setActivePage('Home');
@@ -238,18 +249,6 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
       />
 
       {nurseAlert && <NurseAlertPopup message={nurseAlert.message} t={t} replying={replying} onReply={replyToNurse} />}
-
-      <div className="camera-controls" aria-label={t('camera')}>
-        <button type="button" className="tracking-button" onClick={trackingActive ? tracking.stop : startTracking} disabled={recognitionActive}>
-          {trackingActive ? t('stopEyeTracking') : t('startEyeTracking')}
-        </button>
-        {!trackingActive && <button type="button" className="face-recognition-button" onClick={toggleRecognition}>
-          {recognitionActive ? t('stopFaceRecognition') : t('testFaceRecognition')}
-        </button>}
-        {trackingActive && <button type="button" className="calibration-button" onClick={tracking.calibrate} disabled={tracking.snapshot.calibrating || tracking.snapshot.calibrationFailed}>
-          {tracking.snapshot.calibrating ? `${t('calibrating')} ${tracking.snapshot.calibrationIndex + 1}/9` : tracking.snapshot.calibrationReady ? t('recalibrateGaze') : t('calibrateGaze')}
-        </button>}
-      </div>
 
       <p className="footer-note">{t('footerNote')}</p>
       </>}
