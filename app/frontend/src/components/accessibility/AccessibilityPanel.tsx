@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Check, Eye, Headphones, RotateCcw, Sparkles, Volume2 } from 'lucide-react';
+import { Check, Eye, Headphones, RotateCcw, Volume2 } from 'lucide-react';
 import { useLanguage } from '../../i18n';
 
 type TextScale = number;
@@ -8,7 +8,7 @@ const DEFAULT_TEXT_SCALE = 100;
 const MIN_TEXT_SCALE = 100;
 const MAX_TEXT_SCALE = 150;
 
-export default function AccessibilityPanel() {
+export default function AccessibilityPanel({ embedded = false }: { embedded?: boolean }) {
   const { t } = useLanguage();
   const [textScale, setTextScale] = useState<TextScale>(() => normalizeTextScale(readSetting('textScale', DEFAULT_TEXT_SCALE)));
   const [highContrast, setHighContrast] = useState(() => readSetting('highContrast', false));
@@ -28,15 +28,16 @@ export default function AccessibilityPanel() {
   }
 
   return (
-    <section className="accessibility-panel" aria-labelledby="accessibility-title">
-      <div className="accessibility-panel__intro">
+    <section className={`accessibility-panel${embedded ? ' accessibility-panel--embedded' : ''}`} aria-labelledby={embedded ? undefined : 'accessibility-title'}>
+      {!embedded && <div className="accessibility-panel__intro">
         <div>
-          <span className="eyebrow"><Sparkles size={14} /> {t('personalizedExperience')}</span>
-          <h1 id="accessibility-title">{t('accessibility')}</h1>
+          <div className="accessibility-panel__title-row">
+            <h1 id="accessibility-title">{t('accessibility')}</h1>
+            <button type="button" className="accessibility-reset" onClick={resetSettings}><RotateCcw size={16} /> {t('reset')}</button>
+          </div>
           <p>{t('accessibilityDescription')}</p>
         </div>
-        <button type="button" className="accessibility-reset" onClick={resetSettings}><RotateCcw size={16} /> {t('reset')}</button>
-      </div>
+      </div>}
 
       <div className="accessibility-grid">
         <section className="accessibility-card" aria-labelledby="visual-title">
@@ -71,7 +72,7 @@ export default function AccessibilityPanel() {
         </section>
       </div>
 
-      <div className="accessibility-status" role="status"><Check size={16} /> {t('preferencesSaved')}</div>
+      {!embedded && <div className="accessibility-status" role="status"><Check size={16} /> {t('preferencesSaved')}</div>}
     </section>
   );
 }

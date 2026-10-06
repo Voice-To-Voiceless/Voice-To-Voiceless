@@ -1,8 +1,11 @@
 .accessibility-panel { margin: auto; max-width: 1200px; padding: 20px 8px 28px; width: 100%; }
+.accessibility-panel--embedded { margin-top: 24px; max-width: none; padding: 0; }
 .accessibility-panel__intro { align-items: flex-start; display: flex; gap: 16px; justify-content: space-between; margin-bottom: 24px; }
+.accessibility-panel__intro > div { flex: 1; min-width: 0; }
 .accessibility-panel__intro h1 { color: #18352a; font-size: clamp(2rem, 5vw, 3rem); margin: 5px 0 8px; }
 .accessibility-panel__intro p { color: #68766c; font: 15px/1.5 Arial, sans-serif; max-width: 560px; }
 .accessibility-panel__intro .eyebrow { align-items: center; display: flex; gap: 6px; }
+.accessibility-panel__title-row { align-items: center; display: flex; gap: 20px; justify-content: space-between; }
 .accessibility-reset, .accessibility-action { align-items: center; background: #fff; border: 1px solid #cbd9cf; border-radius: 9px; color: #315846; cursor: pointer; display: inline-flex; font: 700 13px Arial, sans-serif; gap: 8px; justify-content: center; min-height: 42px; padding: 10px 14px; }
 .accessibility-reset:hover, .accessibility-action:hover { background: #eef6ef; border-color: #65a776; }
 .accessibility-grid { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -39,8 +42,10 @@
 .accessibility-status { align-items: center; color: #4f765b; display: flex; font: 12px Arial, sans-serif; gap: 7px; margin-top: 16px; }
 .settings-panel { margin: auto; max-width: 1200px; padding: 20px 8px 28px; width: 100%; }
 .settings-panel__intro { align-items: flex-start; display: flex; gap: 16px; justify-content: space-between; margin-bottom: 24px; }
+.settings-panel__intro > div { flex: 1; min-width: 0; }
 .settings-panel__intro h1 { color: #18352a; font-size: clamp(2rem, 5vw, 3rem); margin: 5px 0 8px; }
 .settings-panel__intro p { color: #68766c; font: 15px/1.5 Arial, sans-serif; max-width: 560px; }
+.settings-panel__title-row { align-items: center; display: flex; gap: 20px; justify-content: space-between; }
 .settings-grid { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .settings-select { background: #fff; border: 1px solid #cbd9cf; border-radius: 8px; color: #315846; font: 14px Arial, sans-serif; min-height: 42px; padding: 8px 10px; width: 100%; }
 .settings-action { align-items: center; background: #fff; border: 1px solid #cbd9cf; border-radius: 8px; color: #315846; cursor: pointer; display: inline-flex; font: 700 13px Arial, sans-serif; gap: 8px; justify-content: center; margin-top: 10px; min-height: 40px; padding: 8px 12px; width: 100%; }

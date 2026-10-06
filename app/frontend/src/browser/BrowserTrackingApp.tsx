@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Activity, Eye } from 'lucide-react';
 import AppLayout from '../components/layout/AppLayout';
-import AccessibilityPanel, { applyStoredAccessibilitySettings } from '../components/accessibility/AccessibilityPanel';
+import { applyStoredAccessibilitySettings } from '../components/accessibility/AccessibilityPanel';
 import SettingsPanel, { applyStoredTheme, readStoredDebugOverlay, readStoredVisibleActions } from '../components/settings/SettingsPanel';
 import CommunicationBoard from '../components/communication/CommunicationBoard';
 import { ActionId, COMMUNICATION_ACTIONS } from '../types/communication';
@@ -35,7 +36,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   const [attentionNotificationSent, setAttentionNotificationSent] = useState(false);
   const [showTrackingGuide, setShowTrackingGuide] = useState(false);
   const [showConfidencePopup, setShowConfidencePopup] = useState(false);
-  const [activePage, setActivePage] = useState<'Home' | 'Accessibility' | 'Settings'>('Home');
+  const [activePage, setActivePage] = useState<'Home' | 'Settings'>('Home');
   const { t } = useLanguage();
   const actionNotificationsInFlight = useRef(new Set<ActionId>());
   const attentionStartedAtRef = useRef<number | null>(null);
@@ -199,9 +200,11 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   return (
     <AppLayout className={`tracking-layout tracking-layout--${layout}`} sidebarControls={activePage === 'Home' ? <>
       {!trackingActive && <button type="button" className="face-recognition-button" onClick={toggleRecognition}>
+        <Activity size={22} />
         {recognitionActive ? t('stopFaceRecognition') : t('testFaceRecognition')}
       </button>}
       <button type="button" className="tracking-button" onClick={trackingActive ? tracking.stop : startTracking} disabled={recognitionActive}>
+        <Eye size={22} />
         {trackingActive ? t('stopEyeTracking') : t('startEyeTracking')}
       </button>
       {trackingActive && <button type="button" className="calibration-button" onClick={tracking.calibrate} disabled={tracking.snapshot.calibrating || tracking.snapshot.calibrationFailed}>
@@ -209,12 +212,11 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
       </button>}
       {recognition.error && <span className="sidebar__control-error" role="alert">{recognition.error}</span>}
     </> : undefined} activeSidebarItem={activePage} onSidebarNavigate={item => {
-      if (item === 'Accessibility') setActivePage('Accessibility');
       if (item === 'Settings') setActivePage('Settings');
       if (item === 'Home') setActivePage('Home');
     }}>
       {showTrackingGuide && !trackingActive && <TrackingGuideModal t={t} onClose={() => setShowTrackingGuide(false)} onBegin={beginTracking} />}
-      {activePage === 'Accessibility' ? <AccessibilityPanel /> : activePage === 'Settings' ? <SettingsPanel /> : <>
+      {activePage === 'Settings' ? <SettingsPanel /> : <>
       <CalibrationTarget
         gazePoint={tracking.snapshot.gazePoint}
         target={tracking.snapshot.calibrationTarget}

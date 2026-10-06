@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Camera, Check, Languages, Moon, MessageSquare, RotateCcw, Settings as SettingsIcon } from 'lucide-react';
+import { Camera, Check, Languages, Moon, MessageSquare, RotateCcw } from 'lucide-react';
 import { COMMUNICATION_ACTIONS, type ActionId } from '../../types/communication';
 import { useLanguage } from '../../i18n';
+import AccessibilityPanel from '../accessibility/AccessibilityPanel';
 
 const SETTINGS_STORAGE_KEY = 'voice-to-voiceless-settings';
 const DEFAULT_VISIBLE_ACTIONS = COMMUNICATION_ACTIONS.map(action => action.id);
@@ -94,11 +95,12 @@ export default function SettingsPanel() {
     <section className="settings-panel" aria-labelledby="settings-title">
       <div className="settings-panel__intro">
         <div>
-          <span className="eyebrow"><SettingsIcon size={14} /> {t('appConfiguration')}</span>
-          <h1 id="settings-title">{t('settings')}</h1>
-            <p>{t('settingsDescription')}</p>
+          <div className="settings-panel__title-row">
+            <h1 id="settings-title">{t('settings')}</h1>
+            <button type="button" className="accessibility-reset" onClick={resetAppSettings}><RotateCcw size={16} /> {t('resetAppSettings')}</button>
+          </div>
+          <p>{t('settingsDescription')}</p>
         </div>
-        <button type="button" className="accessibility-reset" onClick={resetAppSettings}><RotateCcw size={16} /> {t('resetAppSettings')}</button>
       </div>
 
       <div className="settings-grid">
@@ -129,6 +131,8 @@ export default function SettingsPanel() {
           </div>
         </SettingsCard>
       </div>
+
+      <AccessibilityPanel embedded />
 
       <div className="accessibility-status" role="status"><Check size={16} /> {t('settingsSaved')}</div>
     </section>

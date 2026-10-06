@@ -3,7 +3,6 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import {
     House,
-    Accessibility,
     IdCard,
     Keyboard,
     QrCode,
@@ -18,15 +17,14 @@ const DEMO_PATIENT_CODE = "VT-2026-001";
 
 const items = [
     { icon: House, key: "home" as const, item: "Home" as const, active: true },
-    { icon: Accessibility, key: "accessibility" as const, item: "Accessibility" as const },
     { icon: Settings, key: "settings" as const, item: "Settings" as const },
 ];
 
 type SidebarProps = {
     notification?: ReactNode;
     controls?: ReactNode;
-    activeItem?: "Home" | "Accessibility" | "Settings";
-    onNavigate?: (item: "Home" | "Accessibility" | "Settings") => void;
+    activeItem?: "Home" | "Settings";
+    onNavigate?: (item: "Home" | "Settings") => void;
 };
 
 export default function Sidebar({ notification, controls, activeItem = "Home", onNavigate }: SidebarProps) {
