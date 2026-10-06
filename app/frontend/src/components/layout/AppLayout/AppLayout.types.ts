@@ -5,6 +5,6 @@ export interface AppLayoutProps{
     sidebarNotification?: ReactNode;
     sidebarControls?: ReactNode;
     className?: string;
-    activeSidebarItem?: "Home" | "Accessibility" | "Settings";
-    onSidebarNavigate?: (item: "Home" | "Accessibility" | "Settings") => void;
+    activeSidebarItem?: "Home" | "Settings";
+    onSidebarNavigate?: (item: "Home" | "Settings") => void;
 }

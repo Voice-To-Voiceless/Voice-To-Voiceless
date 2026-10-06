@@ -119,7 +119,6 @@ function cleanupRuntime(runtime: WebGazerRuntime): void {
     () => runtime.clearGazeListener().removeMouseEventListeners(),
     () => runtime.pause(),
     () => runtime.stopVideo(),
-    () => runtime.end(),
   ]) {
     try {
       cleanup();

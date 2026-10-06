@@ -1,3 +1,13 @@
+html,
+body,
+#root {
+    height:100%;
+}
+
+body {
+    overflow:hidden;
+}
+
 .app-layout{
     background:#ffffff;
     display:grid;
@@ -25,6 +35,11 @@
 
 @media (max-width:760px){
 
+    body {
+        height:auto;
+        overflow:auto;
+    }
+
     .app-layout{
 
         grid-template-columns:1fr;
@@ -41,6 +56,10 @@
 
     .app-layout__content {
         overflow:visible;
+    }
+
+    #root {
+        height:auto;
     }
 
 }
