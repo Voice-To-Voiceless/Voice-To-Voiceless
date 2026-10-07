@@ -3,6 +3,13 @@ import type webgazerRuntime from 'webgazer';
 import webgazerBundleUrl from 'webgazer/dist/webgazer.js?url';
 
 type WebGazerRuntime = typeof webgazerRuntime;
+type WebGazerTracker = { detector?: { dispose?: () => Promise<void> | void } };
+
+let webGazerShutdown = Promise.resolve();
+
+export function waitForWebGazerShutdown(): Promise<void> {
+  return webGazerShutdown;
+}
 
 /** Owns WebGazer and feeds it the app's existing camera stream. */
 export class BrowserWebGazerAdapter {
@@ -110,18 +117,22 @@ export class BrowserWebGazerAdapter {
     this.lastFrameAt = 0;
     this.lastTrainingFrameAt = 0;
     if (!runtime) return;
-    cleanupRuntime(runtime);
+    webGazerShutdown = cleanupRuntime(runtime);
+    await webGazerShutdown;
   }
 }
 
-function cleanupRuntime(runtime: WebGazerRuntime): void {
+async function cleanupRuntime(runtime: WebGazerRuntime): Promise<void> {
   for (const cleanup of [
-    () => runtime.clearGazeListener().removeMouseEventListeners(),
     () => runtime.pause(),
+    () => new Promise<void>(resolve => window.setTimeout(resolve, 100)),
+    () => (runtime.getTracker() as WebGazerTracker).detector?.dispose?.(),
+    () => runtime.end(),
+    () => runtime.clearGazeListener().removeMouseEventListeners(),
     () => runtime.stopVideo(),
   ]) {
     try {
-      cleanup();
+      await cleanup();
     } catch (error) {
       console.warn('[webgazer] cleanup failed', error);
     }

@@ -17,6 +17,7 @@ import { CalibrationModal, ConfidencePopup, NurseAlertPopup, TrackingGuideModal 
 
 const TABLET_PATIENT_ID = 'patient-001';
 const ATTENTION_NOTIFICATION_DELAY_MS = 3500;
+const START_MONITORING_AFTER_RELOAD = 'v2vl.start-monitoring-after-reload';
 
 type BrowserTrackingAppProps = {
   enableDiagnostics?: boolean;
@@ -45,9 +46,16 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   const tracking = useBrowserTracking(videoRef, boardRef, selection.selectAction, modelTestingSession);
   const { calibrate } = tracking;
   const recognition = useFaceRecognition(videoRef);
+  const { start: startRecognition } = recognition;
   const trackingActive = tracking.snapshot.active;
   const recognitionActive = recognition.snapshot.active;
   const localizedActions = COMMUNICATION_ACTIONS.map(action => ({ ...action, label: t(action.id) }));
+
+  useEffect(() => {
+    if (window.sessionStorage.getItem(START_MONITORING_AFTER_RELOAD) !== 'true') return;
+    window.sessionStorage.removeItem(START_MONITORING_AFTER_RELOAD);
+    startRecognition().catch(() => undefined);
+  }, [startRecognition]);
 
   useEffect(() => {
     if (tracking.snapshot.calibrationConfidence !== null) setShowConfidencePopup(true);
@@ -151,6 +159,11 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
     tracking.start().catch(() => undefined);
   };
 
+  const stopTracking = () => {
+    window.sessionStorage.setItem(START_MONITORING_AFTER_RELOAD, 'true');
+    window.location.reload();
+  };
+
   const toggleRecognition = () => {
     if (trackingActive) return;
     if (recognitionActive) recognition.stop();
@@ -203,7 +216,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
         <Activity size={22} />
         {recognitionActive ? t('stopFaceRecognition') : t('testFaceRecognition')}
       </button>}
-      <button type="button" className="tracking-button" onClick={trackingActive ? tracking.stop : startTracking} disabled={recognitionActive}>
+      <button type="button" className="tracking-button" onClick={trackingActive ? stopTracking : startTracking} disabled={recognitionActive}>
         <Eye size={22} />
         {trackingActive ? t('stopEyeTracking') : t('startEyeTracking')}
       </button>
