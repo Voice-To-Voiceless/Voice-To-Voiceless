@@ -49,7 +49,7 @@ export function analyzeFaceExpression(scores: BlendshapeScores): FaceAnalysis {
   risk = addIndicator(indicators, risk, 'mouth_discomfort', discomfort, 0.4);
   const boundedRisk = Math.min(risk, 1);
   return {
-    state: boundedRisk >= 0.45 ? 'attention_required' : boundedRisk >= 0.25 ? 'possible_discomfort' : 'normal',
+    state: boundedRisk >= 0.40 ? 'attention_required' : boundedRisk >= 0.25 ? 'possible_discomfort' : 'normal',
     risk: boundedRisk,
     indicators,
     expression,
