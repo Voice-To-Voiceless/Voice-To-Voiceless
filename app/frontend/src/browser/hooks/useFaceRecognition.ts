@@ -59,5 +59,5 @@ export function useFaceRecognition(videoRef: React.RefObject<HTMLVideoElement | 
   }, [processFrame, stop, videoRef]);
 
   useEffect(() => stop, [stop]);
-  return { snapshot, error, start, stop };
+  return { snapshot, error, stream: streamRef.current, start, stop };
 }

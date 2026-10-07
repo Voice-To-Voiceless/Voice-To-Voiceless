@@ -54,6 +54,9 @@
 .patient-status--online { background: #35a45b; }
 .patient-status--attention { background: #e0a33c; }
 .patient-status--offline { background: #9ca8a0; }
+.patient-monitoring-status { border-radius: 999px; font: 700 9px Arial, sans-serif; letter-spacing: .04em; padding: 5px 7px; white-space: nowrap; }
+.patient-monitoring-status--live { background: #d8f6df; color: #23753d; }
+.patient-monitoring-status--offline { background: #edf0ee; color: #718078; }
 .patient-row > svg { color: #a0aca3; }
 .caregiver-patient-card, .caregiver-panel { background: #fff; border: 1px solid #e1e8e1; border-radius: 16px; box-shadow: 0 8px 24px #17352b0b; padding: 14px; }
 .caregiver-patient-card__top h2, .caregiver-panel__heading h2 { color: #18352a; font: 700 18px/1.2 Georgia, serif; margin-top: 5px; }
@@ -84,6 +87,18 @@
 .notification-unread { background: #3ca25b; border-radius: 50%; height: 7px; width: 7px; }
 .caregiver-empty { color: #8a968c; font: 11px Arial, sans-serif; padding: 18px 0 3px; }
 .caregiver-reminder > p { color: #718075; font: 11px/1.4 Arial, sans-serif; margin: 10px 0; }
+.caregiver-monitoring-status > p { color: #718075; font: 11px/1.4 Arial, sans-serif; margin: 10px 0 0; }
+.caregiver-live-button { align-items: center; background: #b42318; border: 0; border-radius: 10px; color: #fff; display: flex; font: 700 12px Arial, sans-serif; gap: 7px; justify-content: center; margin-top: 11px; min-height: 42px; width: 100%; }
+.caregiver-live-button:disabled { opacity: .55; }
+.live-viewer-backdrop { align-items: center; background: #07110ddd; display: flex; inset: 0; justify-content: center; padding: 18px; position: fixed; z-index: 20; }
+.live-viewer { background: #102019; border: 1px solid #496957; border-radius: 16px; box-shadow: 0 24px 70px #000b; max-width: 720px; overflow: hidden; width: 100%; }
+.live-viewer__header { align-items: center; color: #effff2; display: flex; justify-content: space-between; padding: 14px 16px; }
+.live-viewer__header span { align-items: center; color: #ffb4a9; display: flex; font: 700 10px Arial, sans-serif; gap: 6px; letter-spacing: .08em; }
+.live-viewer__header h2 { font: 700 17px Arial, sans-serif; margin: 5px 0 0; }
+.live-viewer__close { background: transparent; border: 0; color: #d9eee0; cursor: pointer; padding: 5px; }
+.live-viewer__video-wrap { aspect-ratio: 16 / 10; background: #020604; position: relative; }
+.live-viewer__video-wrap video { display: block; height: 100%; object-fit: contain; width: 100%; }
+.live-viewer__state { align-items: center; color: #d9eee0; display: flex; font: 12px Arial, sans-serif; inset: 0; justify-content: center; position: absolute; }
 .caregiver-reminder select { background: #f7f9f6; border: 1px solid #d7e1d8; border-radius: 10px; color: #315846; font: 11px Arial, sans-serif; padding: 11px; width: 100%; }
 .caregiver-send-button { align-items: center; background: #315846; border: 0; border-radius: 10px; color: white; display: flex; font: 700 12px Arial, sans-serif; gap: 7px; justify-content: center; margin-top: 9px; min-height: 44px; width: 100%; }
 .caregiver-send-button:disabled { opacity: .5; }
