@@ -3,6 +3,7 @@ import { MediaPipeFaceLandmarkerAdapter } from '../../vision/mediapipe/mediaPipe
 import { closeCamera, createFaceAdapter, openCamera } from '../services/browserCameraSession';
 import { FaceRecognitionSnapshot } from '../browserTypes';
 import { noFaceAnalysis, analyzeFaceExpression } from '../services/faceExpressionAnalysis';
+import { waitForWebGazerShutdown } from '../../vision/webgazer/webgazerAdapter';
 
 const initialSnapshot: FaceRecognitionSnapshot = { ...noFaceAnalysis(), active: false };
 
@@ -45,6 +46,7 @@ export function useFaceRecognition(videoRef: React.RefObject<HTMLVideoElement | 
     if (activeRef.current || !videoRef.current) return;
     setError(null);
     try {
+      await waitForWebGazerShutdown();
       streamRef.current = await openCamera(videoRef.current);
       adapterRef.current = await createFaceAdapter();
       activeRef.current = true;

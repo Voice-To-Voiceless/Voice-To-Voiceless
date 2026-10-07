@@ -8,6 +8,7 @@ declare module 'webgazer' {
     clearGazeListener(): WebGazerRuntime;
     end(): WebGazerRuntime;
     getCurrentPrediction(): Promise<WebGazerPrediction>;
+      getTracker(): { detector?: { dispose?: () => Promise<void> | void } };
     getRegression(): Array<{ getData(): unknown[] }>;
     pause(): WebGazerRuntime;
     params: { faceMeshSolutionPath: string };
