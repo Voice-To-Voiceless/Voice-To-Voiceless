@@ -12,12 +12,24 @@ import { useSelectionFeedback } from './hooks/useSelectionFeedback';
 import { CalibrationTarget } from './components/CalibrationTarget';
 import { DebugOverlay } from './components/DebugOverlay';
 import { createNotification, getNotifications, markNotificationRead, subscribeToNotifications, type PatientNotification } from '../services/notifications';
+import { isLiveSignalNotification, readLiveSignal, sendLiveSignal } from '../services/liveMonitoring';
 import { useLanguage } from '../i18n';
 import { CalibrationModal, ConfidencePopup, NurseAlertPopup, TrackingGuideModal } from './components/TrackingModals';
 
 const TABLET_PATIENT_ID = 'patient-001';
 const ATTENTION_NOTIFICATION_DELAY_MS = 3500;
 const START_MONITORING_AFTER_RELOAD = 'v2vl.start-monitoring-after-reload';
+
+function publishMonitoringStatus(active: boolean): void {
+  createNotification({
+    source: 'patient',
+    type: active ? 'monitoring_started' : 'monitoring_stopped',
+    severity: active ? 'info' : 'warning',
+    message: active ? 'Live monitoring is active.' : 'Live monitoring was stopped.',
+    patient_metadata: { patient_id: TABLET_PATIENT_ID },
+    recipient: 'nurse',
+  }).catch(() => undefined);
+}
 
 type BrowserTrackingAppProps = {
   enableDiagnostics?: boolean;
@@ -42,6 +54,8 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   const actionNotificationsInFlight = useRef(new Set<ActionId>());
   const attentionStartedAtRef = useRef<number | null>(null);
   const attentionNotificationSentRef = useRef(false);
+  const livePeerRef = useRef<RTCPeerConnection | null>(null);
+  const recognitionStreamRef = useRef<MediaStream | null>(null);
   const selection = useSelectionFeedback();
   const tracking = useBrowserTracking(videoRef, boardRef, selection.selectAction, modelTestingSession);
   const { calibrate } = tracking;
@@ -49,12 +63,15 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   const { start: startRecognition } = recognition;
   const trackingActive = tracking.snapshot.active;
   const recognitionActive = recognition.snapshot.active;
+  useEffect(() => {
+    recognitionStreamRef.current = recognition.stream;
+  }, [recognition.stream]);
   const localizedActions = COMMUNICATION_ACTIONS.map(action => ({ ...action, label: t(action.id) }));
 
   useEffect(() => {
     if (window.sessionStorage.getItem(START_MONITORING_AFTER_RELOAD) !== 'true') return;
     window.sessionStorage.removeItem(START_MONITORING_AFTER_RELOAD);
-    startRecognition().catch(() => undefined);
+    startRecognition().then(() => publishMonitoringStatus(true)).catch(() => undefined);
   }, [startRecognition]);
 
   useEffect(() => {
@@ -119,8 +136,9 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
       getNotifications('patient')
         .then(items => {
           if (!active) return;
-          const latest = items.find(item => item.recipient === 'patient' && item.patient_metadata.patient_id === TABLET_PATIENT_ID && !item.read);
+          const latest = items.find(item => item.recipient === 'patient' && item.patient_metadata.patient_id === TABLET_PATIENT_ID && !item.read && !isLiveSignalNotification(item));
           if (latest) setNurseAlert(latest);
+          else setNurseAlert(current => current && readLiveSignal(current) ? null : current);
         })
         .catch(() => undefined);
     };
@@ -128,12 +146,41 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
     loadNurseAlert();
     const refreshTimer = window.setInterval(loadNurseAlert, 1000);
     const socket = subscribeToNotifications('patient', notification => {
+      const signal = readLiveSignal(notification);
+      if (isLiveSignalNotification(notification) && !signal) return;
+      if (signal) {
+        setNurseAlert(current => current && readLiveSignal(current) ? null : current);
+        if (signal.patientId !== TABLET_PATIENT_ID) return;
+        if (signal.type === 'live_stream_request' && recognitionStreamRef.current) {
+          const peer = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+          livePeerRef.current = peer;
+          recognitionStreamRef.current.getTracks().forEach(track => peer.addTrack(track, recognitionStreamRef.current as MediaStream));
+          peer.onicecandidate = event => {
+            if (event.candidate) {
+              void sendLiveSignal({ type: 'live_stream_ice_candidate', patientId: TABLET_PATIENT_ID, requestId: signal.requestId, payload: JSON.stringify(event.candidate.toJSON()) }, 'patient');
+            }
+          };
+          void peer.createOffer().then(offer => peer.setLocalDescription(offer)).then(() => {
+            if (peer.localDescription) {
+              return sendLiveSignal({ type: 'live_stream_offer', patientId: TABLET_PATIENT_ID, requestId: signal.requestId, payload: JSON.stringify(peer.localDescription) }, 'patient');
+            }
+            return undefined;
+          });
+        } else if (signal.type === 'live_stream_answer' && signal.payload && livePeerRef.current) {
+          void livePeerRef.current.setRemoteDescription(JSON.parse(signal.payload) as RTCSessionDescriptionInit);
+        } else if (signal.type === 'live_stream_ice_candidate' && signal.payload && livePeerRef.current) {
+          void livePeerRef.current.addIceCandidate(JSON.parse(signal.payload) as RTCIceCandidateInit);
+        }
+        return;
+      }
       if (notification.patient_metadata.patient_id === TABLET_PATIENT_ID && !notification.read) setNurseAlert(notification);
     });
     return () => {
       active = false;
       window.clearInterval(refreshTimer);
       socket?.close();
+      livePeerRef.current?.close();
+      livePeerRef.current = null;
     };
   }, []);
 
@@ -166,8 +213,16 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
 
   const toggleRecognition = () => {
     if (trackingActive) return;
-    if (recognitionActive) recognition.stop();
-    else recognition.start().catch(() => undefined);
+    if (recognitionActive) {
+      stopRecognition();
+    } else {
+      recognition.start().then(() => publishMonitoringStatus(true)).catch(() => undefined);
+    }
+  };
+
+  const stopRecognition = () => {
+    recognition.stop();
+    publishMonitoringStatus(false);
   };
 
   const replyToNurse = async (message: string) => {
@@ -245,6 +300,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
         faceDetected={faceDetected}
         trackingActive={trackingActive}
         recognitionActive={recognitionActive}
+        onStopRecognition={stopRecognition}
         attentionNotificationRemainingMs={Math.max(0, ATTENTION_NOTIFICATION_DELAY_MS - attentionElapsedMs)}
         attentionNotificationSent={attentionNotificationSent}
         t={t}
@@ -263,7 +319,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
         }}
       />
 
-      {nurseAlert && <NurseAlertPopup message={nurseAlert.message} t={t} replying={replying} onReply={replyToNurse} />}
+      {nurseAlert && !isLiveSignalNotification(nurseAlert) && <NurseAlertPopup message={nurseAlert.message} t={t} replying={replying} onReply={replyToNurse} />}
 
       <p className="footer-note">{t('footerNote')}</p>
       </>}

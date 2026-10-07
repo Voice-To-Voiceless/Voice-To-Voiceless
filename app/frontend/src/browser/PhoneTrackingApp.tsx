@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, Check, ChevronRight, HeartPulse, Keyboard, Languages, Moon, ScanLine, Send, Settings, Sun, Users, X } from 'lucide-react';
+import { Bell, Check, ChevronRight, HeartPulse, Keyboard, Languages, Moon, ScanLine, Send, Settings, Sun, Users, Video, X } from 'lucide-react';
 import { deleteNotification, getNotifications, subscribeToNotifications, type PatientNotification } from '../services/notifications';
+import { readLiveSignal, sendLiveSignal } from '../services/liveMonitoring';
 import { getPatients, linkPatient } from '../services/patients';
 import { useLanguage } from '../i18n';
 
@@ -27,9 +28,17 @@ const localizedReminderOptions = {
 const SETTINGS_STORAGE_KEY = 'voice-to-voiceless-settings';
 const PHONE_THEME_STORAGE_KEY = 'voice-to-voiceless-phone-theme';
 
+function isMonitoringStatusNotification(notification: PatientNotification): boolean {
+  return notification.type === 'monitoring_started' || notification.type === 'monitoring_stopped';
+}
+
+function isLiveStreamSignalNotification(notification: PatientNotification): boolean {
+  return notification.type.startsWith('live_stream_');
+}
+
 const caregiverCopy = {
-  English: { menu: 'Open menu', closeMenu: 'Close menu', settings: 'Settings', preferences: 'Preferences', language: 'Language', darkMode: 'Dark mode', lightMode: 'Light mode', english: 'English', romanian: 'Romanian', goodMorning: 'Good morning', patientDashboard: 'Patient dashboard', synced: 'Synced now', scanNewPatient: 'Scan new patient', scanDescription: 'Scan the QR code on the tablet', myPatients: 'MY PATIENTS', active: 'active', notifications: 'Notifications', unread: 'Unread', clearAll: 'Clear all', noNotifications: 'No notifications for this patient.', all: 'All', emergencies: 'Emergency', markRead: 'Mark notification as read', toTablet: 'TO TABLET', sendReminder: 'Send a reminder', reminderDescription: 'The message will appear immediately on', sendToTablet: 'Send to tablet', sending: 'Sending...', online: 'Online', needsAttention: 'Needs attention', offline: 'Offline', settingsHint: 'Change the language and appearance.', patients: 'Patients', dashboard: 'Dashboard' },
-  Romanian: { menu: 'Deschide meniul', closeMenu: 'Inchide meniul', settings: 'Setari', preferences: 'Preferinte', language: 'Limba', darkMode: 'Mod intunecat', lightMode: 'Mod luminos', english: 'Engleza', romanian: 'Romana', goodMorning: 'Buna dimineata', patientDashboard: 'Panoul pacientilor', synced: 'Sincronizat acum', scanNewPatient: 'Scaneaza pacient nou', scanDescription: 'Citeste codul QR de pe tableta', myPatients: 'PACIENTII MEI', active: 'activi', notifications: 'Notificari', unread: 'necitite', clearAll: 'Sterge toate', noNotifications: 'Nu exista notificari pentru acest pacient.', all: 'Toate', emergencies: 'Urgente', markRead: 'Marcheaza notificarea ca citita', toTablet: 'CATRE TABLETA', sendReminder: 'Trimite un reminder', reminderDescription: 'Mesajul va aparea imediat pe tableta lui', sendToTablet: 'Trimite catre tableta', sending: 'Se trimite...', online: 'Online', needsAttention: 'Necesita atentie', offline: 'Offline', settingsHint: 'Schimba limba si aspectul aplicatiei.', patients: 'Pacienti', dashboard: 'Panou' },
+  English: { menu: 'Open menu', closeMenu: 'Close menu', settings: 'Settings', preferences: 'Preferences', language: 'Language', darkMode: 'Dark mode', lightMode: 'Light mode', english: 'English', romanian: 'Romanian', goodMorning: 'Good morning', patientDashboard: 'Patient dashboard', synced: 'Synced now', scanNewPatient: 'Scan new patient', scanDescription: 'Scan the QR code on the tablet', myPatients: 'MY PATIENTS', active: 'active', notifications: 'Notifications', unread: 'Unread', clearAll: 'Clear all', noNotifications: 'No notifications for this patient.', all: 'All', emergencies: 'Emergency', markRead: 'Mark notification as read', toTablet: 'TO TABLET', sendReminder: 'Send a reminder', reminderDescription: 'The message will appear immediately on', sendToTablet: 'Send to tablet', sending: 'Sending...', online: 'Online', needsAttention: 'Needs attention', offline: 'Offline', monitoringLive: 'Live monitoring active', monitoringOffline: 'Live monitoring offline', settingsHint: 'Change the language and appearance.', patients: 'Patients', dashboard: 'Dashboard' },
+  Romanian: { menu: 'Deschide meniul', closeMenu: 'Inchide meniul', settings: 'Setari', preferences: 'Preferinte', language: 'Limba', darkMode: 'Mod intunecat', lightMode: 'Mod luminos', english: 'Engleza', romanian: 'Romana', goodMorning: 'Buna dimineata', patientDashboard: 'Panoul pacientilor', synced: 'Sincronizat acum', scanNewPatient: 'Scaneaza pacient nou', scanDescription: 'Citeste codul QR de pe tableta', myPatients: 'PACIENTII MEI', active: 'activi', notifications: 'Notificari', unread: 'necitite', clearAll: 'Sterge toate', noNotifications: 'Nu exista notificari pentru acest pacient.', all: 'Toate', emergencies: 'Urgente', markRead: 'Marcheaza notificarea ca citita', toTablet: 'CATRE TABLETA', sendReminder: 'Trimite un reminder', reminderDescription: 'Mesajul va aparea imediat pe tableta lui', sendToTablet: 'Trimite catre tableta', sending: 'Se trimite...', online: 'Online', needsAttention: 'Necesita atentie', offline: 'Offline', monitoringLive: 'Monitorizare live activa', monitoringOffline: 'Monitorizare live oprita', settingsHint: 'Schimba limba si aspectul aplicatiei.', patients: 'Pacienti', dashboard: 'Panou' },
 } as const;
 
 function readPhoneSettings(): { language: 'English' | 'Romanian'; darkMode: boolean } {
@@ -186,13 +195,14 @@ function PatientCodeScreen({ onBack, onCodeConfirmed }: { onBack: () => void; on
 
 function NotificationsScreen({ notifications, patients, copy, language, onRead, onClearAll }: { notifications: PatientNotification[]; patients: Patient[]; copy: Record<string, string>; language: 'English' | 'Romanian'; onRead: (notification: PatientNotification) => void; onClearAll: () => void }) {
   const [filter, setFilter] = useState<'all' | 'unread' | 'emergency'>('all');
-  const visibleNotifications = notifications.filter(notification => filter === 'all' || (filter === 'unread' && !notification.read) || (filter === 'emergency' && notification.severity === 'critical'));
-  const unreadCount = notifications.filter(notification => !notification.read).length;
-  const emergencyCount = notifications.filter(notification => notification.severity === 'critical').length;
+  const userNotifications = notifications.filter(notification => !isMonitoringStatusNotification(notification) && !isLiveStreamSignalNotification(notification));
+  const visibleNotifications = userNotifications.filter(notification => filter === 'all' || (filter === 'unread' && !notification.read) || (filter === 'emergency' && notification.severity === 'critical'));
+  const unreadCount = userNotifications.filter(notification => !notification.read).length;
+  const emergencyCount = userNotifications.filter(notification => notification.severity === 'critical').length;
 
   return <section className="phone-notifications-screen" aria-label={copy.notifications}>
     <header className="phone-notifications-header"><div><Bell size={23} /><h2>{copy.notifications}</h2></div></header>
-    <div className="phone-notification-filters" role="tablist"><button type="button" className={filter === 'all' ? 'is-selected' : ''} onClick={() => setFilter('all')}>{copy.all}</button><button type="button" className={filter === 'unread' ? 'is-selected' : ''} onClick={() => setFilter('unread')}>{copy.unread}<span>{unreadCount}</span></button><button type="button" className={`phone-filter-emergency${filter === 'emergency' ? ' is-selected' : ''}`} onClick={() => setFilter('emergency')}>{copy.emergencies}<span>{emergencyCount}</span></button>{notifications.length > 0 && <button type="button" className="phone-clear-notifications" onClick={onClearAll}>{copy.clearAll}</button>}</div>
+    <div className="phone-notification-filters" role="tablist"><button type="button" className={filter === 'all' ? 'is-selected' : ''} onClick={() => setFilter('all')}>{copy.all}</button><button type="button" className={filter === 'unread' ? 'is-selected' : ''} onClick={() => setFilter('unread')}>{copy.unread}<span>{unreadCount}</span></button><button type="button" className={`phone-filter-emergency${filter === 'emergency' ? ' is-selected' : ''}`} onClick={() => setFilter('emergency')}>{copy.emergencies}<span>{emergencyCount}</span></button>{userNotifications.length > 0 && <button type="button" className="phone-clear-notifications" onClick={onClearAll}>{copy.clearAll}</button>}</div>
     <div className="phone-notification-list">{visibleNotifications.length === 0 ? <div className="caregiver-empty">{copy.noNotifications}</div> : visibleNotifications.map(notification => { const patient = patients.find(item => item.id === notification.patient_metadata.patient_id); const patientName = patient?.name || notification.patient_metadata.name || 'Patient'; const patientRoom = patient?.room || notification.patient_metadata.room || 'Room'; return <button type="button" key={notification.id} className={`phone-notification-card phone-notification-card--${notification.severity}${notification.read ? '' : ' is-unread'}`} onClick={() => onRead(notification)} aria-label={copy.markRead}><span className="phone-notification-card__icon"><Bell size={19} /></span><span className="phone-notification-card__body"><strong>{notification.message}</strong><small>{patientName} · {localizeRoom(patientRoom, language)}</small><span>{formatNotificationTime(notification.created_at)}</span></span>{!notification.read && <span className="phone-notification-card__dot" />}</button>; })}</div>
   </section>;
 }
@@ -211,7 +221,26 @@ export function PhoneTrackingApp() {
   const [sending, setSending] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [activeScreen, setActiveScreen] = useState<'dashboard' | 'notifications'>('dashboard');
+  const liveVideoRef = useRef<HTMLVideoElement>(null);
+  const livePeerRef = useRef<RTCPeerConnection | null>(null);
+  const liveRequestIdRef = useRef<string | null>(null);
+  const [liveViewerOpen, setLiveViewerOpen] = useState(false);
+  const [liveViewerConnecting, setLiveViewerConnecting] = useState(false);
   const selectedPatient = patients.find(patient => patient.id === selectedPatientId) ?? patients[0];
+  const monitoringStatusByPatient = useMemo(() => {
+    const latestStatus = new Map<string, 'monitoring_started' | 'monitoring_stopped'>();
+    [...notifications]
+      .filter(notification => notification.type === 'monitoring_started' || notification.type === 'monitoring_stopped')
+      .sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime())
+      .forEach(notification => {
+        const status = notification.type === 'monitoring_started' ? 'monitoring_started' : 'monitoring_stopped';
+        if (!latestStatus.has(notification.patient_metadata.patient_id)) {
+          latestStatus.set(notification.patient_metadata.patient_id, status);
+        }
+      });
+    return latestStatus;
+  }, [notifications]);
+  const selectedMonitoringLive = monitoringStatusByPatient.get(selectedPatient.id) === 'monitoring_started';
 
   useEffect(() => {
     if (!feedback) return;
@@ -224,7 +253,7 @@ export function PhoneTrackingApp() {
   }, [language]);
   const patientNotifications = useMemo(
     () => notifications
-      .filter(item => item.patient_metadata.patient_id === selectedPatient.id)
+      .filter(item => item.patient_metadata.patient_id === selectedPatient.id && !isMonitoringStatusNotification(item) && !isLiveStreamSignalNotification(item))
       .sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime()),
     [notifications, selectedPatient.id],
   );
@@ -272,12 +301,44 @@ export function PhoneTrackingApp() {
     savePhoneSetting('darkMode', !darkMode);
   }
 
+  const handleLiveSignal = useCallback((notification: PatientNotification): boolean => {
+    const signal = readLiveSignal(notification);
+    if (!signal) return false;
+    if (signal.type === 'live_stream_offer' && signal.payload && signal.requestId === liveRequestIdRef.current && !livePeerRef.current) {
+      const peer = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+      livePeerRef.current = peer;
+      peer.ontrack = event => {
+        if (liveVideoRef.current) liveVideoRef.current.srcObject = event.streams[0];
+        setLiveViewerConnecting(false);
+      };
+      peer.onicecandidate = event => {
+        if (event.candidate) {
+          void sendLiveSignal({ type: 'live_stream_ice_candidate', patientId: signal.patientId, requestId: signal.requestId, payload: JSON.stringify(event.candidate.toJSON()) }, 'nurse');
+        }
+      };
+      void peer.setRemoteDescription(JSON.parse(signal.payload) as RTCSessionDescriptionInit)
+        .then(() => peer.createAnswer())
+        .then(answer => peer.setLocalDescription(answer))
+        .then(() => {
+          if (peer.localDescription) {
+            return sendLiveSignal({ type: 'live_stream_answer', patientId: signal.patientId, requestId: signal.requestId, payload: JSON.stringify(peer.localDescription) }, 'nurse');
+          }
+          return undefined;
+        })
+        .catch(() => setLiveViewerConnecting(false));
+    } else if (signal.type === 'live_stream_ice_candidate' && signal.payload && signal.requestId === liveRequestIdRef.current && livePeerRef.current) {
+      void livePeerRef.current.addIceCandidate(JSON.parse(signal.payload) as RTCIceCandidateInit);
+    }
+    return true;
+  }, []);
+
   useEffect(() => {
     let active = true;
     const loadNotifications = () => {
       getNotifications('nurse')
         .then(items => {
           if (!active) return;
+          items.forEach(handleLiveSignal);
           setNotifications(items.map(notification => {
             const patient = patients.find(item => item.id === notification.patient_metadata.patient_id);
             return patient ? { ...notification, patient_metadata: { ...notification.patient_metadata, name: patient.name, room: patient.room } } : notification;
@@ -289,6 +350,7 @@ export function PhoneTrackingApp() {
     loadNotifications();
     const refreshTimer = window.setInterval(loadNotifications, 2000);
     const socket = subscribeToNotifications('nurse', notification => {
+      if (handleLiveSignal(notification)) return;
       setNotifications(current => current.some(item => item.id === notification.id) ? current : [notification, ...current]);
     });
 
@@ -297,7 +359,29 @@ export function PhoneTrackingApp() {
       window.clearInterval(refreshTimer);
       socket?.close();
     };
-  }, [patients]);
+  }, [handleLiveSignal, patients]);
+
+  async function openLiveViewer() {
+    const requestId = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}`;
+    liveRequestIdRef.current = requestId;
+    setLiveViewerOpen(true);
+    setLiveViewerConnecting(true);
+    try {
+      await sendLiveSignal({ type: 'live_stream_request', patientId: selectedPatient.id, requestId }, 'nurse');
+    } catch {
+      setLiveViewerConnecting(false);
+      setFeedback('Live monitoring nu a putut fi deschis.');
+    }
+  }
+
+  function closeLiveViewer() {
+    liveRequestIdRef.current = null;
+    livePeerRef.current?.close();
+    livePeerRef.current = null;
+    if (liveVideoRef.current) liveVideoRef.current.srcObject = null;
+    setLiveViewerOpen(false);
+    setLiveViewerConnecting(false);
+  }
 
   async function sendReminder() {
     setSending(true);
@@ -385,13 +469,17 @@ export function PhoneTrackingApp() {
 
       <section className="caregiver-patient-list" aria-label="Pacienti">
         <div className="caregiver-section-label"><span><Users size={15} /> {copy.myPatients}</span><strong>{patients.length} {copy.active}</strong></div>
-        {patients.map(patient => <button key={patient.id} type="button" className={`patient-row${patient.id === selectedPatient.id ? ' is-selected' : ''}`} onClick={() => setSelectedPatientId(patient.id)}><span className={`patient-avatar patient-avatar--${patient.status}`}>{patient.name.split(' ').map(part => part[0]).join('')}</span><span className="patient-row__details"><strong>{patient.name}</strong><span>{localizeRoom(patient.room, language)} · {localizeLastSeen(patient.lastSeen, language)}</span></span><span className={`patient-status patient-status--${patient.status}`} /> <ChevronRight size={17} /></button>)}
+        {patients.map(patient => { const monitoringLive = monitoringStatusByPatient.get(patient.id) === 'monitoring_started'; return <button key={patient.id} type="button" className={`patient-row${patient.id === selectedPatient.id ? ' is-selected' : ''}`} onClick={() => setSelectedPatientId(patient.id)}><span className={`patient-avatar patient-avatar--${patient.status}`}>{patient.name.split(' ').map(part => part[0]).join('')}</span><span className="patient-row__details"><strong>{patient.name}</strong><span>{localizeRoom(patient.room, language)} · {localizeLastSeen(patient.lastSeen, language)}</span></span><span className={`patient-monitoring-status patient-monitoring-status--${monitoringLive ? 'live' : 'offline'}`}>{monitoringLive ? 'LIVE' : 'OFFLINE'}</span><span className={`patient-status patient-status--${patient.status}`} /> <ChevronRight size={17} /></button>; })}
       </section>
+
+      <section className="caregiver-panel caregiver-monitoring-status"><div className="caregiver-panel__heading"><div><span><HeartPulse size={15} /> {copy.patientDashboard}</span><h2>{selectedPatient.name}</h2></div><span className={`patient-monitoring-status patient-monitoring-status--${selectedMonitoringLive ? 'live' : 'offline'}`}>{selectedMonitoringLive ? 'LIVE' : 'OFFLINE'}</span></div><p>{selectedMonitoringLive ? copy.monitoringLive : copy.monitoringOffline}</p>{selectedMonitoringLive && <button type="button" className="caregiver-live-button" onClick={openLiveViewer} disabled={liveViewerOpen}><Video size={17} /> Vezi camera live</button>}</section>
 
       <section className="caregiver-panel caregiver-reminder"><div className="caregiver-panel__heading"><div><span><Send size={15} /> {copy.toTablet}</span><h2>{copy.sendReminder}</h2></div></div><p>{copy.reminderDescription} {selectedPatient.name.split(' ')[0]}.</p><select value={message} onChange={event => setMessage(event.target.value)} aria-label={copy.sendReminder}>{reminderOptionsForLanguage.map(option => <option key={option}>{option}</option>)}</select><button className="caregiver-send-button" type="button" onClick={sendReminder} disabled={sending || selectedPatient.status === 'offline'}><Send size={17} /> {sending ? copy.sending : copy.sendToTablet}</button></section>
       </>}
 
-      <nav className="phone-bottom-nav" aria-label="Navigare principala"><button type="button" className={activeScreen === 'dashboard' ? 'is-active' : ''} onClick={() => setActiveScreen('dashboard')}><Users size={19} /><span>{copy.dashboard}</span></button><button type="button" className={activeScreen === 'notifications' ? 'is-active' : ''} onClick={() => setActiveScreen('notifications')}><Bell size={19} />{notifications.some(notification => !notification.read) && <i /> }<span>{copy.notifications}</span></button><button type="button" onClick={() => setSidebarOpen(true)}><Settings size={19} /><span>{copy.settings}</span></button></nav>
+      {liveViewerOpen && <section className="live-viewer-backdrop" role="dialog" aria-modal="true" aria-label={`Live monitoring ${selectedPatient.name}`}><div className="live-viewer"><header className="live-viewer__header"><div><span><Video size={16} /> LIVE MONITORING</span><h2>{selectedPatient.name}</h2></div><button type="button" className="live-viewer__close" onClick={closeLiveViewer} aria-label="Inchide camera live"><X size={20} /></button></header><div className="live-viewer__video-wrap"><video ref={liveVideoRef} autoPlay playsInline muted />{liveViewerConnecting && <div className="live-viewer__state">Se conecteaza la camera pacientului...</div>}</div></div></section>}
+
+      <nav className="phone-bottom-nav" aria-label="Navigare principala"><button type="button" className={activeScreen === 'dashboard' ? 'is-active' : ''} onClick={() => setActiveScreen('dashboard')}><Users size={19} /><span>{copy.dashboard}</span></button><button type="button" className={activeScreen === 'notifications' ? 'is-active' : ''} onClick={() => setActiveScreen('notifications')}><Bell size={19} />{notifications.some(notification => !notification.read && !isMonitoringStatusNotification(notification) && !isLiveStreamSignalNotification(notification)) && <i /> }<span>{copy.notifications}</span></button><button type="button" onClick={() => setSidebarOpen(true)}><Settings size={19} /><span>{copy.settings}</span></button></nav>
     </main>
   );
 }

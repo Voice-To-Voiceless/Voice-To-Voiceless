@@ -50,7 +50,7 @@ export function TrackingGuideModal({ t, onClose, onBegin }: { t: Translator; onC
   </section>;
 }
 
-export function CalibrationModal({ tracking, recognition, videoRef, faceDetected, trackingActive, recognitionActive, attentionNotificationRemainingMs, attentionNotificationSent, t }: {
+export function CalibrationModal({ tracking, recognition, videoRef, faceDetected, trackingActive, recognitionActive, attentionNotificationRemainingMs, attentionNotificationSent, onStopRecognition, t }: {
   tracking: Tracking;
   recognition: Recognition;
   videoRef: React.RefObject<HTMLVideoElement | null>;
@@ -59,12 +59,13 @@ export function CalibrationModal({ tracking, recognition, videoRef, faceDetected
   recognitionActive: boolean;
   attentionNotificationRemainingMs?: number;
   attentionNotificationSent?: boolean;
+  onStopRecognition: () => void;
   t: Translator;
 }) {
   const isCalibration = tracking.snapshot.calibrationTarget !== null || tracking.snapshot.calibrating || tracking.snapshot.calibrationFailed;
   return <section className={`calibration-modal${isCalibration || recognitionActive ? '' : ' calibration-modal--hidden'}`} role="dialog" aria-modal="true" aria-label={tracking.snapshot.calibrating ? t('cameraCalibration') : t('faceRecognition')}>
     <div className="calibration-modal__content">
-      <button type="button" className="calibration-modal__close" aria-label={t('closeCameraPopup')} title={t('close')} onClick={isCalibration ? tracking.cancelCalibration : recognition.stop}><X size={20} aria-hidden="true" /></button>
+      <button type="button" className="calibration-modal__close" aria-label={t('closeCameraPopup')} title={t('close')} onClick={isCalibration ? tracking.cancelCalibration : onStopRecognition}><X size={20} aria-hidden="true" /></button>
       <div className="calibration-modal__body">
         <div className="calibration-modal__preview"><CameraPanel isLive={trackingActive || recognitionActive} fps={60}><CameraPreview><video ref={videoRef} className="camera-preview" autoPlay muted playsInline /></CameraPreview></CameraPanel></div>
         {recognitionActive ? <aside className="camera-status-sidebar camera-status-sidebar--details" aria-label={t('faceRecognition')}>
