@@ -14,7 +14,7 @@ type Props = {
 export function BrowserControls({ tracking, recognition, trackingState, onTracking, onRecognition, onCalibrate }: Props) {
   return <>
     <button type="button" className="tracking-button" onClick={onTracking} disabled={recognition}>{tracking ? 'Stop eye tracking' : 'Start eye tracking'}</button>
-    <button type="button" className="face-recognition-button" onClick={onRecognition} disabled={tracking}>{recognition ? 'Stop face recognition' : 'Test face recognition'}</button>
+    <button type="button" className="face-recognition-button" onClick={onRecognition} disabled={tracking}>{recognition ? 'Stop live monitoring' : 'Test live monitoring'}</button>
     {tracking && <button type="button" className="calibration-button" onClick={onCalibrate} disabled={trackingState.calibrating}>
       {trackingState.calibrating ? `Calibrating ${trackingState.calibrationIndex + 1}/${CALIBRATION_TARGETS.length}` : trackingState.calibrationReady ? 'Recalibrate gaze' : 'Calibrate gaze'}
     </button>}
