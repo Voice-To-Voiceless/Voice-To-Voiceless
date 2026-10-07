@@ -46,6 +46,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   const tracking = useBrowserTracking(videoRef, boardRef, selection.selectAction, modelTestingSession);
   const { calibrate } = tracking;
   const recognition = useFaceRecognition(videoRef);
+  const { start: startRecognition } = recognition;
   const trackingActive = tracking.snapshot.active;
   const recognitionActive = recognition.snapshot.active;
   const localizedActions = COMMUNICATION_ACTIONS.map(action => ({ ...action, label: t(action.id) }));
@@ -53,8 +54,8 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   useEffect(() => {
     if (window.sessionStorage.getItem(START_MONITORING_AFTER_RELOAD) !== 'true') return;
     window.sessionStorage.removeItem(START_MONITORING_AFTER_RELOAD);
-    recognition.start().catch(() => undefined);
-  }, [recognition.start]);
+    startRecognition().catch(() => undefined);
+  }, [startRecognition]);
 
   useEffect(() => {
     if (tracking.snapshot.calibrationConfidence !== null) setShowConfidencePopup(true);
