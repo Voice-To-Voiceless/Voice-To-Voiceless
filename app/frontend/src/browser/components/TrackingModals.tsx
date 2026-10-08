@@ -127,15 +127,30 @@ export function NotificationIcon() {
 }
 
 export function NurseAlertPopup({ message, t, replying, onReply }: { message: string; t: Translator; replying: boolean; onReply: (message: string) => void }) {
+  const normalizedMessage = message.toLowerCase();
+  const replyKeys = normalizedMessage.includes('medication') || normalizedMessage.includes('medicament')
+    ? ['medicationReplyYes', 'medicationReplyDone', 'medicationReplyHelp'] as const
+    : normalizedMessage.includes('water') || normalizedMessage.includes('apa')
+      ? ['waterReplyYes', 'waterReplyNo', 'waterReplyHelp'] as const
+      : normalizedMessage.includes('respond') || normalizedMessage.includes('raspunde')
+        ? ['respondReplyNow', 'respondReplySeen', 'respondReplySoon'] as const
+      : normalizedMessage.includes('check on you') || normalizedMessage.includes('nurse will be here') || normalizedMessage.includes('verifice') || normalizedMessage.includes('asistenta va veni') || normalizedMessage.includes('asistenta vine')
+        ? ['checkReplyThanks', 'checkReplyOkay', 'checkReplyHelp'] as const
+        : ['generalReplyYes', 'generalReplyNo', 'generalReplyLater'] as const;
+  const isRomanian = t('yes') === 'Da';
+  const replyLabels = replyKeys.map(replyKey => {
+    if (replyKey === 'respondReplySeen') return isRomanian ? 'Ma simt bine.' : 'I am okay.';
+    if (replyKey === 'respondReplySoon') return isRomanian ? 'Nu ma simt bine.' : "I don't feel well.";
+    return t(replyKey);
+  });
+
   return <section className="patient-notification-popup" role="dialog" aria-modal="true" aria-labelledby="patient-notification-title">
     <div className="patient-notification-popup__icon"><NotificationIcon /></div>
     <span className="patient-notification-popup__eyebrow">{t('messageFromNurse')}</span>
     <h2 id="patient-notification-title">{message}</h2>
     <p>{t('chooseReply')}</p>
     <div className="patient-notification-popup__actions">
-      <button type="button" onClick={() => onReply(`${t('needHelp')}.`)} disabled={replying}>{t('needHelp')}</button>
-      <button type="button" onClick={() => onReply(`${t('understood')}.`)} disabled={replying}>{t('understood')}</button>
-      <button type="button" onClick={() => onReply(`${t('later')}.`)} disabled={replying}>{t('later')}</button>
+      {replyLabels.map(replyLabel => <button type="button" key={replyLabel} onClick={() => onReply(replyLabel)} disabled={replying}>{replyLabel}</button>)}
     </div>
   </section>;
 }

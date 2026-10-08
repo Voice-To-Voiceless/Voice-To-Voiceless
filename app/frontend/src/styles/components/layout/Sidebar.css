@@ -252,8 +252,11 @@ html[data-theme="dark"] .sidebar__clock span { color:#d9fdd3; }
 .patient-code-modal__manual { align-items: center; background: transparent; border: 0; color: #128c7e; cursor: pointer; display: flex; font: 700 16px Arial, sans-serif; gap: 8px; margin-top: 18px; padding: 7px 10px; }
 .patient-code-modal__manual:hover { color: #075e54; text-decoration: underline; }
 .patient-code-modal__result { display: flex; flex-direction: column; }
+.patient-code-modal__code-row { align-items: center; background: #e4f4ef; border: 1px dashed #128c7e; border-radius: 9px; display: flex; justify-content: center; margin-top: 9px; min-height: 72px; padding: 8px 58px 8px 12px; position: relative; }
 .patient-code-modal__result > span { color: #128c7e; font: 16px Arial, sans-serif; }
-.patient-code-modal__result strong { background: #e4f4ef; border: 1px dashed #128c7e; border-radius: 9px; color: #075e54; font: 800 30px Arial, sans-serif; letter-spacing: .08em; margin-top: 9px; padding: 18px 12px; text-align: center; }
+.patient-code-modal__result strong { color: #075e54; font: 800 30px Arial, sans-serif; letter-spacing: .08em; padding: 10px 4px; text-align: center; }
+.patient-code-modal__copy { align-items: center; background: #e8f5f2; border: 1px solid #b8ddd5; border-radius: 8px; color: #087568; cursor: pointer; display: flex; height: 36px; justify-content: center; padding: 6px; position: absolute; right: 16px; width: 36px; }
+.patient-code-modal__copy:hover { background: #d5eee8; border-color: #128c7e; }
 
 @media (max-width: 640px) {
     .patient-code-modal__content { max-width: 100%; padding: 26px 22px; }
@@ -268,6 +271,10 @@ html[data-theme="dark"] .sidebar__clock span { color:#d9fdd3; }
 html[data-theme="dark"] .patient-code-modal__content { background: #18232d; border-color: #526c80; color: #edf3f7; }
 html[data-theme="dark"] .patient-code-modal__close { color: #b5c3cf; }
 html[data-theme="dark"] .patient-code-modal__close:hover { background: #2b4052; color: #fff; }
+html[data-theme="dark"] .patient-code-modal__code-row { background: #153c35; border-color: #39b978; }
+html[data-theme="dark"] .patient-code-modal__result strong { color: #dcffd9; }
+html[data-theme="dark"] .patient-code-modal__copy { background: #1c3e43; border-color: #2d706d; color: #8be4d3; }
+html[data-theme="dark"] .patient-code-modal__copy:hover { background: #24534f; border-color: #45c9b5; }
 html[data-theme="dark"] .patient-code-modal__eyebrow,
 html[data-theme="dark"] .patient-code-modal__result > span { color: #8ee6cf; }
 html[data-theme="dark"] .patient-code-modal h2 { color: #b9ddff; }
