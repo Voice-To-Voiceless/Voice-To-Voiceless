@@ -2,6 +2,8 @@ import "../../../styles/components/layout/Sidebar.css";
 import { useEffect, useState, type ReactNode } from "react";
 
 import {
+    Check,
+    Copy,
     House,
     IdCard,
     Keyboard,
@@ -31,6 +33,7 @@ export default function Sidebar({ notification, controls, activeItem = "Home", o
     const { t } = useLanguage();
     const [showPatientCode, setShowPatientCode] = useState(false);
     const [showManualCode, setShowManualCode] = useState(false);
+    const [codeCopied, setCodeCopied] = useState(false);
     const [qrCode, setQrCode] = useState("");
 
     useEffect(() => {
@@ -52,13 +55,25 @@ export default function Sidebar({ notification, controls, activeItem = "Home", o
 
     const openPatientCode = () => {
         setShowManualCode(false);
+        setCodeCopied(false);
         setShowPatientCode(true);
     };
 
     const closePatientCode = () => {
         setShowPatientCode(false);
         setShowManualCode(false);
+        setCodeCopied(false);
         setQrCode("");
+    };
+
+    const copyPatientCode = async () => {
+        try {
+            await navigator.clipboard.writeText(DEMO_PATIENT_CODE);
+            setCodeCopied(true);
+            window.setTimeout(() => setCodeCopied(false), 1800);
+        } catch {
+            setCodeCopied(false);
+        }
     };
 
     return (
@@ -134,7 +149,18 @@ export default function Sidebar({ notification, controls, activeItem = "Home", o
                     ) : (
                         <div className="patient-code-modal__result">
                             <span>{t("yourPatientCode")}</span>
-                            <strong>{DEMO_PATIENT_CODE}</strong>
+                            <div className="patient-code-modal__code-row">
+                                <strong>{DEMO_PATIENT_CODE}</strong>
+                                <button
+                                    className="patient-code-modal__copy"
+                                    type="button"
+                                    onClick={copyPatientCode}
+                                    aria-label={codeCopied ? t("patientCodeCopied") : t("copyPatientCode")}
+                                    title={codeCopied ? t("patientCodeCopied") : t("copyPatientCode")}
+                                >
+                                    {codeCopied ? <Check size={18} /> : <Copy size={18} />}
+                                </button>
+                            </div>
                             <button className="patient-code-modal__submit" type="button" onClick={closePatientCode}>{t("done")}</button>
                         </div>
                     )}

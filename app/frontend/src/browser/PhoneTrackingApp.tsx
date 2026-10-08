@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, Check, ChevronRight, HeartPulse, Keyboard, Languages, Moon, ScanLine, Send, Settings, Sun, Users, Video, X } from 'lucide-react';
+import { Bell, Check, ChevronDown, ChevronRight, Clock3, HeartPulse, Keyboard, Languages, Moon, Search, ScanLine, Send, Settings, Sun, Users, Video, Wifi, X } from 'lucide-react';
 import { deleteNotification, getNotifications, subscribeToNotifications, type PatientNotification } from '../services/notifications';
 import { readLiveSignal, sendLiveSignal } from '../services/liveMonitoring';
 import { getPatients, linkPatient } from '../services/patients';
@@ -36,9 +36,13 @@ function isLiveStreamSignalNotification(notification: PatientNotification): bool
   return notification.type.startsWith('live_stream_');
 }
 
+function isAttentionNotification(notification: PatientNotification): boolean {
+  return notification.source === 'patient' && notification.type === 'patient_action' && notification.severity === 'critical' && !notification.read;
+}
+
 const caregiverCopy = {
-  English: { menu: 'Open menu', closeMenu: 'Close menu', settings: 'Settings', preferences: 'Preferences', language: 'Language', darkMode: 'Dark mode', lightMode: 'Light mode', english: 'English', romanian: 'Romanian', goodMorning: 'Good morning', patientDashboard: 'Patient dashboard', synced: 'Synced now', scanNewPatient: 'Scan new patient', scanDescription: 'Scan the QR code on the tablet', myPatients: 'MY PATIENTS', active: 'active', notifications: 'Notifications', unread: 'Unread', clearAll: 'Clear all', noNotifications: 'No notifications for this patient.', all: 'All', emergencies: 'Emergency', markRead: 'Mark notification as read', toTablet: 'TO TABLET', sendReminder: 'Send a reminder', reminderDescription: 'The message will appear immediately on', sendToTablet: 'Send to tablet', sending: 'Sending...', online: 'Online', needsAttention: 'Needs attention', offline: 'Offline', monitoringLive: 'Live monitoring active', monitoringOffline: 'Live monitoring offline', settingsHint: 'Change the language and appearance.', patients: 'Patients', dashboard: 'Dashboard' },
-  Romanian: { menu: 'Deschide meniul', closeMenu: 'Inchide meniul', settings: 'Setari', preferences: 'Preferinte', language: 'Limba', darkMode: 'Mod intunecat', lightMode: 'Mod luminos', english: 'Engleza', romanian: 'Romana', goodMorning: 'Buna dimineata', patientDashboard: 'Panoul pacientilor', synced: 'Sincronizat acum', scanNewPatient: 'Scaneaza pacient nou', scanDescription: 'Citeste codul QR de pe tableta', myPatients: 'PACIENTII MEI', active: 'activi', notifications: 'Notificari', unread: 'necitite', clearAll: 'Sterge toate', noNotifications: 'Nu exista notificari pentru acest pacient.', all: 'Toate', emergencies: 'Urgente', markRead: 'Marcheaza notificarea ca citita', toTablet: 'CATRE TABLETA', sendReminder: 'Trimite un reminder', reminderDescription: 'Mesajul va aparea imediat pe tableta lui', sendToTablet: 'Trimite catre tableta', sending: 'Se trimite...', online: 'Online', needsAttention: 'Necesita atentie', offline: 'Offline', monitoringLive: 'Monitorizare live activa', monitoringOffline: 'Monitorizare live oprita', settingsHint: 'Schimba limba si aspectul aplicatiei.', patients: 'Pacienti', dashboard: 'Panou' },
+  English: { menu: 'Open menu', closeMenu: 'Close menu', settings: 'Settings', preferences: 'Preferences', language: 'Language', darkMode: 'Dark mode', lightMode: 'Light mode', english: 'English', romanian: 'Romanian', goodMorning: 'Good morning', patientDashboard: 'Patient dashboard', synced: 'Synced now', scanNewPatient: 'Scan new patient', scanDescription: 'Scan the QR code on the tablet', myPatients: 'MY PATIENTS', active: 'active', notifications: 'Notifications', unread: 'Unread', clearAll: 'Clear all', noNotifications: 'No notifications for this patient.', all: 'All', emergencies: 'Emergency', markRead: 'Mark notification as read', toTablet: 'TO TABLET', sendReminder: 'Send a reminder', reminderDescription: 'The message will appear immediately on', sendToTablet: 'Send to tablet', sending: 'Sending...', online: 'Online', needsAttention: 'Needs attention', offline: 'Offline', monitoringLive: 'Live monitoring active', monitoringOffline: 'Live monitoring offline', settingsHint: 'Change the language and appearance.', patients: 'Patients', dashboard: 'Dashboard', searchPatients: 'Search patients', overview: 'TODAY AT A GLANCE', connected: 'connected', attention: 'attention' },
+  Romanian: { menu: 'Deschide meniul', closeMenu: 'Inchide meniul', settings: 'Setari', preferences: 'Preferinte', language: 'Limba', darkMode: 'Mod intunecat', lightMode: 'Mod luminos', english: 'Engleza', romanian: 'Romana', goodMorning: 'Buna dimineata', patientDashboard: 'Panoul pacientilor', synced: 'Sincronizat acum', scanNewPatient: 'Scaneaza pacient nou', scanDescription: 'Citeste codul QR de pe tableta', myPatients: 'PACIENTII MEI', active: 'activi', notifications: 'Notificari', unread: 'necitite', clearAll: 'Sterge toate', noNotifications: 'Nu exista notificari pentru acest pacient.', all: 'Toate', emergencies: 'Urgente', markRead: 'Marcheaza notificarea ca citita', toTablet: 'CATRE TABLETA', sendReminder: 'Trimite un reminder', reminderDescription: 'Mesajul va aparea imediat pe tableta lui', sendToTablet: 'Trimite catre tableta', sending: 'Se trimite...', online: 'Online', needsAttention: 'Necesita atentie', offline: 'Offline', monitoringLive: 'Monitorizare live activa', monitoringOffline: 'Monitorizare live oprita', settingsHint: 'Schimba limba si aspectul aplicatiei.', patients: 'Pacienti', dashboard: 'Panou', searchPatients: 'Cauta pacienti', overview: 'SITUATIA DE AZI', connected: 'conectati', attention: 'atentie' },
 } as const;
 
 function readPhoneSettings(): { language: 'English' | 'Romanian'; darkMode: boolean } {
@@ -207,6 +211,30 @@ function NotificationsScreen({ notifications, patients, copy, language, onRead, 
   </section>;
 }
 
+function ReminderSelect({ value, options, label, onChange }: { value: string; options: readonly string[]; label: string; onChange: (value: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const selectRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (selectRef.current && !selectRef.current.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', closeOnOutsideClick);
+    return () => document.removeEventListener('mousedown', closeOnOutsideClick);
+  }, [open]);
+
+  function chooseOption(option: string) {
+    onChange(option);
+    setOpen(false);
+  }
+
+  return <div className={`caregiver-select-wrap${open ? ' is-open' : ''}`} ref={selectRef}>
+    <button type="button" className="caregiver-select-trigger" aria-haspopup="listbox" aria-expanded={open} aria-label={label} onClick={() => setOpen(current => !current)}><span>{value}</span><ChevronDown size={16} aria-hidden="true" /></button>
+    {open && <div className="caregiver-select-menu" role="listbox" aria-label={label}>{options.map(option => <button type="button" role="option" aria-selected={option === value} className={option === value ? 'is-selected' : ''} key={option} onClick={() => chooseOption(option)}><span>{option}</span>{option === value && <Check size={15} aria-hidden="true" />}</button>)}</div>}
+  </div>;
+}
+
 export function PhoneTrackingApp() {
   const { language } = useLanguage();
   const copy = caregiverCopy[language];
@@ -220,6 +248,7 @@ export function PhoneTrackingApp() {
   const reminderOptionsForLanguage = localizedReminderOptions[language];
   const [sending, setSending] = useState(false);
   const [feedback, setFeedback] = useState('');
+  const [patientQuery, setPatientQuery] = useState('');
   const [activeScreen, setActiveScreen] = useState<'dashboard' | 'notifications'>('dashboard');
   const liveVideoRef = useRef<HTMLVideoElement>(null);
   const livePeerRef = useRef<RTCPeerConnection | null>(null);
@@ -227,6 +256,10 @@ export function PhoneTrackingApp() {
   const [liveViewerOpen, setLiveViewerOpen] = useState(false);
   const [liveViewerConnecting, setLiveViewerConnecting] = useState(false);
   const selectedPatient = patients.find(patient => patient.id === selectedPatientId) ?? patients[0];
+  const filteredPatients = patients.filter(patient => patient.name.toLowerCase().includes(patientQuery.toLowerCase()) || patient.room.toLowerCase().includes(patientQuery.toLowerCase()));
+  const connectedPatients = patients.filter(patient => patient.status === 'online').length;
+  const attentionPatientIds = new Set(notifications.filter(isAttentionNotification).map(notification => notification.patient_metadata.patient_id));
+  const attentionPatients = attentionPatientIds.size;
   const monitoringStatusByPatient = useMemo(() => {
     const latestStatus = new Map<string, 'monitoring_started' | 'monitoring_stopped'>();
     [...notifications]
@@ -462,19 +495,21 @@ export function PhoneTrackingApp() {
       </>}
 
       {activeScreen === 'notifications' ? <NotificationsScreen notifications={notifications} patients={patients} copy={copy} language={language} onRead={readNotification} onClearAll={dismissAllNotifications} /> : <>
-      <section className="caregiver-welcome"><div><h2>{copy.patientDashboard}</h2></div></section>
       {feedback && <div className="caregiver-feedback caregiver-feedback--banner" role="status"><Check size={16} /> {feedback}</div>}
 
       <button type="button" className="patient-code-button" onClick={() => setShowCodeScanner(true)}><span className="patient-code-button__icon"><ScanLine size={21} /></span><span><strong>{copy.scanNewPatient}</strong><small>{copy.scanDescription}</small></span><ChevronRight size={18} /></button>
 
+      <section className="caregiver-quick-stats" aria-label={copy.overview}><div><span className="quick-stat-icon quick-stat-icon--teal"><Users size={16} /></span><strong>{patients.length}</strong><small>{copy.patients}</small></div><div><span className="quick-stat-icon quick-stat-icon--green"><Wifi size={16} /></span><strong>{connectedPatients}</strong><small>{copy.connected}</small></div><div><span className="quick-stat-icon quick-stat-icon--amber"><Clock3 size={16} /></span><strong>{attentionPatients}</strong><small>{copy.attention}</small></div></section>
+
       <section className="caregiver-patient-list" aria-label="Pacienti">
         <div className="caregiver-section-label"><span><Users size={15} /> {copy.myPatients}</span><strong>{patients.length} {copy.active}</strong></div>
-        {patients.map(patient => { const monitoringLive = monitoringStatusByPatient.get(patient.id) === 'monitoring_started'; return <button key={patient.id} type="button" className={`patient-row${patient.id === selectedPatient.id ? ' is-selected' : ''}`} onClick={() => setSelectedPatientId(patient.id)}><span className={`patient-avatar patient-avatar--${patient.status}`}>{patient.name.split(' ').map(part => part[0]).join('')}</span><span className="patient-row__details"><strong>{patient.name}</strong><span>{localizeRoom(patient.room, language)} · {localizeLastSeen(patient.lastSeen, language)}</span></span><span className={`patient-monitoring-status patient-monitoring-status--${monitoringLive ? 'live' : 'offline'}`}>{monitoringLive ? 'LIVE' : 'OFFLINE'}</span><span className={`patient-status patient-status--${patient.status}`} /> <ChevronRight size={17} /></button>; })}
+        <label className="patient-search"><Search size={16} /><input value={patientQuery} onChange={event => setPatientQuery(event.target.value)} placeholder={copy.searchPatients} aria-label={copy.searchPatients} /></label>
+        {filteredPatients.map(patient => { const monitoringLive = monitoringStatusByPatient.get(patient.id) === 'monitoring_started'; const hasAttention = attentionPatientIds.has(patient.id); const visualStatus = hasAttention ? 'attention' : patient.status; return <button key={patient.id} type="button" className={`patient-row${patient.id === selectedPatient.id ? ' is-selected' : ''}${hasAttention ? ' has-attention' : ''}`} onClick={() => setSelectedPatientId(patient.id)}><span className={`patient-avatar patient-avatar--${visualStatus}`}>{patient.name.split(' ').map(part => part[0]).join('')}</span><span className="patient-row__details"><strong>{patient.name}</strong><span>{localizeRoom(patient.room, language)} · {localizeLastSeen(patient.lastSeen, language)}</span></span><span className={`patient-monitoring-status patient-monitoring-status--${monitoringLive ? 'live' : 'offline'}`}>{monitoringLive ? 'LIVE' : 'OFFLINE'}</span><span className={`patient-status patient-status--${visualStatus}`} /> <ChevronRight size={17} /></button>; })}
       </section>
 
       <section className="caregiver-panel caregiver-monitoring-status"><div className="caregiver-panel__heading"><div><span><HeartPulse size={15} /> {copy.patientDashboard}</span><h2>{selectedPatient.name}</h2></div><span className={`patient-monitoring-status patient-monitoring-status--${selectedMonitoringLive ? 'live' : 'offline'}`}>{selectedMonitoringLive ? 'LIVE' : 'OFFLINE'}</span></div><p>{selectedMonitoringLive ? copy.monitoringLive : copy.monitoringOffline}</p>{selectedMonitoringLive && <button type="button" className="caregiver-live-button" onClick={openLiveViewer} disabled={liveViewerOpen}><Video size={17} /> Vezi camera live</button>}</section>
 
-      <section className="caregiver-panel caregiver-reminder"><div className="caregiver-panel__heading"><div><span><Send size={15} /> {copy.toTablet}</span><h2>{copy.sendReminder}</h2></div></div><p>{copy.reminderDescription} {selectedPatient.name.split(' ')[0]}.</p><select value={message} onChange={event => setMessage(event.target.value)} aria-label={copy.sendReminder}>{reminderOptionsForLanguage.map(option => <option key={option}>{option}</option>)}</select><button className="caregiver-send-button" type="button" onClick={sendReminder} disabled={sending || selectedPatient.status === 'offline'}><Send size={17} /> {sending ? copy.sending : copy.sendToTablet}</button></section>
+      <section className="caregiver-panel caregiver-reminder"><div className="caregiver-panel__heading"><div><span><Send size={15} /> {copy.toTablet}</span><h2>{copy.sendReminder}</h2></div></div><p>{copy.reminderDescription} {selectedPatient.name.split(' ')[0]}.</p><ReminderSelect value={message} options={reminderOptionsForLanguage} label={copy.sendReminder} onChange={setMessage} /><button className="caregiver-send-button" type="button" onClick={sendReminder} disabled={sending || selectedPatient.status === 'offline'}><Send size={17} /> {sending ? copy.sending : copy.sendToTablet}</button></section>
       </>}
 
       {liveViewerOpen && <section className="live-viewer-backdrop" role="dialog" aria-modal="true" aria-label={`Live monitoring ${selectedPatient.name}`}><div className="live-viewer"><header className="live-viewer__header"><div><span><Video size={16} /> LIVE MONITORING</span><h2>{selectedPatient.name}</h2></div><button type="button" className="live-viewer__close" onClick={closeLiveViewer} aria-label="Inchide camera live"><X size={20} /></button></header><div className="live-viewer__video-wrap"><video ref={liveVideoRef} autoPlay playsInline muted />{liveViewerConnecting && <div className="live-viewer__state">Se conecteaza la camera pacientului...</div>}</div></div></section>}
