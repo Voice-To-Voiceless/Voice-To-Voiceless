@@ -15,6 +15,7 @@ declare module 'webgazer' {
     recordScreenPosition(x: number, y: number, eventType?: 'click' | 'move'): WebGazerRuntime;
     removeMouseEventListeners(): WebGazerRuntime;
     saveDataAcrossSessions(enabled: boolean): WebGazerRuntime;
+    setTracker(name: 'TFFacemesh'): WebGazerRuntime;
     setGazeListener(listener: (data: WebGazerPrediction, elapsedTime: number) => void): WebGazerRuntime;
     setRegression(name: 'ridge' | 'weightedRidge' | 'threadedRidge'): WebGazerRuntime;
     showPredictionPoints(enabled: boolean): WebGazerRuntime;

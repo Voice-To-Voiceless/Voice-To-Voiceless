@@ -53,6 +53,7 @@ export class BrowserWebGazerAdapter {
     webgazer.params.faceMeshSolutionPath = new URL('webgazer/face_mesh', document.baseURI).toString();
     this.runtime = webgazer
       .saveDataAcrossSessions(false)
+      .setTracker('TFFacemesh')
       .setRegression('ridge')
       .applyKalmanFilter(false)
       .showVideoPreview(false)
@@ -77,13 +78,13 @@ export class BrowserWebGazerAdapter {
     try {
       await this.runtime.begin();
     } catch (error) {
-      cleanupRuntime(this.runtime);
+      webGazerShutdown = cleanupRuntime(this.runtime);
+      await webGazerShutdown;
       this.runtime = null;
       throw error;
     } finally {
       if (originalGetUserMedia) Object.defineProperty(mediaDevices, 'getUserMedia', originalGetUserMedia);
       else delete (mediaDevices as { getUserMedia?: unknown }).getUserMedia;
-      releaseFaceMeshModule();
     }
     this.runtime.removeMouseEventListeners();
   }
@@ -139,6 +140,7 @@ async function cleanupRuntime(runtime: WebGazerRuntime): Promise<void> {
       console.warn('[webgazer] cleanup failed', error);
     }
   }
+  releaseFaceMeshModule();
 }
 
 function resetStaleFaceMeshModule(): void {

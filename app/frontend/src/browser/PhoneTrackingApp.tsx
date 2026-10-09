@@ -37,7 +37,9 @@ function isLiveStreamSignalNotification(notification: PatientNotification): bool
 }
 
 function isAttentionNotification(notification: PatientNotification): boolean {
-  return notification.source === 'patient' && notification.type === 'patient_action' && notification.severity === 'critical' && !notification.read;
+  const isPatientAction = notification.source === 'patient' && notification.type === 'patient_action';
+  const isMonitoringAlert = notification.source === 'face_recognition' && notification.type === 'attention_required';
+  return (isPatientAction || isMonitoringAlert) && notification.severity === 'critical' && !notification.read;
 }
 
 const caregiverCopy = {
