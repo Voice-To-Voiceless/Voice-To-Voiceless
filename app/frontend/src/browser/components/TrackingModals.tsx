@@ -126,7 +126,7 @@ export function NotificationIcon() {
   return <Bell size={22} aria-hidden="true" />;
 }
 
-export function NurseAlertPopup({ message, t, replying, onReply }: { message: string; t: Translator; replying: boolean; onReply: (message: string) => void }) {
+export function NurseAlertPopup({ message, t, replying, activeTarget, dwellProgress, onReply }: { message: string; t: Translator; replying: boolean; activeTarget: string | null; dwellProgress: number; onReply: (message: string) => void }) {
   const normalizedMessage = message.toLowerCase();
   const replyKeys = normalizedMessage.includes('medication') || normalizedMessage.includes('medicament')
     ? ['medicationReplyYes', 'medicationReplyDone', 'medicationReplyHelp'] as const
@@ -150,7 +150,14 @@ export function NurseAlertPopup({ message, t, replying, onReply }: { message: st
     <h2 id="patient-notification-title">{message}</h2>
     <p>{t('chooseReply')}</p>
     <div className="patient-notification-popup__actions">
-      {replyLabels.map(replyLabel => <button type="button" key={replyLabel} onClick={() => onReply(replyLabel)} disabled={replying}>{replyLabel}</button>)}
+      {replyLabels.map(replyLabel => {
+        const targetId = `nurse-reply:${encodeURIComponent(replyLabel)}`;
+        const active = activeTarget === targetId;
+        return <button type="button" key={replyLabel} data-action-id={targetId} className={active ? 'gaze-active' : ''} onClick={() => onReply(replyLabel)} disabled={replying} aria-label={active ? `${replyLabel}. ${Math.round(dwellProgress * 100)} percent selected` : replyLabel}>
+          <span>{replyLabel}</span>
+          {active && <span className="patient-notification-popup__dwell-progress" style={{ width: `${dwellProgress * 100}%` }} aria-hidden="true" />}
+        </button>;
+      })}
     </div>
   </section>;
 }
