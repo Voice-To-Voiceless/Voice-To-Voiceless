@@ -101,4 +101,4 @@ npm run start:web
 
 Open the Vite URL, usually `http://localhost:5173`. The backend is available at `http://localhost:8000`, with interactive API documentation at `http://localhost:8000/docs`.
 
-For detailed commands and platform-specific setup, start with the [local development quick start](docs/local-development-quickstart.md).
+For detailed commands and platform-specific setup, start with the [local development quick start](docs/development/local-development-quickstart.md).
