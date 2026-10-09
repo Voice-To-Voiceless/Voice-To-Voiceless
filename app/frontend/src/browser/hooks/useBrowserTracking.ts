@@ -8,7 +8,7 @@ import { TrackingSnapshot } from '../browserTypes';
 import { ModelTestingSession } from '../../modelTesting/modelTestingSession';
 import { useCalibration } from './useCalibration';
 import { evaluateCalibrationSampleQuality } from '../../vision/calibration/calibrationQuality';
-import { BrowserWebGazerAdapter } from '../../vision/webgazer/webgazerAdapter';
+import { BrowserWebGazerAdapter, waitForWebGazerShutdown } from '../../vision/webgazer/webgazerAdapter';
 import { createWebGazerCalibrationBackend } from '../../vision/webgazer/webgazerCalibration';
 
 const initialSnapshot: TrackingSnapshot = { active: false, rawGaze: null, calibratedGaze: null, gazePoint: null, activeTarget: null, dwellProgress: 0, calibrating: false, calibrationIndex: 0, calibrationTarget: null, calibrationProgress: 0, calibrationPassKind: null, calibrationFailed: false, calibrationFailure: null, calibrationReady: false, calibrationConfidence: null, trackingPauseReason: null };
@@ -31,6 +31,7 @@ export function useBrowserTracking(
   const fallbackLoggedRef = useRef(false);
   const dwellRef = useRef(new DwellSelector(900));
   const webgazerRef = useRef<BrowserWebGazerAdapter | null>(null);
+  const shutdownRef = useRef(Promise.resolve());
   const calibrationBackendRef = useRef<ReturnType<typeof createWebGazerCalibrationBackend> | null>(null);
   const startRef = useRef<(() => Promise<void>) | null>(null);
   const {
@@ -60,16 +61,20 @@ export function useBrowserTracking(
     frameRef.current = null;
     activeRef.current = false;
     processingRef.current = false;
-    webgazerRef.current?.stop().catch(() => undefined);
+    const webgazer = webgazerRef.current;
+    if (webgazer) {
+      shutdownRef.current = webgazer.stop().catch(() => undefined);
+    }
     webgazerRef.current = null;
     calibrationBackendRef.current = null;
     closeEyeTrackingCamera(streamRef.current);
+    if (videoRef.current) videoRef.current.srcObject = null;
     streamRef.current = null;
     resetCalibration();
     resetInteraction();
     setSnapshot(initialSnapshot);
     setStatus('Camera is off. Start tracking to begin.');
-  }, [resetCalibration, resetInteraction]);
+  }, [resetCalibration, resetInteraction, videoRef]);
   const processFrame = useCallback(async (timestamp: number) => {
     const video = videoRef.current;
     if (!activeRef.current || processingRef.current || !video) return;
@@ -209,6 +214,8 @@ export function useBrowserTracking(
     setError(null);
     setStatus('Requesting camera permission...');
     try {
+      await waitForWebGazerShutdown();
+      await shutdownRef.current;
       streamRef.current = await openEyeTrackingCamera(videoRef.current);
       setStatus('Initializing WebGazer...');
       const webgazer = new BrowserWebGazerAdapter(streamRef.current);

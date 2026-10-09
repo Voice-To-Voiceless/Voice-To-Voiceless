@@ -65,8 +65,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
     }
     const action = COMMUNICATION_ACTIONS.find(item => item.id === targetId);
     if (action) {
-      selection.selectAction(action.id);
-      void notifyNurseOfAction(action.id);
+      handleActionSelect(action.id);
     }
   }, modelTestingSession);
   const { calibrate } = tracking;
@@ -110,7 +109,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
       createNotification({
         source: 'face_recognition',
         type: 'attention_required',
-        severity: 'warning',
+        severity: 'critical',
         message: 'Attention required: the patient may need assistance.',
         patient_metadata: { patient_id: TABLET_PATIENT_ID },
         recipient: 'nurse',
@@ -210,7 +209,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
 
   const beginTracking = () => {
     setShowTrackingGuide(false);
-    tracking.start().catch(() => undefined);
+    void tracking.start();
   };
 
   const stopTracking = () => {
@@ -251,7 +250,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
     }
   };
 
-  const notifyNurseOfAction = async (actionId: ActionId) => {
+  async function notifyNurseOfAction(actionId: ActionId) {
     const action = COMMUNICATION_ACTIONS.find(item => item.id === actionId);
     if (!action || actionNotificationsInFlight.current.has(actionId)) return;
 
@@ -270,7 +269,12 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
     } finally {
       actionNotificationsInFlight.current.delete(actionId);
     }
-  };
+  }
+
+  function handleActionSelect(actionId: ActionId) {
+    selection.selectAction(actionId);
+    void notifyNurseOfAction(actionId);
+  }
 
   return (
     <AppLayout className={`tracking-layout tracking-layout--${layout}`} sidebarControls={activePage === 'Home' ? <>
@@ -285,6 +289,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
       {trackingActive && <button type="button" className="calibration-button" onClick={tracking.calibrate} disabled={tracking.snapshot.calibrating || tracking.snapshot.calibrationFailed}>
         {tracking.snapshot.calibrating ? `${t('calibrating')} ${tracking.snapshot.calibrationIndex + 1}/9` : tracking.snapshot.calibrationReady ? t('recalibrateGaze') : t('calibrateGaze')}
       </button>}
+      {tracking.error && <span className="sidebar__control-error" role="alert">{tracking.error}</span>}
       {recognition.error && <span className="sidebar__control-error" role="alert">{recognition.error}</span>}
     </> : undefined} activeSidebarItem={activePage} onSidebarNavigate={item => {
       if (item === 'Settings') setActivePage('Settings');
@@ -320,10 +325,7 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
           activeTarget={tracking.snapshot.activeTarget}
           selectedAction={selection.selectedAction}
           dwellProgress={tracking.snapshot.dwellProgress}
-          onActionSelect={action => {
-            selection.selectAction(action.id);
-            void notifyNurseOfAction(action.id);
-          }}
+          onActionSelect={action => handleActionSelect(action.id)}
         />
 
         {nurseAlert && !isLiveSignalNotification(nurseAlert) && <NurseAlertPopup message={nurseAlert.message} t={t} replying={replying} activeTarget={tracking.snapshot.activeTarget} dwellProgress={tracking.snapshot.dwellProgress} onReply={replyToNurse} />}
