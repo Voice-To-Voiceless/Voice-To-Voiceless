@@ -74,7 +74,7 @@ export function useBrowserTracking(
     resetInteraction();
     setSnapshot(initialSnapshot);
     setStatus('Camera is off. Start tracking to begin.');
-  }, [resetCalibration, resetInteraction]);
+  }, [resetCalibration, resetInteraction, videoRef]);
   const processFrame = useCallback(async (timestamp: number) => {
     const video = videoRef.current;
     if (!activeRef.current || processingRef.current || !video) return;
