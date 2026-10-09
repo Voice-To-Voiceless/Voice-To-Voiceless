@@ -49,6 +49,7 @@ export class BrowserWebGazerAdapter {
       webgazer = globalWindow.webgazer;
     }
     if (!webgazer) throw new Error('WebGazer loaded without exposing its API.');
+    resetStaleFaceMeshModule();
     webgazer.params.faceMeshSolutionPath = new URL('webgazer/face_mesh', document.baseURI).toString();
     this.runtime = webgazer
       .saveDataAcrossSessions(false)
@@ -82,6 +83,7 @@ export class BrowserWebGazerAdapter {
     } finally {
       if (originalGetUserMedia) Object.defineProperty(mediaDevices, 'getUserMedia', originalGetUserMedia);
       else delete (mediaDevices as { getUserMedia?: unknown }).getUserMedia;
+      releaseFaceMeshModule();
     }
     this.runtime.removeMouseEventListeners();
   }
@@ -136,5 +138,21 @@ async function cleanupRuntime(runtime: WebGazerRuntime): Promise<void> {
     } catch (error) {
       console.warn('[webgazer] cleanup failed', error);
     }
+  }
+}
+
+function resetStaleFaceMeshModule(): void {
+  const globalWindow = window as Window & { Module?: Record<string, unknown> };
+  const module = globalWindow.Module;
+  if (module && Object.getOwnPropertyDescriptor(module, 'noExitRuntime')?.get) {
+    globalWindow.Module = {};
+  }
+}
+
+function releaseFaceMeshModule(): void {
+  const globalWindow = window as Window & { Module?: Record<string, unknown> };
+  const module = globalWindow.Module;
+  if (module && Object.getOwnPropertyDescriptor(module, 'noExitRuntime')?.get) {
+    globalWindow.Module = undefined;
   }
 }
