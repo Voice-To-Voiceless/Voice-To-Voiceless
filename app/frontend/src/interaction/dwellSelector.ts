@@ -39,11 +39,15 @@ export class DwellSelector {
     if (targetId === null) {
       if (this.activeTargetId === null || this.lastUpdateAt === null || timestamp - this.lastUpdateAt > this.gracePeriodMs) {
         this.cancel();
+        this.completedTargetId = null;
       }
       return null;
     }
     if (this.completedTargetId === targetId) {
       return null;
+    }
+    if (this.completedTargetId !== null) {
+      this.completedTargetId = null;
     }
 
     this.begin(targetId, timestamp);

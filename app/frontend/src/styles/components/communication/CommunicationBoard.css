@@ -1,3 +1,11 @@
+.gaze-target-surface{
+    display:flex;
+    flex:1 1 auto;
+    flex-direction:column;
+    min-height:0;
+    width:100%;
+}
+
 .communication-board{
 
     display:flex;
@@ -7,7 +15,7 @@
     flex:1;
     gap:12px;
 
-    min-height:0;
+    min-height:clamp(560px, 78vh, 840px);
 
     width:100%;
 }
@@ -21,4 +29,8 @@
     font-weight:700;
 
     color:#0F172A;
+}
+
+.gaze-target-surface.has-nurse-alert .communication-board{
+    pointer-events:none;
 }

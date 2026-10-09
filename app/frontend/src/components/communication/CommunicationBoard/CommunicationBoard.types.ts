@@ -5,7 +5,7 @@ import type { ActionDefinition } from "../../../types/communication";
 export interface CommunicationBoardProps {
     actions: ActionDefinition[];
 
-    boardRef: RefObject<HTMLDivElement | null>;
+    boardRef?: RefObject<HTMLDivElement | null>;
 
     activeTarget: string | null;
 

@@ -1,4 +1,3 @@
-import { ActionId } from '../types/communication';
 import { FaceAnalysis } from './services/faceExpressionAnalysis';
 
 export type GazePoint = { x: number; y: number };
@@ -8,7 +7,7 @@ export type TrackingSnapshot = {
   rawGaze: GazePoint | null;
   calibratedGaze: GazePoint | null;
   gazePoint: GazePoint | null;
-  activeTarget: ActionId | null;
+  activeTarget: string | null;
   dwellProgress: number;
   calibrating: boolean;
   calibrationIndex: number;

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActionId } from '../../types/communication';
 import { DwellSelector } from '../../interaction/dwellSelector';
 import { GazeJoystickController } from '../../vision/tracking/gazeJoystickController';
 import { GazeSmoother } from '../../vision/temporal/gazeSmoother';
@@ -17,11 +16,12 @@ const initialSnapshot: TrackingSnapshot = { active: false, rawGaze: null, calibr
 export function useBrowserTracking(
   videoRef: React.RefObject<HTMLVideoElement | null>,
   boardRef: React.RefObject<HTMLDivElement | null>,
-  onSelect: (actionId: ActionId) => void,
+  onSelect: (targetId: string) => void,
   modelTestingSession?: ModelTestingSession,
 ) {
   const streamRef = useRef<MediaStream | null>(null);
   const frameRef = useRef<number | null>(null);
+  const onSelectRef = useRef(onSelect);
   const activeRef = useRef(false);
   const processingRef = useRef(false);
   const smootherRef = useRef(new GazeSmoother(0.18, 0.006));
@@ -29,7 +29,7 @@ export function useBrowserTracking(
   // Keep the fallback cursor aligned with the raw gaze direction vertically.
   const joystickRef = useRef(new GazeJoystickController({ invertX: true, invertY: false }));
   const fallbackLoggedRef = useRef(false);
-  const dwellRef = useRef(new DwellSelector(1200));
+  const dwellRef = useRef(new DwellSelector(900));
   const webgazerRef = useRef<BrowserWebGazerAdapter | null>(null);
   const calibrationBackendRef = useRef<ReturnType<typeof createWebGazerCalibrationBackend> | null>(null);
   const startRef = useRef<(() => Promise<void>) | null>(null);
@@ -48,6 +48,7 @@ export function useBrowserTracking(
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [status, setStatus] = useState('Camera is off. Start tracking to begin.');
   const [error, setError] = useState<string | null>(null);
+  onSelectRef.current = onSelect;
   const resetInteraction = useCallback(() => {
     smootherRef.current.reset();
     dwellRef.current.cancel();
@@ -170,12 +171,12 @@ export function useBrowserTracking(
       const dwellProgress = selection ? 1 : dwellRef.current.progress(targetId, timestamp);
       setSnapshot(value => ({ ...value, rawGaze: { x: smoothed.x, y: smoothed.y }, calibratedGaze, gazePoint: point, activeTarget: targetId, dwellProgress }));
       setStatus(`Looking at ${targetId}. Hold to select.`);
-      if (selection) onSelect(targetId);
+      if (selection) onSelectRef.current(targetId);
     } finally {
       processingRef.current = false;
       if (activeRef.current) frameRef.current = requestAnimationFrame(processFrame);
     }
-  }, [boardRef, calibrationActiveRef, calibrationIndexRef, calibrationMapperRef, calibrationPassKindRef, calibrationReadyRef, calibrationTargetsRef, onSelect, pauseCalibration, processCalibration, videoRef]);
+  }, [boardRef, calibrationActiveRef, calibrationIndexRef, calibrationMapperRef, calibrationPassKindRef, calibrationReadyRef, calibrationTargetsRef, pauseCalibration, processCalibration, videoRef]);
   const calibrate = useCallback(async () => {
     if (!activeRef.current) {
       await startRef.current?.();

@@ -18,7 +18,7 @@ import { CalibrationModal, ConfidencePopup, NurseAlertPopup, TrackingGuideModal 
 
 const TABLET_PATIENT_ID = 'patient-001';
 const ATTENTION_NOTIFICATION_DELAY_MS = 3500;
-const START_MONITORING_AFTER_RELOAD = 'v2vl.start-monitoring-after-reload';
+const CONFIDENCE_POPUP_DURATION_MS = 1000;
 
 function publishMonitoringStatus(active: boolean): void {
   createNotification({
@@ -39,7 +39,7 @@ type BrowserTrackingAppProps = {
 
 export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverlay = false, layout = 'tablet' }: BrowserTrackingAppProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const boardRef = useRef<HTMLDivElement>(null);
+  const gazeSurfaceRef = useRef<HTMLDivElement>(null);
   const [modelTestingSession] = useState(() => createModelTestingSession({ enableDiagnostics }));
   const [nurseAlert, setNurseAlert] = useState<PatientNotification | null>(null);
   const [showDebugOverlay, setShowDebugOverlay] = useState(() => enableDebugOverlay && readStoredDebugOverlay());
@@ -57,10 +57,20 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   const livePeerRef = useRef<RTCPeerConnection | null>(null);
   const recognitionStreamRef = useRef<MediaStream | null>(null);
   const selection = useSelectionFeedback();
-  const tracking = useBrowserTracking(videoRef, boardRef, selection.selectAction, modelTestingSession);
+  const tracking = useBrowserTracking(videoRef, gazeSurfaceRef, targetId => {
+    if (targetId.startsWith('nurse-reply:')) {
+      const reply = decodeURIComponent(targetId.slice('nurse-reply:'.length));
+      void replyToNurse(reply);
+      return;
+    }
+    const action = COMMUNICATION_ACTIONS.find(item => item.id === targetId);
+    if (action) {
+      selection.selectAction(action.id);
+      void notifyNurseOfAction(action.id);
+    }
+  }, modelTestingSession);
   const { calibrate } = tracking;
   const recognition = useFaceRecognition(videoRef);
-  const { start: startRecognition } = recognition;
   const trackingActive = tracking.snapshot.active;
   const recognitionActive = recognition.snapshot.active;
   useEffect(() => {
@@ -69,13 +79,10 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   const localizedActions = COMMUNICATION_ACTIONS.map(action => ({ ...action, label: t(action.id) }));
 
   useEffect(() => {
-    if (window.sessionStorage.getItem(START_MONITORING_AFTER_RELOAD) !== 'true') return;
-    window.sessionStorage.removeItem(START_MONITORING_AFTER_RELOAD);
-    startRecognition().then(() => publishMonitoringStatus(true)).catch(() => undefined);
-  }, [startRecognition]);
-
-  useEffect(() => {
-    if (tracking.snapshot.calibrationConfidence !== null) setShowConfidencePopup(true);
+    if (tracking.snapshot.calibrationConfidence === null) return;
+    setShowConfidencePopup(true);
+    const timeout = window.setTimeout(() => setShowConfidencePopup(false), CONFIDENCE_POPUP_DURATION_MS);
+    return () => window.clearTimeout(timeout);
   }, [tracking.snapshot.calibrationConfidence]);
 
   useEffect(() => {
@@ -207,8 +214,8 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
   };
 
   const stopTracking = () => {
-    window.sessionStorage.setItem(START_MONITORING_AFTER_RELOAD, 'true');
-    window.location.reload();
+    tracking.stop();
+    setShowTrackingGuide(false);
   };
 
   const toggleRecognition = () => {
@@ -307,19 +314,20 @@ export function BrowserTrackingApp({ enableDiagnostics = true, enableDebugOverla
       />
       {showConfidencePopup && tracking.snapshot.calibrationConfidence !== null && <ConfidencePopup score={tracking.snapshot.calibrationConfidence} t={t} onClose={() => setShowConfidencePopup(false)} />}
 
-      <CommunicationBoard
-        actions={localizedActions.filter(action => visibleActionIds.includes(action.id)).slice(0, 9)}
-        boardRef={boardRef}
-        activeTarget={tracking.snapshot.activeTarget}
-        selectedAction={selection.selectedAction}
-        dwellProgress={tracking.snapshot.dwellProgress}
-        onActionSelect={action => {
-          selection.selectAction(action.id);
-          notifyNurseOfAction(action.id);
-        }}
-      />
+      <div ref={gazeSurfaceRef} className={`gaze-target-surface${nurseAlert && !isLiveSignalNotification(nurseAlert) ? ' has-nurse-alert' : ''}`}>
+        <CommunicationBoard
+          actions={localizedActions.filter(action => visibleActionIds.includes(action.id)).slice(0, 9)}
+          activeTarget={tracking.snapshot.activeTarget}
+          selectedAction={selection.selectedAction}
+          dwellProgress={tracking.snapshot.dwellProgress}
+          onActionSelect={action => {
+            selection.selectAction(action.id);
+            void notifyNurseOfAction(action.id);
+          }}
+        />
 
-      {nurseAlert && !isLiveSignalNotification(nurseAlert) && <NurseAlertPopup message={nurseAlert.message} t={t} replying={replying} onReply={replyToNurse} />}
+        {nurseAlert && !isLiveSignalNotification(nurseAlert) && <NurseAlertPopup message={nurseAlert.message} t={t} replying={replying} activeTarget={tracking.snapshot.activeTarget} dwellProgress={tracking.snapshot.dwellProgress} onReply={replyToNurse} />}
+      </div>
 
       <p className="footer-note">{t('footerNote')}</p>
       </>}
